@@ -67,7 +67,34 @@ uv run pytest tests/test_file.py # Run specific test file
 ## Key Features
 
 - Modern Python packaging with pyproject.toml
-- Rich console output for better UX
-- Structured CLI with subcommands (e.g., `lazy-ecs ecs list-clusters`)
-- Comprehensive test coverage setup
+- Interactive CLI with arrow key navigation (questionary + rich)
+- AWS ECS integration with boto3
+- Comprehensive test coverage with moto for AWS mocking
 - All tooling configured in pyproject.toml
+
+## Testing Patterns
+
+**AWS Service Mocking with Moto:**
+- Use `moto[ecs]` for realistic AWS service mocking
+- Use `pytest-mock` for simple function mocking
+- Create fixtures with `mock_aws` context manager
+
+**Example AWS test pattern:**
+```python
+@pytest.fixture
+def ecs_client_with_clusters():
+    """Create a mocked ECS client with test clusters."""
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        client.create_cluster(clusterName="production")
+        yield client
+
+def test_get_cluster_names(ecs_client_with_clusters):
+    navigator = ECSNavigator(ecs_client_with_clusters)
+    clusters = navigator.get_cluster_names()
+    assert "production" in clusters
+```
+
+**Interactive CLI Testing:**
+- Mock `questionary.select` for user input simulation
+- Use `@patch` decorator for external library mocking
