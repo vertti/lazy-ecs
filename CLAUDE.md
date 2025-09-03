@@ -98,3 +98,11 @@ def test_get_cluster_names(ecs_client_with_clusters):
 **Interactive CLI Testing:**
 - Mock `questionary.select` for user input simulation
 - Use `@patch` decorator for external library mocking
+
+## Code Style Guidelines
+
+**Comments:**
+- Do not add comments for the sake of adding comments
+- If test name is descriptive, no need for general test comments
+- Only add comments to explain complex logic that's hard to understand from code alone
+- Avoid obvious comments like "Create a client" or "Test successful flow"
