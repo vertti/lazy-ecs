@@ -42,3 +42,39 @@ class ECSNavigator:
         ).ask()
 
         return selected_cluster or ""
+
+    def get_services(self, cluster_name: str) -> list[str]:
+        """Get list of ECS service names from specific cluster."""
+        response = self.ecs_client.list_services(cluster=cluster_name)
+        service_arns = response.get("serviceArns", [])
+
+        service_names = []
+        for arn in service_arns:
+            service_name = arn.split("/")[-1]
+            service_names.append(service_name)
+
+        return service_names
+
+    def select_service(self, cluster_name: str) -> str:
+        """Interactive service selection with arrow keys."""
+        services = self.get_services(cluster_name)
+
+        if not services:
+            console.print(
+                f"No services found in cluster '{cluster_name}'!", style="red"
+            )
+            return ""
+
+        selected_service = questionary.select(
+            f"Select a service from '{cluster_name}':",
+            choices=services,
+            style=questionary.Style(
+                [
+                    ("selected", "fg:#61ffca bold"),
+                    ("pointer", "fg:#61ffca bold"),
+                    ("question", "fg:#ffffff bold"),
+                ]
+            ),
+        ).ask()
+
+        return selected_service or ""

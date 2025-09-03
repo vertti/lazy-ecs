@@ -21,7 +21,24 @@ def main() -> None:
 
         if selected_cluster:
             console.print(f"\n✅ Selected cluster: {selected_cluster}", style="green")
-            # TODO: Navigate to services in the selected cluster
+
+            # Navigate to services in the selected cluster
+            selected_service = navigator.select_service(selected_cluster)
+
+            if selected_service:
+                console.print(
+                    f"\n✅ Selected service: {selected_service}", style="green"
+                )
+                console.print(
+                    f"📊 Service '{selected_service}' in cluster '{selected_cluster}'",
+                    style="blue",
+                )
+                # TODO: Show service details, tasks, etc.
+            else:
+                console.print(
+                    f"\n❌ No service selected from '{selected_cluster}'. Goodbye!",
+                    style="yellow",
+                )
         else:
             console.print("\n❌ No cluster selected. Goodbye!", style="yellow")
 

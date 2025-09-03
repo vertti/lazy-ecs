@@ -56,11 +56,82 @@ def test_cluster_selection_with_no_clusters(ecs_client_empty):
 
 @patch("lazy_ecs.interactive.questionary.select")
 def test_select_cluster_interactive_no_clusters(mock_select, ecs_client_empty):
-    """Test interactive selection when no clusters exist."""
     navigator = ECSNavigator(ecs_client_empty)
     selected = navigator.select_cluster()
 
-    # Should return empty string when no clusters
     assert selected == ""
-    # questionary.select should not be called when no clusters
+    mock_select.assert_not_called()
+
+
+@pytest.fixture
+def ecs_client_with_services():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+
+        client.create_cluster(clusterName="production")
+
+        # Create task definitions first (required for services)
+        client.register_task_definition(
+            family="web-api-task",
+            containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
+        )
+        client.register_task_definition(
+            family="worker-task",
+            containerDefinitions=[{"name": "worker", "image": "worker", "memory": 256}],
+        )
+        client.register_task_definition(
+            family="db-proxy-task",
+            containerDefinitions=[{"name": "proxy", "image": "proxy", "memory": 256}],
+        )
+
+        # Now create services
+        client.create_service(
+            cluster="production", serviceName="web-api", taskDefinition="web-api-task"
+        )
+        client.create_service(
+            cluster="production",
+            serviceName="worker-service",
+            taskDefinition="worker-task",
+        )
+        client.create_service(
+            cluster="production",
+            serviceName="database-proxy",
+            taskDefinition="db-proxy-task",
+        )
+
+        yield client
+
+
+def test_get_services_from_cluster(ecs_client_with_services):
+    navigator = ECSNavigator(ecs_client_with_services)
+    services = navigator.get_services("production")
+
+    expected = ["web-api", "worker-service", "database-proxy"]
+    assert sorted(services) == sorted(expected)
+
+
+def test_get_services_from_empty_cluster(ecs_client_with_clusters):
+    navigator = ECSNavigator(ecs_client_with_clusters)
+    services = navigator.get_services("production")
+
+    assert services == []
+
+
+@patch("lazy_ecs.interactive.questionary.select")
+def test_select_service_interactive(mock_select, ecs_client_with_services):
+    mock_select.return_value.ask.return_value = "web-api"
+
+    navigator = ECSNavigator(ecs_client_with_services)
+    selected = navigator.select_service("production")
+
+    assert selected == "web-api"
+    mock_select.assert_called_once()
+
+
+@patch("lazy_ecs.interactive.questionary.select")
+def test_select_service_interactive_no_services(mock_select, ecs_client_with_clusters):
+    navigator = ECSNavigator(ecs_client_with_clusters)
+    selected = navigator.select_service("production")
+
+    assert selected == ""
     mock_select.assert_not_called()
