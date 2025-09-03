@@ -1,0 +1,4 @@
+[tools]
+node = "latest"
+python = "latest"
+uv = "latest"
