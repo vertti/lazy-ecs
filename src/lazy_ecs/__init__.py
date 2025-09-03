@@ -1,33 +1,33 @@
-import click
+import boto3
 from rich.console import Console
+
+from .interactive import ECSNavigator
 
 console = Console()
 
 
-@click.group()
-@click.version_option()
 def main() -> None:
-    """A CLI tool for working with AWS services."""
-    pass
+    """Interactive AWS ECS navigation tool."""
+    console.print("🚀 Welcome to lazy-ecs!", style="bold cyan")
+    console.print("Interactive AWS ECS cluster navigator\n", style="dim")
 
+    try:
+        # Initialize AWS ECS client
+        ecs_client = boto3.client("ecs")
+        navigator = ECSNavigator(ecs_client)
 
-@main.command()
-def version() -> None:
-    """Show version information."""
-    console.print("lazy-ecs 0.1.0", style="bold green")
+        # Start interactive navigation
+        selected_cluster = navigator.select_cluster()
 
+        if selected_cluster:
+            console.print(f"\n✅ Selected cluster: {selected_cluster}", style="green")
+            # TODO: Navigate to services in the selected cluster
+        else:
+            console.print("\n❌ No cluster selected. Goodbye!", style="yellow")
 
-@main.group()
-def ecs() -> None:
-    """Commands for Amazon ECS."""
-    pass
-
-
-@ecs.command()
-def list_clusters() -> None:
-    """List ECS clusters."""
-    console.print("Listing ECS clusters...", style="blue")
-    # TODO: Implement actual AWS ECS listing
+    except Exception as e:
+        console.print(f"\n❌ Error: {e}", style="red")
+        console.print("Make sure your AWS credentials are configured.", style="dim")
 
 
 if __name__ == "__main__":
