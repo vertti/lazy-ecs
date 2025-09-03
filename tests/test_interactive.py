@@ -135,3 +135,112 @@ def test_select_service_interactive_no_services(mock_select, ecs_client_with_clu
 
     assert selected == ""
     mock_select.assert_not_called()
+
+
+@pytest.fixture
+def ecs_client_with_tasks():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="web-api-task",
+            containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
+        )
+
+        client.create_service(
+            cluster="production",
+            serviceName="web-api",
+            taskDefinition="web-api-task",
+            desiredCount=3,
+        )
+
+        # Start some tasks for the service
+        client.run_task(
+            cluster="production",
+            taskDefinition="web-api-task",
+            count=3,
+            launchType="FARGATE",
+            networkConfiguration={
+                "awsvpcConfiguration": {
+                    "subnets": ["subnet-12345"],
+                    "assignPublicIp": "ENABLED",
+                }
+            },
+        )
+
+        yield client
+
+
+def test_get_tasks_from_service(ecs_client_with_tasks):
+    navigator = ECSNavigator(ecs_client_with_tasks)
+    tasks = navigator.get_tasks("production", "web-api")
+
+    assert len(tasks) == 3
+    for task_id in tasks:
+        assert isinstance(task_id, str)
+        assert len(task_id) > 0
+
+
+def test_get_tasks_from_service_no_tasks(ecs_client_with_services):
+    navigator = ECSNavigator(ecs_client_with_services)
+    tasks = navigator.get_tasks("production", "web-api")
+
+    assert tasks == []
+
+
+@patch("lazy_ecs.interactive.questionary.select")
+def test_select_task_interactive_multiple_tasks(mock_select, ecs_client_with_tasks):
+    mock_select.return_value.ask.return_value = "task-123"
+
+    navigator = ECSNavigator(ecs_client_with_tasks)
+    selected = navigator.select_task("production", "web-api")
+
+    assert selected == "task-123"
+    mock_select.assert_called_once()
+
+
+def test_select_task_auto_select_single_task():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+
+        client.create_cluster(clusterName="production")
+        client.register_task_definition(
+            family="web-api-task",
+            containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
+        )
+        client.create_service(
+            cluster="production", serviceName="web-api", taskDefinition="web-api-task"
+        )
+
+        # Start only one task
+        response = client.run_task(
+            cluster="production",
+            taskDefinition="web-api-task",
+            count=1,
+            launchType="FARGATE",
+            networkConfiguration={
+                "awsvpcConfiguration": {
+                    "subnets": ["subnet-12345"],
+                    "assignPublicIp": "ENABLED",
+                }
+            },
+        )
+
+        navigator = ECSNavigator(client)
+        selected = navigator.select_task("production", "web-api")
+
+        # Should auto-select the single task
+        task_arn = response["tasks"][0]["taskArn"]
+        task_id = task_arn.split("/")[-1]
+        assert selected == task_id
+
+
+@patch("lazy_ecs.interactive.questionary.select")
+def test_select_task_no_tasks(mock_select, ecs_client_with_services):
+    navigator = ECSNavigator(ecs_client_with_services)
+    selected = navigator.select_task("production", "web-api")
+
+    assert selected == ""
+    mock_select.assert_not_called()

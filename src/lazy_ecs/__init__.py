@@ -29,11 +29,25 @@ def main() -> None:
                 console.print(
                     f"\n✅ Selected service: {selected_service}", style="green"
                 )
-                console.print(
-                    f"📊 Service '{selected_service}' in cluster '{selected_cluster}'",
-                    style="blue",
+
+                # Navigate to tasks in the selected service
+                selected_task = navigator.select_task(
+                    selected_cluster, selected_service
                 )
-                # TODO: Show service details, tasks, etc.
+
+                if selected_task:
+                    console.print(f"\n✅ Selected task: {selected_task}", style="green")
+                    console.print(
+                        f"🎯 Task '{selected_task}' in service '{selected_service}'",
+                        style="blue",
+                    )
+                    console.print(f"   Cluster: {selected_cluster}", style="dim")
+                    # TODO: Show task details, logs, etc.
+                else:
+                    console.print(
+                        f"\n❌ No task selected from '{selected_service}'. Goodbye!",
+                        style="yellow",
+                    )
             else:
                 console.print(
                     f"\n❌ No service selected from '{selected_cluster}'. Goodbye!",
