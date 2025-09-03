@@ -22,7 +22,7 @@ The project uses:
 3. **Implement** the minimal code to make the test pass
 4. **Run tests** again to verify they pass: `uv run pytest`
 5. **Format code**: `uv run ruff format` (fixes many linting issues automatically)
-6. **Check linting**: `uv run ruff check`
+6. **Check and fix linting**: `uv run ruff check --fix` (fixes issues AND does the check)
 7. **Pause** - suggest commit message, never commit automatically
 
 ## Common Commands
@@ -39,7 +39,7 @@ uv run pytest                    # Run tests (should fail initially)
 # [implement feature]
 uv run pytest                    # Verify tests pass
 uv run ruff format               # Auto-fix formatting (run first!)
-uv run ruff check                # Check remaining linting issues
+uv run ruff check --fix          # Fix issues AND check linting (combines both!)
 
 # Other useful commands:
 uv run pytest --cov             # Run tests with coverage
