@@ -26,14 +26,10 @@ def main() -> None:
             selected_service = navigator.select_service(selected_cluster)
 
             if selected_service:
-                console.print(
-                    f"\n✅ Selected service: {selected_service}", style="green"
-                )
+                console.print(f"\n✅ Selected service: {selected_service}", style="green")
 
                 # Navigate to tasks in the selected service
-                selected_task = navigator.select_task(
-                    selected_cluster, selected_service
-                )
+                selected_task = navigator.select_task(selected_cluster, selected_service)
 
                 if selected_task:
                     console.print(f"\n✅ Selected task: {selected_task}", style="green")

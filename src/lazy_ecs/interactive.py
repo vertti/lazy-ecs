@@ -60,9 +60,7 @@ class ECSNavigator:
         services = self.get_services(cluster_name)
 
         if not services:
-            console.print(
-                f"No services found in cluster '{cluster_name}'!", style="red"
-            )
+            console.print(f"No services found in cluster '{cluster_name}'!", style="red")
             return ""
 
         selected_service = questionary.select(
@@ -81,9 +79,7 @@ class ECSNavigator:
 
     def get_tasks(self, cluster_name: str, service_name: str) -> list[str]:
         """Get list of running task ARNs for a specific service."""
-        response = self.ecs_client.list_tasks(
-            cluster=cluster_name, serviceName=service_name
-        )
+        response = self.ecs_client.list_tasks(cluster=cluster_name, serviceName=service_name)
         task_arns = response.get("taskArns", [])
 
         # Return task IDs (last part of ARN) for easier display
@@ -99,9 +95,7 @@ class ECSNavigator:
         tasks = self.get_tasks(cluster_name, service_name)
 
         if not tasks:
-            console.print(
-                f"No running tasks found for service '{service_name}'!", style="red"
-            )
+            console.print(f"No running tasks found for service '{service_name}'!", style="red")
             return ""
 
         if len(tasks) == 1:

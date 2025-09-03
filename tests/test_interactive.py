@@ -85,9 +85,7 @@ def ecs_client_with_services():
         )
 
         # Now create services
-        client.create_service(
-            cluster="production", serviceName="web-api", taskDefinition="web-api-task"
-        )
+        client.create_service(cluster="production", serviceName="web-api", taskDefinition="web-api-task")
         client.create_service(
             cluster="production",
             serviceName="worker-service",
@@ -210,9 +208,7 @@ def test_select_task_auto_select_single_task():
             family="web-api-task",
             containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
         )
-        client.create_service(
-            cluster="production", serviceName="web-api", taskDefinition="web-api-task"
-        )
+        client.create_service(cluster="production", serviceName="web-api", taskDefinition="web-api-task")
 
         # Start only one task
         response = client.run_task(
