@@ -32,11 +32,15 @@ def main() -> None:
                 selected_task = navigator.select_task(selected_cluster, selected_service)
 
                 if selected_task:
-                    console.print(f"\n✅ Selected task: {selected_task}", style="green")
-                    console.print(
-                        f"🎯 Task '{selected_task}' in service '{selected_service}'",
-                        style="blue",
+                    # Get readable name for the selected task
+                    task_choices = navigator.get_readable_task_choices(selected_cluster, selected_service)
+                    task_display_name = next(
+                        (choice["name"] for choice in task_choices if choice["value"] == selected_task), selected_task
                     )
+
+                    console.print(f"\n✅ Selected task: {task_display_name}", style="green")
+                    console.print("🎯 Ready to work with this task", style="blue")
+                    console.print(f"   Service: {selected_service}", style="dim")
                     console.print(f"   Cluster: {selected_cluster}", style="dim")
                     # TODO: Show task details, logs, etc.
                 else:

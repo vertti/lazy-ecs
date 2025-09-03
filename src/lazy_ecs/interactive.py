@@ -81,31 +81,24 @@ class ECSNavigator:
         """Get list of running task ARNs for a specific service."""
         response = self.ecs_client.list_tasks(cluster=cluster_name, serviceName=service_name)
         task_arns = response.get("taskArns", [])
-
-        # Return task IDs (last part of ARN) for easier display
-        task_ids = []
-        for arn in task_arns:
-            task_id = arn.split("/")[-1]
-            task_ids.append(task_id)
-
-        return task_ids
+        return task_arns
 
     def select_task(self, cluster_name: str, service_name: str) -> str:
         """Select task - auto-select if single task, interactive if multiple."""
-        tasks = self.get_tasks(cluster_name, service_name)
+        task_choices = self.get_readable_task_choices(cluster_name, service_name)
 
-        if not tasks:
+        if not task_choices:
             console.print(f"No running tasks found for service '{service_name}'!", style="red")
             return ""
 
-        if len(tasks) == 1:
-            task_id = tasks[0]
-            console.print(f"Auto-selected single task: {task_id}", style="dim")
-            return task_id
+        if len(task_choices) == 1:
+            choice = task_choices[0]
+            console.print(f"Auto-selected single task: {choice['name']}", style="dim")
+            return choice["value"]
 
         selected_task = questionary.select(
             f"Select a task from '{service_name}':",
-            choices=tasks,
+            choices=task_choices,
             style=questionary.Style(
                 [
                     ("selected", "fg:#61ffca bold"),
@@ -116,3 +109,38 @@ class ECSNavigator:
         ).ask()
 
         return selected_task or ""
+
+    def get_readable_task_choices(self, cluster_name: str, service_name: str) -> list[dict]:
+        """Get list of tasks with human-readable names for interactive selection."""
+        task_arns = self.get_tasks(cluster_name, service_name)
+
+        if not task_arns:
+            return []
+
+        # Get detailed task information
+        response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=task_arns)
+        tasks = response.get("tasks", [])
+
+        choices = []
+        for task in tasks:
+            task_arn = task["taskArn"]
+            task_def_arn = task["taskDefinitionArn"]
+
+            # Extract readable info
+            task_def_name = task_def_arn.split("/")[-1].split(":")[0]  # e.g., "web-api-task"
+            created_at = task.get("createdAt", "")
+            if created_at:
+                # Format datetime for readability
+                created_str = created_at.strftime("%H:%M:%S")
+            else:
+                created_str = "unknown"
+
+            # Create human-readable name
+            task_id_short = task_arn.split("/")[-1][:8]  # First 8 chars of UUID
+            display_name = f"{task_def_name} ({task_id_short}) - {created_str}"
+
+            choices.append({"name": display_name, "value": task_arn})
+
+        # Sort by creation time (newest first)
+        choices.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        return choices

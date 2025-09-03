@@ -176,9 +176,9 @@ def test_get_tasks_from_service(ecs_client_with_tasks):
     tasks = navigator.get_tasks("production", "web-api")
 
     assert len(tasks) == 3
-    for task_id in tasks:
-        assert isinstance(task_id, str)
-        assert len(task_id) > 0
+    for task_arn in tasks:
+        assert isinstance(task_arn, str)
+        assert task_arn.startswith("arn:aws:ecs:")
 
 
 def test_get_tasks_from_service_no_tasks(ecs_client_with_services):
@@ -227,10 +227,9 @@ def test_select_task_auto_select_single_task():
         navigator = ECSNavigator(client)
         selected = navigator.select_task("production", "web-api")
 
-        # Should auto-select the single task
-        task_arn = response["tasks"][0]["taskArn"]
-        task_id = task_arn.split("/")[-1]
-        assert selected == task_id
+        # Should auto-select the single task and return the full ARN
+        expected_task_arn = response["tasks"][0]["taskArn"]
+        assert selected == expected_task_arn
 
 
 @patch("lazy_ecs.interactive.questionary.select")
@@ -240,3 +239,17 @@ def test_select_task_no_tasks(mock_select, ecs_client_with_services):
 
     assert selected == ""
     mock_select.assert_not_called()
+
+
+def test_get_readable_task_names(ecs_client_with_tasks):
+    navigator = ECSNavigator(ecs_client_with_tasks)
+    task_choices = navigator.get_readable_task_choices("production", "web-api")
+
+    assert len(task_choices) == 3
+    for choice in task_choices:
+        # Each choice should be a dict with display name and task ARN
+        assert isinstance(choice, dict)
+        assert "name" in choice
+        assert "value" in choice
+        # Name should be human readable, not a UUID
+        assert not choice["name"].replace("-", "").isalnum() or len(choice["name"]) < 20
