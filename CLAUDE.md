@@ -25,12 +25,21 @@ The project uses:
 6. **Check and fix linting**: `uv run ruff check --fix` (fixes issues AND does the check)
 7. **Pause** - suggest commit message, never commit automatically
 
+## Setup
+
+After cloning the repository:
+
+```bash
+# Install dependencies
+uv sync
+
+# Install pre-commit hooks (automatically runs ruff on git commit)
+uv run pre-commit install
+```
+
 ## Common Commands
 
 ```bash
-# Install dependencies and dev dependencies
-uv sync
-
 # Run the CLI
 uv run lazy-ecs
 
@@ -45,6 +54,9 @@ uv run ruff check --fix          # Fix issues AND check linting (combines both!)
 uv run pytest --cov             # Run tests with coverage
 uv run pytest -v                # Verbose test output
 uv run pytest tests/test_file.py # Run specific test file
+
+# Pre-commit commands:
+uv run pre-commit run --all-files # Run pre-commit on all files manually
 ```
 
 **IMPORTANT**: This is a uv project - always prefix commands with `uv run` or `uv`.
