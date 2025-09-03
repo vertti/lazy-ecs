@@ -55,17 +55,82 @@ class ECSNavigator:
 
         return service_names
 
-    def select_service(self, cluster_name: str) -> str:
-        """Interactive service selection with arrow keys."""
-        services = self.get_services(cluster_name)
+    def get_service_choices(self, cluster_name: str) -> list[dict]:
+        """Get services with detailed state information for interactive selection."""
+        response = self.ecs_client.list_services(cluster=cluster_name)
+        service_arns = response.get("serviceArns", [])
 
-        if not services:
+        if not service_arns:
+            return []
+
+        # Get detailed service information
+        describe_response = self.ecs_client.describe_services(cluster=cluster_name, services=service_arns)
+        services = describe_response.get("services", [])
+
+        choices = []
+        for service in services:
+            service_name = service["serviceName"]
+            desired_count = service["desiredCount"]
+            running_count = service["runningCount"]
+            pending_count = service["pendingCount"]
+
+            # Determine service health status
+            if running_count == desired_count and pending_count == 0:
+                status_icon = "✅"
+                status_text = "HEALTHY"
+            elif running_count < desired_count:
+                status_icon = "⚠️ "
+                status_text = "SCALING"
+            elif running_count > desired_count:
+                status_icon = "🔄"
+                status_text = "DRAINING"
+            else:
+                status_icon = "❌"
+                status_text = "UNHEALTHY"
+
+            # Create display name with state info
+            state_info = f"({running_count}/{desired_count})"
+            if pending_count > 0:
+                state_info = f"({running_count}/{desired_count}, {pending_count} pending)"
+
+            display_name = f"{status_icon} {service_name} {state_info} - {status_text}"
+
+            choices.append(
+                {
+                    "name": display_name,
+                    "value": service_name,
+                    "status": status_text,
+                    "running_count": running_count,
+                    "desired_count": desired_count,
+                    "pending_count": pending_count,
+                }
+            )
+
+        # Sort unhealthy services first
+        choices.sort(key=lambda x: (x["status"] == "HEALTHY", x["name"]))
+        return choices
+
+    def select_service(self, cluster_name: str) -> str:
+        """Interactive service selection with arrow keys and state information."""
+        service_choices = self.get_service_choices(cluster_name)
+
+        if not service_choices:
             console.print(f"No services found in cluster '{cluster_name}'!", style="red")
             return ""
 
+        # Show summary of unhealthy services
+        unhealthy_services = [s for s in service_choices if s["status"] != "HEALTHY"]
+        if unhealthy_services:
+            console.print(f"\n⚠️  {len(unhealthy_services)} service(s) not in desired state:", style="bold yellow")
+            for service in unhealthy_services:
+                console.print(
+                    f"  • {service['value']}: {service['running_count']}/{service['desired_count']}", style="yellow"
+                )
+            console.print()
+
         selected_service = questionary.select(
-            f"Select a service from '{cluster_name}':",
-            choices=services,
+            f"Select a service from '{cluster_name}' (unhealthy services shown first):",
+            choices=service_choices,
             style=questionary.Style(
                 [
                     ("selected", "fg:#61ffca bold"),

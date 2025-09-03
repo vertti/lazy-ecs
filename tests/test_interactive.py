@@ -108,6 +108,22 @@ def test_get_services_from_cluster(ecs_client_with_services):
     assert sorted(services) == sorted(expected)
 
 
+def test_get_service_choices_with_state_info(ecs_client_with_services):
+    navigator = ECSNavigator(ecs_client_with_services)
+    service_choices = navigator.get_service_choices("production")
+
+    assert len(service_choices) == 3
+    for choice in service_choices:
+        assert "name" in choice
+        assert "value" in choice
+        assert "status" in choice
+        assert "running_count" in choice
+        assert "desired_count" in choice
+        assert choice["value"] in ["web-api", "worker-service", "database-proxy"]
+        # All services should show as HEALTHY since they have desiredCount=0 by default in moto
+        assert "✅" in choice["name"] or "⚠️" in choice["name"]
+
+
 def test_get_services_from_empty_cluster(ecs_client_with_clusters):
     navigator = ECSNavigator(ecs_client_with_clusters)
     services = navigator.get_services("production")
@@ -124,6 +140,15 @@ def test_select_service_interactive(mock_select, ecs_client_with_services):
 
     assert selected == "web-api"
     mock_select.assert_called_once()
+    # Verify that the choices passed to questionary are dictionaries with enhanced info
+    call_kwargs = mock_select.call_args[1]
+    assert "choices" in call_kwargs
+    choices = call_kwargs["choices"]
+    assert len(choices) == 3
+    for choice in choices:
+        assert isinstance(choice, dict)
+        assert "name" in choice
+        assert "value" in choice
 
 
 @patch("lazy_ecs.interactive.questionary.select")
@@ -133,6 +158,13 @@ def test_select_service_interactive_no_services(mock_select, ecs_client_with_clu
 
     assert selected == ""
     mock_select.assert_not_called()
+
+
+def test_get_service_choices_empty_cluster(ecs_client_with_clusters):
+    navigator = ECSNavigator(ecs_client_with_clusters)
+    service_choices = navigator.get_service_choices("production")
+
+    assert service_choices == []
 
 
 @pytest.fixture
