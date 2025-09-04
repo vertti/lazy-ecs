@@ -279,9 +279,15 @@ def test_get_readable_task_names(ecs_client_with_tasks):
 
     assert len(task_choices) == 3
     for choice in task_choices:
-        # Each choice should be a dict with display name and task ARN
+        # Each choice should be a dict with enhanced info
         assert isinstance(choice, dict)
         assert "name" in choice
         assert "value" in choice
-        # Name should be human readable, not a UUID
-        assert not choice["name"].replace("-", "").isalnum() or len(choice["name"]) < 20
+        assert "task_def_arn" in choice
+        assert "is_desired" in choice
+        assert "revision" in choice
+        assert "images" in choice
+        # Should contain version indicator (either ✅ or 🔴)
+        assert "✅" in choice["name"] or "🔴" in choice["name"]
+        # Should contain revision number
+        assert f"v{choice['revision']}" in choice["name"]

@@ -156,13 +156,25 @@ class ECSNavigator:
             console.print(f"No running tasks found for service '{service_name}'!", style="red")
             return ""
 
+        # Show summary of version mismatches
+        mismatched_tasks = [t for t in task_choices if not t["is_desired"]]
+        if mismatched_tasks:
+            console.print(f"\n🔴 {len(mismatched_tasks)} task(s) running wrong task definition:", style="bold red")
+            for task in mismatched_tasks:
+                images = ", ".join(task["images"]) if task["images"] else "unknown"
+                console.print(f"  • Task v{task['revision']}: {images}", style="red")
+            console.print()
+
         if len(task_choices) == 1:
             choice = task_choices[0]
-            console.print(f"Auto-selected single task: {choice['name']}", style="dim")
+            if choice["is_desired"]:
+                console.print(f"Auto-selected single task: {choice['name']}", style="dim")
+            else:
+                console.print(f"⚠️  Auto-selected single task (WRONG VERSION): {choice['name']}", style="bold yellow")
             return choice["value"]
 
         selected_task = questionary.select(
-            f"Select a task from '{service_name}':",
+            f"Select a task from '{service_name}' (wrong versions shown first):",
             choices=task_choices,
             style=questionary.Style(
                 [
@@ -176,36 +188,86 @@ class ECSNavigator:
         return selected_task or ""
 
     def get_readable_task_choices(self, cluster_name: str, service_name: str) -> list[dict]:
-        """Get list of tasks with human-readable names for interactive selection."""
+        """Get list of tasks with human-readable names and task definition info for interactive selection."""
         task_arns = self.get_tasks(cluster_name, service_name)
 
         if not task_arns:
             return []
 
+        # Get service's desired task definition
+        service_response = self.ecs_client.describe_services(cluster=cluster_name, services=[service_name])
+        services = service_response.get("services", [])
+        desired_task_def = services[0]["taskDefinition"] if services else None
+
         # Get detailed task information
         response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=task_arns)
         tasks = response.get("tasks", [])
+
+        # Get task definition details to extract container images
+        task_def_arns = list({task["taskDefinitionArn"] for task in tasks})
+        task_def_response = self.ecs_client.describe_task_definition(taskDefinition=task_def_arns[0])
+        task_def_details = {task_def_arns[0]: task_def_response["taskDefinition"]} if task_def_arns else {}
+
+        # Get additional task definitions if there are multiple
+        for task_def_arn in task_def_arns[1:]:
+            try:
+                td_response = self.ecs_client.describe_task_definition(taskDefinition=task_def_arn)
+                task_def_details[task_def_arn] = td_response["taskDefinition"]
+            except Exception:
+                pass
 
         choices = []
         for task in tasks:
             task_arn = task["taskArn"]
             task_def_arn = task["taskDefinitionArn"]
 
-            # Extract readable info
+            # Extract task definition info
             task_def_name = task_def_arn.split("/")[-1].split(":")[0]  # e.g., "web-api-task"
+            task_def_revision = task_def_arn.split(":")[-1]  # e.g., "5"
+
+            # Check if this task is using the desired task definition
+            is_desired = task_def_arn == desired_task_def
+            version_indicator = f"v{task_def_revision}"
+            if not is_desired:
+                version_indicator = f"🔴 v{task_def_revision}"  # Red circle for wrong version
+            else:
+                version_indicator = f"✅ v{task_def_revision}"  # Green check for correct version
+
+            # Get container images
+            container_images = []
+            if task_def_arn in task_def_details:
+                containers = task_def_details[task_def_arn].get("containerDefinitions", [])
+                for container in containers:
+                    image = container.get("image", "unknown")
+                    # Shorten image name (just repo:tag, not full registry)
+                    if "/" in image:
+                        image = image.split("/")[-1]
+                    container_images.append(image)
+
+            images_str = ", ".join(container_images) if container_images else "unknown"
+
             created_at = task.get("createdAt", "")
             if created_at:
-                # Format datetime for readability
                 created_str = created_at.strftime("%H:%M:%S")
             else:
                 created_str = "unknown"
 
-            # Create human-readable name
-            task_id_short = task_arn.split("/")[-1][:8]  # First 8 chars of UUID
-            display_name = f"{task_def_name} ({task_id_short}) - {created_str}"
+            # Create enhanced display name
+            task_id_short = task_arn.split("/")[-1][:8]
+            display_name = f"{version_indicator} {task_def_name} ({task_id_short}) - {images_str} - {created_str}"
 
-            choices.append({"name": display_name, "value": task_arn})
+            choices.append(
+                {
+                    "name": display_name,
+                    "value": task_arn,
+                    "task_def_arn": task_def_arn,
+                    "is_desired": is_desired,
+                    "revision": task_def_revision,
+                    "images": container_images,
+                    "created_at": created_at,
+                }
+            )
 
-        # Sort by creation time (newest first)
-        choices.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        # Sort by: wrong version first, then by creation time (newest first)
+        choices.sort(key=lambda x: (x["is_desired"], -(x["created_at"].timestamp() if x["created_at"] else 0)))
         return choices
