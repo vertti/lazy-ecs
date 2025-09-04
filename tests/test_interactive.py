@@ -28,7 +28,7 @@ def ecs_client_empty():
         yield boto3.client("ecs", region_name="us-east-1")
 
 
-def test_get_cluster_names(ecs_client_with_clusters):
+def test_get_cluster_names(ecs_client_with_clusters) -> None:
     navigator = ECSNavigator(ecs_client_with_clusters)
     clusters = navigator.get_cluster_names()
 
@@ -37,7 +37,7 @@ def test_get_cluster_names(ecs_client_with_clusters):
 
 
 @patch("lazy_ecs.interactive.questionary.select")
-def test_select_cluster_interactive(mock_select, ecs_client_with_clusters):
+def test_select_cluster_interactive(mock_select, ecs_client_with_clusters) -> None:
     mock_select.return_value.ask.return_value = "production"
 
     navigator = ECSNavigator(ecs_client_with_clusters)
@@ -47,7 +47,7 @@ def test_select_cluster_interactive(mock_select, ecs_client_with_clusters):
     mock_select.assert_called_once()
 
 
-def test_cluster_selection_with_no_clusters(ecs_client_empty):
+def test_cluster_selection_with_no_clusters(ecs_client_empty) -> None:
     navigator = ECSNavigator(ecs_client_empty)
     clusters = navigator.get_cluster_names()
 
@@ -55,7 +55,7 @@ def test_cluster_selection_with_no_clusters(ecs_client_empty):
 
 
 @patch("lazy_ecs.interactive.questionary.select")
-def test_select_cluster_interactive_no_clusters(mock_select, ecs_client_empty):
+def test_select_cluster_interactive_no_clusters(mock_select, ecs_client_empty) -> None:
     navigator = ECSNavigator(ecs_client_empty)
     selected = navigator.select_cluster()
 
@@ -100,7 +100,7 @@ def ecs_client_with_services():
         yield client
 
 
-def test_get_services_from_cluster(ecs_client_with_services):
+def test_get_services_from_cluster(ecs_client_with_services) -> None:
     navigator = ECSNavigator(ecs_client_with_services)
     services = navigator.get_services("production")
 
@@ -108,7 +108,7 @@ def test_get_services_from_cluster(ecs_client_with_services):
     assert sorted(services) == sorted(expected)
 
 
-def test_get_service_choices_with_state_info(ecs_client_with_services):
+def test_get_service_choices_with_state_info(ecs_client_with_services) -> None:
     navigator = ECSNavigator(ecs_client_with_services)
     service_choices = navigator.get_service_choices("production")
 
@@ -124,7 +124,7 @@ def test_get_service_choices_with_state_info(ecs_client_with_services):
         assert "✅" in choice["name"] or "⚠️" in choice["name"]
 
 
-def test_get_services_from_empty_cluster(ecs_client_with_clusters):
+def test_get_services_from_empty_cluster(ecs_client_with_clusters) -> None:
     navigator = ECSNavigator(ecs_client_with_clusters)
     services = navigator.get_services("production")
 
@@ -132,7 +132,7 @@ def test_get_services_from_empty_cluster(ecs_client_with_clusters):
 
 
 @patch("lazy_ecs.interactive.questionary.select")
-def test_select_service_interactive(mock_select, ecs_client_with_services):
+def test_select_service_interactive(mock_select, ecs_client_with_services) -> None:
     mock_select.return_value.ask.return_value = "web-api"
 
     navigator = ECSNavigator(ecs_client_with_services)
@@ -152,7 +152,7 @@ def test_select_service_interactive(mock_select, ecs_client_with_services):
 
 
 @patch("lazy_ecs.interactive.questionary.select")
-def test_select_service_interactive_no_services(mock_select, ecs_client_with_clusters):
+def test_select_service_interactive_no_services(mock_select, ecs_client_with_clusters) -> None:
     navigator = ECSNavigator(ecs_client_with_clusters)
     selected = navigator.select_service("production")
 
@@ -160,7 +160,7 @@ def test_select_service_interactive_no_services(mock_select, ecs_client_with_clu
     mock_select.assert_not_called()
 
 
-def test_get_service_choices_empty_cluster(ecs_client_with_clusters):
+def test_get_service_choices_empty_cluster(ecs_client_with_clusters) -> None:
     navigator = ECSNavigator(ecs_client_with_clusters)
     service_choices = navigator.get_service_choices("production")
 
@@ -203,7 +203,7 @@ def ecs_client_with_tasks():
         yield client
 
 
-def test_get_tasks_from_service(ecs_client_with_tasks):
+def test_get_tasks_from_service(ecs_client_with_tasks) -> None:
     navigator = ECSNavigator(ecs_client_with_tasks)
     tasks = navigator.get_tasks("production", "web-api")
 
@@ -213,7 +213,7 @@ def test_get_tasks_from_service(ecs_client_with_tasks):
         assert task_arn.startswith("arn:aws:ecs:")
 
 
-def test_get_tasks_from_service_no_tasks(ecs_client_with_services):
+def test_get_tasks_from_service_no_tasks(ecs_client_with_services) -> None:
     navigator = ECSNavigator(ecs_client_with_services)
     tasks = navigator.get_tasks("production", "web-api")
 
@@ -221,7 +221,7 @@ def test_get_tasks_from_service_no_tasks(ecs_client_with_services):
 
 
 @patch("lazy_ecs.interactive.questionary.select")
-def test_select_task_interactive_multiple_tasks(mock_select, ecs_client_with_tasks):
+def test_select_task_interactive_multiple_tasks(mock_select, ecs_client_with_tasks) -> None:
     mock_select.return_value.ask.return_value = "task-123"
 
     navigator = ECSNavigator(ecs_client_with_tasks)
@@ -231,7 +231,7 @@ def test_select_task_interactive_multiple_tasks(mock_select, ecs_client_with_tas
     mock_select.assert_called_once()
 
 
-def test_select_task_auto_select_single_task():
+def test_select_task_auto_select_single_task() -> None:
     with mock_aws():
         client = boto3.client("ecs", region_name="us-east-1")
 
@@ -265,7 +265,7 @@ def test_select_task_auto_select_single_task():
 
 
 @patch("lazy_ecs.interactive.questionary.select")
-def test_select_task_no_tasks(mock_select, ecs_client_with_services):
+def test_select_task_no_tasks(mock_select, ecs_client_with_services) -> None:
     navigator = ECSNavigator(ecs_client_with_services)
     selected = navigator.select_task("production", "web-api")
 
@@ -273,7 +273,7 @@ def test_select_task_no_tasks(mock_select, ecs_client_with_services):
     mock_select.assert_not_called()
 
 
-def test_get_readable_task_names(ecs_client_with_tasks):
+def test_get_readable_task_names(ecs_client_with_tasks) -> None:
     navigator = ECSNavigator(ecs_client_with_tasks)
     task_choices = navigator.get_readable_task_choices("production", "web-api")
 

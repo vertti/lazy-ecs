@@ -6,7 +6,7 @@ from lazy_ecs import main
 @patch("lazy_ecs.boto3.client")
 @patch("lazy_ecs.ECSNavigator")
 @patch("lazy_ecs.console")
-def test_main_successful_flow(mock_console, mock_navigator_class, mock_boto3_client):
+def test_main_successful_flow(mock_console, mock_navigator_class, mock_boto3_client) -> None:
     """Test main function with successful cluster selection."""
     mock_navigator = Mock()
     mock_navigator.select_cluster.return_value = "production"
@@ -23,7 +23,7 @@ def test_main_successful_flow(mock_console, mock_navigator_class, mock_boto3_cli
 @patch("lazy_ecs.boto3.client")
 @patch("lazy_ecs.ECSNavigator")
 @patch("lazy_ecs.console")
-def test_main_no_cluster_selected(mock_console, mock_navigator_class, mock_boto3_client):
+def test_main_no_cluster_selected(mock_console, mock_navigator_class, mock_boto3_client) -> None:
     """Test main function when no cluster is selected."""
     mock_navigator = Mock()
     mock_navigator.select_cluster.return_value = None
@@ -36,7 +36,7 @@ def test_main_no_cluster_selected(mock_console, mock_navigator_class, mock_boto3
 
 @patch("lazy_ecs.boto3.client")
 @patch("lazy_ecs.console")
-def test_main_aws_error(mock_console, mock_boto3_client):
+def test_main_aws_error(mock_console, mock_boto3_client) -> None:
     """Test main function with AWS connection error."""
     mock_boto3_client.side_effect = Exception("No credentials found")
 
