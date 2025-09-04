@@ -16,16 +16,21 @@ The project uses:
 
 ## Development Workflow (Test-Driven Development)
 
-**This project follows a strict TDD approach:**
+**This project follows a strict TDD approach with emphasis on small, testable functions:**
 
 1. **Write a test** for the new feature/functionality
+   - Prefer testing small, pure functions that take parameters
+   - Avoid tests that require complex mocking when possible
 2. **Run the test** to see it fail: `uv run pytest`
 3. **Implement** the minimal code to make the test pass
+   - Extract small, focused functions
+   - Pass required data as parameters rather than using instance variables
 4. **Run tests** again to verify they pass: `uv run pytest`
-5. **Format code**: `uv run ruff format` (fixes many linting issues automatically)
-6. **Check and fix linting**: `uv run ruff check --fix` (fixes issues AND does the check)
-7. **Type check**: `uv run pyrefly check` (fast type checking)
-8. **Pause** - suggest commit message, never commit automatically
+5. **Refactor** - extract more pure functions if the implementation is getting complex
+6. **Format code**: `uv run ruff format` (fixes many linting issues automatically)
+7. **Check and fix linting**: `uv run ruff check --fix` (fixes issues AND does the check)
+8. **Type check**: `uv run pyrefly check` (fast type checking)
+9. **Pause** - suggest commit message, never commit automatically
 
 ## Setup
 
@@ -147,6 +152,53 @@ class TaskChoice(TypedDict):
 - Use `uv run pyrefly infer` to automatically add missing type annotations
 - Run `uv run pyrefly check` as part of TDD cycle for type correctness
 - Configuration uses `untyped-def-behavior = "check-and-infer-return-type"` for thorough checking
+
+## Function Design Guidelines
+
+**Write Small, Testable Functions:**
+- Prefer small functions that do one thing well
+- Functions should take all required data as parameters (avoid hidden dependencies)
+- Avoid long "blob" functions that do multiple operations
+- Extract pure functions that can be tested without mocks
+
+**Good Example - Testable Function:**
+```python
+def _determine_service_status(running_count: int, desired_count: int, pending_count: int) -> tuple[str, str]:
+    """Pure function - easy to test with simple assertions."""
+    if running_count == desired_count and pending_count == 0:
+        return "✅", "HEALTHY"
+    elif running_count < desired_count:
+        return "⚠️", "SCALING"
+    # ...
+```
+
+**Bad Example - Hard to Test:**
+```python
+def update_service_status(self):
+    """Requires mocking self.client, self.cache, etc."""
+    response = self.client.describe_services()  # Hidden dependency
+    data = self.cache.get_cached_data()         # Hidden dependency
+    # ... 50 lines of mixed logic
+```
+
+**Function Parameter Guidelines:**
+- Pass data as parameters rather than accessing instance variables
+- This makes functions pure and easily testable
+- Use dependency injection: pass clients/services as parameters
+- Avoid functions that reach into global state or instance state
+
+**Testing Benefits:**
+```python
+# Easy to test - no mocks needed
+def test_determine_service_status():
+    icon, status = _determine_service_status(running_count=2, desired_count=3, pending_count=1)
+    assert status == "SCALING"
+    assert icon == "⚠️"
+
+# vs. Hard to test - requires complex mocking
+def test_update_service_status():
+    # Need to mock self.client, self.cache, etc.
+```
 
 ## Code Style Guidelines
 
