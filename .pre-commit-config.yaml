@@ -13,3 +13,9 @@ repos:
         entry: uv run ruff check --fix
         language: system
         types: [python]
+      # Finally run type checking
+      - id: pyrefly-check
+        name: pyrefly type check
+        entry: uv run pyrefly check
+        language: system
+        types: [python]
