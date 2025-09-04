@@ -40,7 +40,7 @@ class ECSNavigator:
         cluster_arns = response.get("clusterArns", [])
 
         # Extract cluster name from ARN (last part after '/')
-        cluster_names = []
+        cluster_names: list[str] = []
         for arn in cluster_arns:
             cluster_name = arn.split("/")[-1]
             cluster_names.append(cluster_name)
@@ -74,7 +74,7 @@ class ECSNavigator:
         response = self.ecs_client.list_services(cluster=cluster_name)
         service_arns = response.get("serviceArns", [])
 
-        service_names = []
+        service_names: list[str] = []
         for arn in service_arns:
             service_name = arn.split("/")[-1]
             service_names.append(service_name)
@@ -236,7 +236,7 @@ class ECSNavigator:
         self, task_def_details: dict[str, TaskDefinitionTypeDef], task_def_arn: str
     ) -> list[str]:
         """Extract container images from task definition."""
-        container_images = []
+        container_images: list[str] = []
         if task_def_arn in task_def_details:
             containers = task_def_details[task_def_arn].get("containerDefinitions", [])
             for container in containers:
