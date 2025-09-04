@@ -39,6 +39,12 @@ uv run pytest
 uv run ruff format
 uv run ruff check --fix
 
+# Type checking with pyrefly
+uv run pyrefly check
+
+# Auto-add missing type annotations
+uv run pyrefly infer
+
 # Run tests with coverage
 uv run pytest --cov
 ```

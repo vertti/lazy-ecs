@@ -12,6 +12,7 @@ The project uses:
 - `uv` for Python dependency management and virtual environments
 - `mise` for tool management (Python, uv, Node.js)
 - Python 3.11+ required
+- `pyrefly` for fast Python type checking and inference
 
 ## Development Workflow (Test-Driven Development)
 
@@ -23,7 +24,8 @@ The project uses:
 4. **Run tests** again to verify they pass: `uv run pytest`
 5. **Format code**: `uv run ruff format` (fixes many linting issues automatically)
 6. **Check and fix linting**: `uv run ruff check --fix` (fixes issues AND does the check)
-7. **Pause** - suggest commit message, never commit automatically
+7. **Type check**: `uv run pyrefly check` (fast type checking)
+8. **Pause** - suggest commit message, never commit automatically
 
 ## Setup
 
@@ -49,6 +51,11 @@ uv run pytest                    # Run tests (should fail initially)
 uv run pytest                    # Verify tests pass
 uv run ruff format               # Auto-fix formatting (run first!)
 uv run ruff check --fix          # Fix issues AND check linting (combines both!)
+uv run pyrefly check             # Fast type checking
+
+# Type annotation tools:
+uv run pyrefly infer             # Auto-add missing type annotations
+uv run pyrefly check --verbose   # Detailed type checking output
 
 # Other useful commands:
 uv run pytest --cov             # Run tests with coverage
@@ -69,18 +76,20 @@ uv run pre-commit run --all-files # Run pre-commit on all files manually
 
 ## Architecture
 
-- **CLI Framework**: Click for command-line interface with rich output
-- **AWS Integration**: boto3 for AWS API interactions
+- **CLI Framework**: questionary + rich for interactive command-line interface
+- **AWS Integration**: boto3 with boto3-stubs for type-safe AWS API interactions
 - **Project Layout**: src-layout with lazy_ecs package
-- **Testing**: pytest with coverage reporting
+- **Testing**: pytest with coverage reporting and moto for AWS mocking
 - **Code Quality**: ruff for linting and formatting
+- **Type Checking**: pyrefly for fast Python type checking and inference
 - **Entry Point**: `lazy-ecs` command installed as script
 
 ## Key Features
 
 - Modern Python packaging with pyproject.toml
 - Interactive CLI with arrow key navigation (questionary + rich)
-- AWS ECS integration with boto3
+- AWS ECS integration with boto3 and comprehensive typing
+- Fast type checking with pyrefly and boto3-stubs
 - Comprehensive test coverage with moto for AWS mocking
 - All tooling configured in pyproject.toml
 
@@ -110,6 +119,34 @@ def test_get_cluster_names(ecs_client_with_clusters):
 **Interactive CLI Testing:**
 - Mock `questionary.select` for user input simulation
 - Use `@patch` decorator for external library mocking
+
+## Type Checking with Pyrefly
+
+**Pyrefly Configuration:**
+- Configured in `[tool.pyrefly]` section of pyproject.toml
+- Uses `boto3-stubs[ecs]` for AWS API type safety
+- TypedDict classes for structured data (ServiceChoice, TaskChoice)
+
+**Type Checking Workflow:**
+```python
+# Comprehensive typing approach:
+def get_task_details(self, cluster_name: str, service_name: str, task_arn: str) -> dict[str, Any]:
+    # Use specific AWS types from boto3-stubs
+    task_response: DescribeTasksResponseTypeDef = self.ecs_client.describe_tasks(...)
+    
+# Use TypedDict for structured return data
+class TaskChoice(TypedDict):
+    name: str
+    value: str
+    is_desired: bool
+    # ... other fields
+```
+
+**Important Pyrefly Notes:**
+- Pyrefly does NOT report missing type annotations as errors by design
+- Use `uv run pyrefly infer` to automatically add missing type annotations
+- Run `uv run pyrefly check` as part of TDD cycle for type correctness
+- Configuration uses `untyped-def-behavior = "check-and-infer-return-type"` for thorough checking
 
 ## Code Style Guidelines
 
