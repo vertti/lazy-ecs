@@ -279,8 +279,7 @@ def test_get_readable_task_names(ecs_client_with_tasks):
 
     assert len(task_choices) == 3
     for choice in task_choices:
-        # Each choice should be a dict with enhanced info
-        assert isinstance(choice, dict)
+        # Each choice should be a TaskChoice TypedDict
         assert "name" in choice
         assert "value" in choice
         assert "task_def_arn" in choice

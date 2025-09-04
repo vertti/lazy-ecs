@@ -1,11 +1,37 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Any, TypedDict, cast
+
 import questionary
+from mypy_boto3_ecs.client import ECSClient
+from mypy_boto3_ecs.type_defs import ServiceTypeDef, TaskDefinitionTypeDef, TaskTypeDef
 from rich.console import Console
 
 console = Console()
 
 
+class ServiceChoice(TypedDict):
+    name: str
+    value: str
+    status: str
+    running_count: int
+    desired_count: int
+    pending_count: int
+
+
+class TaskChoice(TypedDict):
+    name: str
+    value: str
+    task_def_arn: str
+    is_desired: bool
+    revision: str
+    images: list[str]
+    created_at: datetime | None
+
+
 class ECSNavigator:
-    def __init__(self, ecs_client):
+    def __init__(self, ecs_client: ECSClient) -> None:
         self.ecs_client = ecs_client
 
     def get_cluster_names(self) -> list[str]:
@@ -73,7 +99,7 @@ class ECSNavigator:
             state_info = f"({running_count}/{desired_count}, {pending_count} pending)"
         return state_info
 
-    def _create_service_choice(self, service: dict) -> dict:
+    def _create_service_choice(self, service: ServiceTypeDef) -> ServiceChoice:
         """Create a formatted service choice with state info."""
         service_name = service["serviceName"]
         desired_count = service["desiredCount"]
@@ -84,16 +110,16 @@ class ECSNavigator:
         state_info = self._format_service_state_info(running_count, desired_count, pending_count)
         display_name = f"{status_icon} {service_name} {state_info} - {status_text}"
 
-        return {
-            "name": display_name,
-            "value": service_name,
-            "status": status_text,
-            "running_count": running_count,
-            "desired_count": desired_count,
-            "pending_count": pending_count,
-        }
+        return ServiceChoice(
+            name=display_name,
+            value=service_name,
+            status=status_text,
+            running_count=running_count,
+            desired_count=desired_count,
+            pending_count=pending_count,
+        )
 
-    def get_service_choices(self, cluster_name: str) -> list[dict]:
+    def get_service_choices(self, cluster_name: str) -> list[ServiceChoice]:
         """Get services with detailed state information for interactive selection."""
         response = self.ecs_client.list_services(cluster=cluster_name)
         service_arns = response.get("serviceArns", [])
@@ -132,7 +158,7 @@ class ECSNavigator:
 
         selected_service = questionary.select(
             f"Select a service from '{cluster_name}' (unhealthy services shown first):",
-            choices=service_choices,
+            choices=cast(list[dict[str, Any]], service_choices),
             style=questionary.Style(
                 [
                     ("selected", "fg:#61ffca bold"),
@@ -177,7 +203,7 @@ class ECSNavigator:
 
         selected_task = questionary.select(
             f"Select a task from '{service_name}' (wrong versions shown first):",
-            choices=task_choices,
+            choices=cast(list[dict[str, Any]], task_choices),
             style=questionary.Style(
                 [
                     ("selected", "fg:#61ffca bold"),
@@ -195,9 +221,9 @@ class ECSNavigator:
         services = service_response.get("services", [])
         return services[0]["taskDefinition"] if services else None
 
-    def _get_task_definition_details(self, task_def_arns: list[str]) -> dict[str, dict]:
+    def _get_task_definition_details(self, task_def_arns: list[str]) -> dict[str, TaskDefinitionTypeDef]:
         """Fetch task definition details for multiple ARNs."""
-        task_def_details = {}
+        task_def_details: dict[str, TaskDefinitionTypeDef] = {}
         for task_def_arn in task_def_arns:
             try:
                 response = self.ecs_client.describe_task_definition(taskDefinition=task_def_arn)
@@ -206,7 +232,9 @@ class ECSNavigator:
                 pass
         return task_def_details
 
-    def _extract_container_images(self, task_def_details: dict, task_def_arn: str) -> list[str]:
+    def _extract_container_images(
+        self, task_def_details: dict[str, TaskDefinitionTypeDef], task_def_arn: str
+    ) -> list[str]:
         """Extract container images from task definition."""
         container_images = []
         if task_def_arn in task_def_details:
@@ -219,7 +247,9 @@ class ECSNavigator:
                 container_images.append(image)
         return container_images
 
-    def _create_task_choice(self, task: dict, desired_task_def: str | None, task_def_details: dict) -> dict:
+    def _create_task_choice(
+        self, task: TaskTypeDef, desired_task_def: str | None, task_def_details: dict[str, TaskDefinitionTypeDef]
+    ) -> TaskChoice:
         """Create a formatted task choice with version and image info."""
         task_arn = task["taskArn"]
         task_def_arn = task["taskDefinitionArn"]
@@ -237,24 +267,24 @@ class ECSNavigator:
         images_str = ", ".join(container_images) if container_images else "unknown"
 
         # Format timestamp
-        created_at = task.get("createdAt", "")
+        created_at = task.get("createdAt")
         created_str = created_at.strftime("%H:%M:%S") if created_at else "unknown"
 
         # Create display name
         task_id_short = task_arn.split("/")[-1][:8]
         display_name = f"{version_indicator} {task_def_name} ({task_id_short}) - {images_str} - {created_str}"
 
-        return {
-            "name": display_name,
-            "value": task_arn,
-            "task_def_arn": task_def_arn,
-            "is_desired": is_desired,
-            "revision": task_def_revision,
-            "images": container_images,
-            "created_at": created_at,
-        }
+        return TaskChoice(
+            name=display_name,
+            value=task_arn,
+            task_def_arn=task_def_arn,
+            is_desired=is_desired,
+            revision=task_def_revision,
+            images=container_images,
+            created_at=created_at,
+        )
 
-    def get_readable_task_choices(self, cluster_name: str, service_name: str) -> list[dict]:
+    def get_readable_task_choices(self, cluster_name: str, service_name: str) -> list[TaskChoice]:
         """Get list of tasks with human-readable names and task definition info for interactive selection."""
         task_arns = self.get_tasks(cluster_name, service_name)
         if not task_arns:
