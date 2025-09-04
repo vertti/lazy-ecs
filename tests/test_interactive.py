@@ -290,3 +290,38 @@ def test_get_readable_task_names(ecs_client_with_tasks) -> None:
         assert "✅" in choice["name"] or "🔴" in choice["name"]
         # Should contain revision number
         assert f"v{choice['revision']}" in choice["name"]
+
+
+def test_get_task_details(ecs_client_with_tasks) -> None:
+    navigator = ECSNavigator(ecs_client_with_tasks)
+    tasks = navigator.get_tasks("production", "web-api")
+
+    # Get details for the first task
+    task_details = navigator.get_task_details("production", "web-api", tasks[0])
+
+    # Verify comprehensive task details are returned
+    assert task_details is not None
+    assert "task_arn" in task_details
+    assert "task_definition_name" in task_details
+    assert "task_definition_revision" in task_details
+    assert "is_desired_version" in task_details
+    assert "task_status" in task_details
+    assert "containers" in task_details
+    assert len(task_details["containers"]) > 0
+
+    # Check container details
+    container = task_details["containers"][0]
+    assert "name" in container
+    assert "image" in container
+    assert container["name"] == "web"
+    assert container["image"] == "nginx"
+
+
+def test_get_task_details_nonexistent_task(ecs_client_with_clusters) -> None:
+    navigator = ECSNavigator(ecs_client_with_clusters)
+
+    # Try to get details for a nonexistent task
+    task_details = navigator.get_task_details("production", "nonexistent", "fake-task-arn")
+
+    # Should return empty dict for nonexistent task
+    assert task_details == {}

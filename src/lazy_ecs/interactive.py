@@ -307,3 +307,63 @@ class ECSNavigator:
         # Sort by: wrong version first, then by creation time (newest first)
         choices.sort(key=lambda x: (x["is_desired"], -(x["created_at"].timestamp() if x["created_at"] else 0)))
         return choices
+
+    def get_task_details(self, cluster_name: str, service_name: str, task_arn: str) -> dict[str, Any]:
+        """Get comprehensive details for a specific task."""
+        # Get task details
+        task_response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=[task_arn])
+        tasks = task_response.get("tasks", [])
+        if not tasks:
+            return {}
+
+        task = tasks[0]
+        task_def_arn = task["taskDefinitionArn"]
+
+        # Get task definition details
+        task_def_response = self.ecs_client.describe_task_definition(taskDefinition=task_def_arn)
+        task_def = task_def_response["taskDefinition"]
+
+        # Get service details for comparison
+        service_response = self.ecs_client.describe_services(cluster=cluster_name, services=[service_name])
+        services = service_response.get("services", [])
+        desired_task_def = services[0]["taskDefinition"] if services else None
+
+        # Extract container details
+        containers = task_def.get("containerDefinitions", [])
+        container_info = []
+        for container in containers:
+            container_info.append(
+                {
+                    "name": container.get("name", "unknown"),
+                    "image": container.get("image", "unknown"),
+                    "cpu": container.get("cpu", 0),
+                    "memory": container.get("memory", 0),
+                    "memoryReservation": container.get("memoryReservation"),
+                }
+            )
+
+        # Extract task definition info
+        task_def_name = task_def_arn.split("/")[-1].split(":")[0]
+        task_def_revision = task_def_arn.split(":")[-1]
+        is_desired_version = task_def_arn == desired_task_def
+
+        return {
+            "task_arn": task_arn,
+            "task_id": task_arn.split("/")[-1],
+            "task_definition_name": task_def_name,
+            "task_definition_revision": task_def_revision,
+            "task_definition_arn": task_def_arn,
+            "is_desired_version": is_desired_version,
+            "desired_task_definition": desired_task_def,
+            "task_status": task.get("lastStatus", "unknown"),
+            "health_status": task.get("healthStatus", "unknown"),
+            "created_at": task.get("createdAt"),
+            "started_at": task.get("startedAt"),
+            "platform_version": task.get("platformVersion", "unknown"),
+            "launch_type": task.get("launchType", "unknown"),
+            "cpu_architecture": task_def.get("cpu", "unknown"),
+            "memory": task_def.get("memory", "unknown"),
+            "network_mode": task_def.get("networkMode", "unknown"),
+            "containers": container_info,
+            "tags": task.get("tags", []),
+        }
