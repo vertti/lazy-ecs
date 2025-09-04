@@ -55,6 +55,44 @@ class ECSNavigator:
 
         return service_names
 
+    def _determine_service_status(self, running_count: int, desired_count: int, pending_count: int) -> tuple[str, str]:
+        """Determine service health status icon and text."""
+        if running_count == desired_count and pending_count == 0:
+            return "✅", "HEALTHY"
+        elif running_count < desired_count:
+            return "⚠️ ", "SCALING"
+        elif running_count > desired_count:
+            return "🔄", "DRAINING"
+        else:
+            return "❌", "UNHEALTHY"
+
+    def _format_service_state_info(self, running_count: int, desired_count: int, pending_count: int) -> str:
+        """Format service state information string."""
+        state_info = f"({running_count}/{desired_count})"
+        if pending_count > 0:
+            state_info = f"({running_count}/{desired_count}, {pending_count} pending)"
+        return state_info
+
+    def _create_service_choice(self, service: dict) -> dict:
+        """Create a formatted service choice with state info."""
+        service_name = service["serviceName"]
+        desired_count = service["desiredCount"]
+        running_count = service["runningCount"]
+        pending_count = service["pendingCount"]
+
+        status_icon, status_text = self._determine_service_status(running_count, desired_count, pending_count)
+        state_info = self._format_service_state_info(running_count, desired_count, pending_count)
+        display_name = f"{status_icon} {service_name} {state_info} - {status_text}"
+
+        return {
+            "name": display_name,
+            "value": service_name,
+            "status": status_text,
+            "running_count": running_count,
+            "desired_count": desired_count,
+            "pending_count": pending_count,
+        }
+
     def get_service_choices(self, cluster_name: str) -> list[dict]:
         """Get services with detailed state information for interactive selection."""
         response = self.ecs_client.list_services(cluster=cluster_name)
@@ -67,44 +105,8 @@ class ECSNavigator:
         describe_response = self.ecs_client.describe_services(cluster=cluster_name, services=service_arns)
         services = describe_response.get("services", [])
 
-        choices = []
-        for service in services:
-            service_name = service["serviceName"]
-            desired_count = service["desiredCount"]
-            running_count = service["runningCount"]
-            pending_count = service["pendingCount"]
-
-            # Determine service health status
-            if running_count == desired_count and pending_count == 0:
-                status_icon = "✅"
-                status_text = "HEALTHY"
-            elif running_count < desired_count:
-                status_icon = "⚠️ "
-                status_text = "SCALING"
-            elif running_count > desired_count:
-                status_icon = "🔄"
-                status_text = "DRAINING"
-            else:
-                status_icon = "❌"
-                status_text = "UNHEALTHY"
-
-            # Create display name with state info
-            state_info = f"({running_count}/{desired_count})"
-            if pending_count > 0:
-                state_info = f"({running_count}/{desired_count}, {pending_count} pending)"
-
-            display_name = f"{status_icon} {service_name} {state_info} - {status_text}"
-
-            choices.append(
-                {
-                    "name": display_name,
-                    "value": service_name,
-                    "status": status_text,
-                    "running_count": running_count,
-                    "desired_count": desired_count,
-                    "pending_count": pending_count,
-                }
-            )
+        # Create choices
+        choices = [self._create_service_choice(service) for service in services]
 
         # Sort unhealthy services first
         choices.sort(key=lambda x: (x["status"] == "HEALTHY", x["name"]))
@@ -187,86 +189,90 @@ class ECSNavigator:
 
         return selected_task or ""
 
+    def _get_desired_task_definition(self, cluster_name: str, service_name: str) -> str | None:
+        """Get the service's desired task definition ARN."""
+        service_response = self.ecs_client.describe_services(cluster=cluster_name, services=[service_name])
+        services = service_response.get("services", [])
+        return services[0]["taskDefinition"] if services else None
+
+    def _get_task_definition_details(self, task_def_arns: list[str]) -> dict[str, dict]:
+        """Fetch task definition details for multiple ARNs."""
+        task_def_details = {}
+        for task_def_arn in task_def_arns:
+            try:
+                response = self.ecs_client.describe_task_definition(taskDefinition=task_def_arn)
+                task_def_details[task_def_arn] = response["taskDefinition"]
+            except Exception:
+                pass
+        return task_def_details
+
+    def _extract_container_images(self, task_def_details: dict, task_def_arn: str) -> list[str]:
+        """Extract container images from task definition."""
+        container_images = []
+        if task_def_arn in task_def_details:
+            containers = task_def_details[task_def_arn].get("containerDefinitions", [])
+            for container in containers:
+                image = container.get("image", "unknown")
+                # Shorten image name (just repo:tag, not full registry)
+                if "/" in image:
+                    image = image.split("/")[-1]
+                container_images.append(image)
+        return container_images
+
+    def _create_task_choice(self, task: dict, desired_task_def: str | None, task_def_details: dict) -> dict:
+        """Create a formatted task choice with version and image info."""
+        task_arn = task["taskArn"]
+        task_def_arn = task["taskDefinitionArn"]
+
+        # Extract task definition info
+        task_def_name = task_def_arn.split("/")[-1].split(":")[0]
+        task_def_revision = task_def_arn.split(":")[-1]
+
+        # Check if this task is using the desired task definition
+        is_desired = task_def_arn == desired_task_def
+        version_indicator = f"🔴 v{task_def_revision}" if not is_desired else f"✅ v{task_def_revision}"
+
+        # Get container images
+        container_images = self._extract_container_images(task_def_details, task_def_arn)
+        images_str = ", ".join(container_images) if container_images else "unknown"
+
+        # Format timestamp
+        created_at = task.get("createdAt", "")
+        created_str = created_at.strftime("%H:%M:%S") if created_at else "unknown"
+
+        # Create display name
+        task_id_short = task_arn.split("/")[-1][:8]
+        display_name = f"{version_indicator} {task_def_name} ({task_id_short}) - {images_str} - {created_str}"
+
+        return {
+            "name": display_name,
+            "value": task_arn,
+            "task_def_arn": task_def_arn,
+            "is_desired": is_desired,
+            "revision": task_def_revision,
+            "images": container_images,
+            "created_at": created_at,
+        }
+
     def get_readable_task_choices(self, cluster_name: str, service_name: str) -> list[dict]:
         """Get list of tasks with human-readable names and task definition info for interactive selection."""
         task_arns = self.get_tasks(cluster_name, service_name)
-
         if not task_arns:
             return []
 
         # Get service's desired task definition
-        service_response = self.ecs_client.describe_services(cluster=cluster_name, services=[service_name])
-        services = service_response.get("services", [])
-        desired_task_def = services[0]["taskDefinition"] if services else None
+        desired_task_def = self._get_desired_task_definition(cluster_name, service_name)
 
         # Get detailed task information
         response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=task_arns)
         tasks = response.get("tasks", [])
 
-        # Get task definition details to extract container images
+        # Get task definition details
         task_def_arns = list({task["taskDefinitionArn"] for task in tasks})
-        task_def_response = self.ecs_client.describe_task_definition(taskDefinition=task_def_arns[0])
-        task_def_details = {task_def_arns[0]: task_def_response["taskDefinition"]} if task_def_arns else {}
+        task_def_details = self._get_task_definition_details(task_def_arns)
 
-        # Get additional task definitions if there are multiple
-        for task_def_arn in task_def_arns[1:]:
-            try:
-                td_response = self.ecs_client.describe_task_definition(taskDefinition=task_def_arn)
-                task_def_details[task_def_arn] = td_response["taskDefinition"]
-            except Exception:
-                pass
-
-        choices = []
-        for task in tasks:
-            task_arn = task["taskArn"]
-            task_def_arn = task["taskDefinitionArn"]
-
-            # Extract task definition info
-            task_def_name = task_def_arn.split("/")[-1].split(":")[0]  # e.g., "web-api-task"
-            task_def_revision = task_def_arn.split(":")[-1]  # e.g., "5"
-
-            # Check if this task is using the desired task definition
-            is_desired = task_def_arn == desired_task_def
-            version_indicator = f"v{task_def_revision}"
-            if not is_desired:
-                version_indicator = f"🔴 v{task_def_revision}"  # Red circle for wrong version
-            else:
-                version_indicator = f"✅ v{task_def_revision}"  # Green check for correct version
-
-            # Get container images
-            container_images = []
-            if task_def_arn in task_def_details:
-                containers = task_def_details[task_def_arn].get("containerDefinitions", [])
-                for container in containers:
-                    image = container.get("image", "unknown")
-                    # Shorten image name (just repo:tag, not full registry)
-                    if "/" in image:
-                        image = image.split("/")[-1]
-                    container_images.append(image)
-
-            images_str = ", ".join(container_images) if container_images else "unknown"
-
-            created_at = task.get("createdAt", "")
-            if created_at:
-                created_str = created_at.strftime("%H:%M:%S")
-            else:
-                created_str = "unknown"
-
-            # Create enhanced display name
-            task_id_short = task_arn.split("/")[-1][:8]
-            display_name = f"{version_indicator} {task_def_name} ({task_id_short}) - {images_str} - {created_str}"
-
-            choices.append(
-                {
-                    "name": display_name,
-                    "value": task_arn,
-                    "task_def_arn": task_def_arn,
-                    "is_desired": is_desired,
-                    "revision": task_def_revision,
-                    "images": container_images,
-                    "created_at": created_at,
-                }
-            )
+        # Create choices
+        choices = [self._create_task_choice(task, desired_task_def, task_def_details) for task in tasks]
 
         # Sort by: wrong version first, then by creation time (newest first)
         choices.sort(key=lambda x: (x["is_desired"], -(x["created_at"].timestamp() if x["created_at"] else 0)))
