@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, TypedDict, cast
 
+import boto3
 import questionary
 from mypy_boto3_ecs.client import ECSClient
 from mypy_boto3_ecs.type_defs import ServiceTypeDef, TaskDefinitionTypeDef, TaskTypeDef
@@ -418,3 +419,155 @@ class ECSNavigator:
 
         console.print("=" * 60, style="dim")
         console.print("🎯 Task selected successfully!", style="blue")
+
+    def select_task_feature(self, task_details: dict[str, Any]) -> str | None:
+        """Present feature menu for the selected task."""
+        containers = task_details.get("containers", [])
+
+        if not containers:
+            return None
+
+        choices = _build_task_feature_choices(containers)
+
+        selected = questionary.select(
+            "Select a feature for this task:",
+            choices=choices,
+            style=questionary.Style(
+                [
+                    ("qmark", "fg:cyan bold"),
+                    ("question", "bold"),
+                    ("answer", "fg:cyan"),
+                    ("pointer", "fg:cyan bold"),
+                    ("highlighted", "fg:cyan"),
+                    ("selected", "fg:green"),
+                ]
+            ),
+        ).ask()
+
+        return selected
+
+    def show_container_logs(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
+        """Display the last N lines of logs for a container."""
+        logs_client = boto3.client("logs")
+
+        log_config = _get_log_config_from_task(self.ecs_client, cluster_name, task_arn, container_name)
+        if not log_config:
+            console.print(f"❌ Could not find log configuration for container '{container_name}'", style="red")
+            return
+
+        log_group_name = log_config["log_group"]
+        log_stream_name = log_config["log_stream"]
+
+        try:
+            response = logs_client.get_log_events(
+                logGroupName=log_group_name, logStreamName=log_stream_name, limit=lines, startFromHead=False
+            )
+
+            events = response.get("events", [])
+
+            if not events:
+                console.print(
+                    f"📝 No logs found for container '{container_name}' in stream '{log_stream_name}'", style="yellow"
+                )
+                return
+
+            console.print(f"\n📋 Last {len(events)} log entries for container '{container_name}':", style="bold cyan")
+            console.print(f"Log group: {log_group_name}", style="dim")
+            console.print(f"Log stream: {log_stream_name}", style="dim")
+            console.print("=" * 80, style="dim")
+
+            for event in events:
+                timestamp = datetime.fromtimestamp(event["timestamp"] / 1000)
+                message = event["message"].rstrip()
+                console.print(f"[{timestamp.strftime('%H:%M:%S')}] {message}")
+
+            console.print("=" * 80, style="dim")
+
+        except Exception as e:
+            error_msg = f"Failed to fetch logs for container '{container_name}': {e}"
+            console.print(f"❌ {error_msg}", style="red")
+
+
+def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[str]:
+    """Build feature menu choices for containers plus exit option."""
+    choices = []
+
+    # Add log tailing options for each container
+    for container in containers:
+        container_name = container["name"]
+        choices.append(f"Show tail of logs for container: {container_name}")
+
+    # Add exit option
+    choices.append("Exit")
+
+    return choices
+
+
+def _get_log_config_from_task(
+    ecs_client: ECSClient, cluster_name: str, task_arn: str, container_name: str
+) -> dict[str, str] | None:
+    """Get the actual log configuration from the ECS task definition."""
+    try:
+        # Get task details to find task definition
+        task_response = ecs_client.describe_tasks(cluster=cluster_name, tasks=[task_arn])
+        tasks = task_response.get("tasks", [])
+        if not tasks:
+            return None
+
+        task = tasks[0]
+        task_def_arn = task["taskDefinitionArn"]
+
+        # Get task definition details
+        task_def_response = ecs_client.describe_task_definition(taskDefinition=task_def_arn)
+        task_definition = task_def_response["taskDefinition"]
+
+        # Find the specific container
+        for container_def in task_definition["containerDefinitions"]:
+            if container_def["name"] == container_name:
+                log_config = container_def.get("logConfiguration", {})
+
+                if log_config.get("logDriver") != "awslogs":
+                    return None
+
+                options = cast(dict[str, str], log_config.get("options", {}))
+                log_group = options.get("awslogs-group")
+                stream_prefix = options.get("awslogs-stream-prefix", "ecs")
+
+                if not log_group:
+                    return None
+
+                # Build log stream name: prefix/container_name/task_id
+                task_id = task_arn.split("/")[-1]
+                log_stream = f"{stream_prefix}/{container_name}/{task_id}"
+
+                return {"log_group": log_group, "log_stream": log_stream}
+
+    except Exception:
+        pass
+
+    return None
+
+
+def _list_log_groups(logs_client, cluster_name: str, container_name: str) -> None:
+    """List available log groups to help with debugging."""
+    try:
+        response = logs_client.describe_log_groups(limit=50)
+        groups = response.get("logGroups", [])
+
+        if groups:
+            console.print("  Recent log groups:")
+            for group in groups[:10]:
+                name = group["logGroupName"]
+                if (
+                    cluster_name.lower() in name.lower()
+                    or container_name.lower() in name.lower()
+                    or "ecs" in name.lower()
+                ):
+                    console.print(f"    • {name}", style="cyan")
+                else:
+                    console.print(f"    • {name}", style="dim")
+        else:
+            console.print("  No log groups found")
+
+    except Exception as e:
+        console.print(f"  Could not list log groups: {e}", style="dim")

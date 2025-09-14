@@ -325,3 +325,77 @@ def test_get_task_details_nonexistent_task(ecs_client_with_clusters) -> None:
 
     # Should return empty dict for nonexistent task
     assert task_details == {}
+
+
+@patch("lazy_ecs.interactive.questionary.select")
+def test_select_task_feature_with_containers(mock_select, ecs_client_with_tasks) -> None:
+    mock_select.return_value.ask.return_value = "Show tail of logs for container: web"
+
+    navigator = ECSNavigator(ecs_client_with_tasks)
+    task_details = {"containers": [{"name": "web"}, {"name": "sidecar"}]}
+
+    selected = navigator.select_task_feature(task_details)
+
+    assert selected == "Show tail of logs for container: web"
+    mock_select.assert_called_once()
+
+    # Check that choices include container options plus exit
+    call_kwargs = mock_select.call_args[1]
+    choices = call_kwargs["choices"]
+    assert len(choices) == 3  # 2 containers + exit
+    assert any("web" in choice for choice in choices)
+    assert any("sidecar" in choice for choice in choices)
+    assert "Exit" in choices
+
+
+def test_select_task_feature_no_containers(ecs_client_with_clusters) -> None:
+    navigator = ECSNavigator(ecs_client_with_clusters)
+    task_details = {"containers": []}
+
+    selected = navigator.select_task_feature(task_details)
+
+    # Should return None if no containers
+    assert selected is None
+
+
+@patch("lazy_ecs.interactive.boto3.client")
+@patch("lazy_ecs.interactive.console.print")
+def test_show_container_logs(mock_print, mock_boto_client) -> None:
+    # Mock CloudWatch Logs client
+    mock_logs_client = mock_boto_client.return_value
+    mock_logs_client.get_log_events.return_value = {
+        "events": [
+            {"timestamp": 1693766400000, "message": "Starting application"},
+            {"timestamp": 1693766401000, "message": "Server listening on port 8080"},
+        ]
+    }
+
+    # Mock ECS client for task definition lookup
+    from unittest.mock import MagicMock
+
+    mock_ecs_client = MagicMock()
+    mock_ecs_client.describe_tasks.return_value = {
+        "tasks": [{"taskDefinitionArn": "arn:aws:ecs:us-east-1:123456789:task-definition/web-api-task:1"}]
+    }
+    mock_ecs_client.describe_task_definition.return_value = {
+        "taskDefinition": {
+            "containerDefinitions": [
+                {
+                    "name": "web",
+                    "logConfiguration": {
+                        "logDriver": "awslogs",
+                        "options": {"awslogs-group": "/ecs/production/web", "awslogs-stream-prefix": "ecs"},
+                    },
+                }
+            ]
+        }
+    }
+
+    navigator = ECSNavigator(mock_ecs_client)
+    navigator.show_container_logs("production", "arn:aws:ecs:us-east-1:123456789:task/production/task-123", "web", 50)
+
+    # Should have printed log entries
+    assert mock_print.called
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("log entries" in arg.lower() for arg in print_args)
+    assert any("Starting application" in arg for arg in print_args)

@@ -35,6 +35,7 @@ def main() -> None:
                     task_details = navigator.get_task_details(selected_cluster, selected_service, selected_task)
                     if task_details:
                         navigator.display_task_details(task_details)
+                        _handle_task_features(navigator, selected_cluster, selected_task, task_details)
                     else:
                         console.print(f"\n⚠️ Could not fetch task details for {selected_task}", style="yellow")
                 else:
@@ -53,6 +54,25 @@ def main() -> None:
     except Exception as e:
         console.print(f"\n❌ Error: {e}", style="red")
         console.print("Make sure your AWS credentials are configured.", style="dim")
+
+
+def _handle_task_features(navigator: ECSNavigator, cluster_name: str, task_arn: str, task_details: dict) -> None:
+    """Handle task feature selection and execution."""
+    while True:
+        selected_feature = navigator.select_task_feature(task_details)
+
+        if not selected_feature or selected_feature == "Exit":
+            console.print("\n👋 Goodbye!", style="cyan")
+            break
+
+        if selected_feature.startswith("Show tail of logs for container:"):
+            container_name = _extract_container_name(selected_feature)
+            navigator.show_container_logs(cluster_name, task_arn, container_name)
+
+
+def _extract_container_name(feature_text: str) -> str:
+    """Extract container name from feature selection text."""
+    return feature_text.split("container: ")[-1]
 
 
 if __name__ == "__main__":
