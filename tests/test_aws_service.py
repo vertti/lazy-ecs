@@ -1,0 +1,210 @@
+"""Tests for AWS service layer."""
+
+import boto3
+import pytest
+from moto import mock_aws
+
+from lazy_ecs.aws_service import ECSService
+
+
+@pytest.fixture
+def ecs_client_with_clusters():
+    """Create a mocked ECS client with test clusters."""
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+
+        client.create_cluster(clusterName="production")
+        client.create_cluster(clusterName="staging")
+        client.create_cluster(clusterName="dev")
+
+        yield client
+
+
+@pytest.fixture
+def ecs_client_with_services():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="web-api-task",
+            containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
+        )
+        client.register_task_definition(
+            family="worker-task",
+            containerDefinitions=[{"name": "worker", "image": "worker", "memory": 256}],
+        )
+
+        client.create_service(cluster="production", serviceName="web-api", taskDefinition="web-api-task")
+        client.create_service(cluster="production", serviceName="worker-service", taskDefinition="worker-task")
+
+        yield client
+
+
+@pytest.fixture
+def ecs_client_with_tasks():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="web-api-task",
+            containerDefinitions=[
+                {
+                    "name": "web",
+                    "image": "nginx",
+                    "memory": 256,
+                    "logConfiguration": {
+                        "logDriver": "awslogs",
+                        "options": {"awslogs-group": "/ecs/production/web", "awslogs-stream-prefix": "ecs"},
+                    },
+                }
+            ],
+        )
+
+        client.create_service(
+            cluster="production",
+            serviceName="web-api",
+            taskDefinition="web-api-task",
+            desiredCount=3,
+        )
+
+        client.run_task(
+            cluster="production",
+            taskDefinition="web-api-task",
+            count=2,
+            launchType="FARGATE",
+            networkConfiguration={
+                "awsvpcConfiguration": {
+                    "subnets": ["subnet-12345"],
+                    "assignPublicIp": "ENABLED",
+                }
+            },
+        )
+
+        yield client
+
+
+def test_get_cluster_names(ecs_client_with_clusters) -> None:
+    service = ECSService(ecs_client_with_clusters)
+    clusters = service.get_cluster_names()
+
+    expected = ["production", "staging", "dev"]
+    assert sorted(clusters) == sorted(expected)
+
+
+def test_get_cluster_names_empty():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        service = ECSService(client)
+        clusters = service.get_cluster_names()
+        assert clusters == []
+
+
+def test_get_services(ecs_client_with_services) -> None:
+    service = ECSService(ecs_client_with_services)
+    services = service.get_services("production")
+
+    expected = ["web-api", "worker-service"]
+    assert sorted(services) == sorted(expected)
+
+
+def test_get_service_info(ecs_client_with_services) -> None:
+    service = ECSService(ecs_client_with_services)
+    service_info = service.get_service_info("production")
+
+    assert len(service_info) == 2
+    for info in service_info:
+        assert "name" in info
+        assert "status" in info
+        assert "running_count" in info
+        assert "desired_count" in info
+        assert "pending_count" in info
+
+
+def test_get_tasks(ecs_client_with_tasks) -> None:
+    service = ECSService(ecs_client_with_tasks)
+    tasks = service.get_tasks("production", "web-api")
+
+    assert len(tasks) == 2
+    for task_arn in tasks:
+        assert isinstance(task_arn, str)
+        assert task_arn.startswith("arn:aws:ecs:")
+
+
+def test_get_task_info(ecs_client_with_tasks) -> None:
+    service = ECSService(ecs_client_with_tasks)
+    task_info = service.get_task_info("production", "web-api")
+
+    assert len(task_info) == 2
+    for info in task_info:
+        assert "name" in info
+        assert "value" in info
+        assert "task_def_arn" in info
+        assert "is_desired" in info
+        assert "revision" in info
+        assert "images" in info
+
+
+def test_get_task_details(ecs_client_with_tasks) -> None:
+    service = ECSService(ecs_client_with_tasks)
+    tasks = service.get_tasks("production", "web-api")
+
+    task_details = service.get_task_details("production", "web-api", tasks[0])
+
+    assert task_details is not None
+    assert "task_arn" in task_details
+    assert "task_definition_name" in task_details
+    assert "task_definition_revision" in task_details
+    assert "is_desired_version" in task_details
+    assert "task_status" in task_details
+    assert "containers" in task_details
+
+    container = task_details["containers"][0]
+    assert container["name"] == "web"
+    assert container["image"] == "nginx"
+
+
+def test_get_log_config(ecs_client_with_tasks) -> None:
+    service = ECSService(ecs_client_with_tasks)
+    tasks = service.get_tasks("production", "web-api")
+
+    log_config = service.get_log_config("production", tasks[0], "web")
+
+    assert log_config is not None
+    assert log_config["log_group"] == "/ecs/production/web"
+    assert log_config["log_stream"].startswith("ecs/web/")
+
+
+def test_get_log_config_no_config():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="web-api-task",
+            containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],  # No log config
+        )
+
+        client.run_task(
+            cluster="production",
+            taskDefinition="web-api-task",
+            count=1,
+            launchType="FARGATE",
+            networkConfiguration={
+                "awsvpcConfiguration": {
+                    "subnets": ["subnet-12345"],
+                    "assignPublicIp": "ENABLED",
+                }
+            },
+        )
+
+        # List tasks directly since we didn't create a service
+        response = client.list_tasks(cluster="production")
+        tasks = response.get("taskArns", [])
+
+        service = ECSService(client)
+        log_config = service.get_log_config("production", tasks[0], "web")
+        assert log_config is None

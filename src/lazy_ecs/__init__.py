@@ -1,7 +1,8 @@
 import boto3
 from rich.console import Console
 
-from .interactive import ECSNavigator
+from .aws_service import ECSService, TaskDetails
+from .ui import ECSNavigator
 
 console = Console()
 
@@ -12,9 +13,10 @@ def main() -> None:
     console.print("Interactive AWS ECS cluster navigator\n", style="dim")
 
     try:
-        # Initialize AWS ECS client
+        # Initialize AWS ECS client and service layer
         ecs_client = boto3.client("ecs")
-        navigator = ECSNavigator(ecs_client)
+        ecs_service = ECSService(ecs_client)
+        navigator = ECSNavigator(ecs_service)
 
         # Start interactive navigation
         selected_cluster = navigator.select_cluster()
@@ -32,7 +34,7 @@ def main() -> None:
                 selected_task = navigator.select_task(selected_cluster, selected_service)
 
                 if selected_task:
-                    task_details = navigator.get_task_details(selected_cluster, selected_service, selected_task)
+                    task_details = ecs_service.get_task_details(selected_cluster, selected_service, selected_task)
                     if task_details:
                         navigator.display_task_details(task_details)
                         _handle_task_features(navigator, selected_cluster, selected_task, task_details)
@@ -56,7 +58,9 @@ def main() -> None:
         console.print("Make sure your AWS credentials are configured.", style="dim")
 
 
-def _handle_task_features(navigator: ECSNavigator, cluster_name: str, task_arn: str, task_details: dict) -> None:
+def _handle_task_features(
+    navigator: ECSNavigator, cluster_name: str, task_arn: str, task_details: TaskDetails | None
+) -> None:
     """Handle task feature selection and execution."""
     while True:
         selected_feature = navigator.select_task_feature(task_details)
