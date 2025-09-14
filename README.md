@@ -12,7 +12,7 @@ The AWS console UI is confusing to navigate for ECS. This tool makes it quick to
 
 - [x] **Container log viewing** - Display recent logs with timestamps from CloudWatch
 - [x] **Basic container details** - Show container name, image, CPU/memory configuration
-- [ ] **Show environment variables** - Display all environment variables injected into containers
+- [x] **Show environment variables** - Display all environment variables injected into containers
 - [ ] **Show port mappings** - Display container port configurations and networking
 - [ ] **Show volume mounts** - Display file system mounts and storage configuration  
 - [ ] **Show resource limits vs usage** - Display CPU/memory limits and actual consumption

@@ -217,6 +217,30 @@ class ECSNavigator:
 
         console.print("=" * 80, style="dim")
 
+    def show_container_environment_variables(self, cluster_name: str, task_arn: str, container_name: str) -> None:
+        """Display environment variables for a container."""
+        env_vars = self.ecs_service.get_container_environment_variables(cluster_name, task_arn, container_name)
+
+        if env_vars is None:
+            console.print(f"❌ Could not find environment variables for container '{container_name}'", style="red")
+            return
+
+        if not env_vars:
+            console.print(f"📝 No environment variables found for container '{container_name}'", style="yellow")
+            return
+
+        console.print(f"\n🔧 Environment variables for container '{container_name}':", style="bold cyan")
+        console.print("=" * 60, style="dim")
+
+        sorted_vars = sorted(env_vars.items())
+
+        for name, value in sorted_vars:
+            display_value = value if len(value) <= 80 else f"{value[:77]}..."
+            console.print(f"{name}={display_value}", style="white")
+
+        console.print("=" * 60, style="dim")
+        console.print(f"📊 Total: {len(env_vars)} environment variables", style="blue")
+
 
 def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[str]:
     """Build feature menu choices for containers plus exit option."""
@@ -225,6 +249,7 @@ def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[str]:
     for container in containers:
         container_name = container["name"]
         choices.append(f"Show tail of logs for container: {container_name}")
+        choices.append(f"Show environment variables for container: {container_name}")
 
     choices.append("Exit")
 

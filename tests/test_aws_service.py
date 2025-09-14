@@ -87,6 +87,54 @@ def ecs_client_with_tasks():
         yield client
 
 
+@pytest.fixture
+def ecs_client_with_env_vars():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="app-with-env",
+            containerDefinitions=[
+                {
+                    "name": "app",
+                    "image": "myapp:latest",
+                    "memory": 512,
+                    "environment": [
+                        {"name": "ENV", "value": "production"},
+                        {"name": "DEBUG", "value": "false"},
+                        {"name": "DATABASE_URL", "value": "postgres://prod-db:5432/myapp"},
+                        {"name": "API_KEY", "value": "secret-key-123"},
+                    ],
+                },
+                {
+                    "name": "sidecar",
+                    "image": "nginx:latest",
+                    "memory": 256,
+                    "environment": [
+                        {"name": "NGINX_PORT", "value": "8080"},
+                    ],
+                },
+            ],
+        )
+
+        client.create_service(
+            cluster="production",
+            serviceName="app-service",
+            taskDefinition="app-with-env",
+            desiredCount=1,
+        )
+
+        client.run_task(
+            cluster="production",
+            taskDefinition="app-with-env",
+            launchType="FARGATE",
+        )
+
+        yield client
+
+
 def test_get_cluster_names(ecs_client_with_clusters) -> None:
     service = ECSService(ecs_client_with_clusters)
     clusters = service.get_cluster_names()
@@ -208,3 +256,73 @@ def test_get_log_config_no_config():
         service = ECSService(client)
         log_config = service.get_log_config("production", tasks[0], "web")
         assert log_config is None
+
+
+def test_get_container_environment_variables(ecs_client_with_env_vars) -> None:
+    service = ECSService(ecs_client_with_env_vars)
+    tasks = service.get_tasks("production", "app-service")
+
+    env_vars = service.get_container_environment_variables("production", tasks[0], "app")
+
+    assert env_vars is not None
+    assert len(env_vars) == 4
+
+    expected_vars = {
+        "ENV": "production",
+        "DEBUG": "false",
+        "DATABASE_URL": "postgres://prod-db:5432/myapp",
+        "API_KEY": "secret-key-123",
+    }
+
+    assert env_vars == expected_vars
+
+
+def test_get_container_environment_variables_sidecar(ecs_client_with_env_vars) -> None:
+    service = ECSService(ecs_client_with_env_vars)
+    tasks = service.get_tasks("production", "app-service")
+
+    env_vars = service.get_container_environment_variables("production", tasks[0], "sidecar")
+
+    assert env_vars is not None
+    assert len(env_vars) == 1
+    assert env_vars["NGINX_PORT"] == "8080"
+
+
+def test_get_container_environment_variables_no_container() -> None:
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="simple-task",
+            containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
+        )
+
+        client.run_task(cluster="production", taskDefinition="simple-task", launchType="FARGATE")
+
+        response = client.list_tasks(cluster="production")
+        tasks = response.get("taskArns", [])
+
+        service = ECSService(client)
+        env_vars = service.get_container_environment_variables("production", tasks[0], "nonexistent")
+        assert env_vars is None
+
+
+def test_get_container_environment_variables_no_env_vars() -> None:
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="simple-task",
+            containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
+        )
+
+        client.run_task(cluster="production", taskDefinition="simple-task", launchType="FARGATE")
+
+        response = client.list_tasks(cluster="production")
+        tasks = response.get("taskArns", [])
+
+        service = ECSService(client)
+        env_vars = service.get_container_environment_variables("production", tasks[0], "web")
+        assert env_vars == {}

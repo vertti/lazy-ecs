@@ -72,6 +72,9 @@ def _handle_task_features(
         if selected_feature.startswith("Show tail of logs for container:"):
             container_name = _extract_container_name(selected_feature)
             navigator.show_container_logs(cluster_name, task_arn, container_name)
+        elif selected_feature.startswith("Show environment variables for container:"):
+            container_name = _extract_container_name(selected_feature)
+            navigator.show_container_environment_variables(cluster_name, task_arn, container_name)
 
 
 def _extract_container_name(feature_text: str) -> str:

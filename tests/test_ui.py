@@ -153,3 +153,59 @@ def test_show_container_logs_no_config(mock_print, mock_ecs_service) -> None:
     assert mock_print.called
     print_args = [str(call.args[0]) for call in mock_print.call_args_list]
     assert any("Could not find log configuration" in arg for arg in print_args)
+
+
+@patch("lazy_ecs.ui.console.print")
+def test_show_container_environment_variables_success(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.get_container_environment_variables.return_value = {
+        "ENV": "production",
+        "DEBUG": "false",
+        "DATABASE_URL": "postgres://prod-db:5432/myapp",
+    }
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_environment_variables("production", "task-arn-123", "app")
+
+    assert mock_print.called
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("Environment variables" in arg for arg in print_args)
+    assert any("ENV=production" in arg for arg in print_args)
+    assert any("Total: 3 environment variables" in arg for arg in print_args)
+
+
+@patch("lazy_ecs.ui.console.print")
+def test_show_container_environment_variables_none(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.get_container_environment_variables.return_value = None
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_environment_variables("production", "task-arn-123", "app")
+
+    assert mock_print.called
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("Could not find environment variables" in arg for arg in print_args)
+
+
+@patch("lazy_ecs.ui.console.print")
+def test_show_container_environment_variables_empty(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.get_container_environment_variables.return_value = {}
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_environment_variables("production", "task-arn-123", "app")
+
+    assert mock_print.called
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("No environment variables found" in arg for arg in print_args)
+
+
+def test_build_task_feature_choices_includes_env_vars() -> None:
+    from lazy_ecs.ui import _build_task_feature_choices
+
+    containers = [{"name": "web"}, {"name": "sidecar"}]
+    choices = _build_task_feature_choices(containers)
+
+    assert "Show tail of logs for container: web" in choices
+    assert "Show environment variables for container: web" in choices
+    assert "Show tail of logs for container: sidecar" in choices
+    assert "Show environment variables for container: sidecar" in choices
+    assert "Exit" in choices
+    assert len(choices) == 5

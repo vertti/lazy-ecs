@@ -192,6 +192,33 @@ class ECSService:
 
         return relevant_groups
 
+    def get_container_environment_variables(
+        self, cluster_name: str, task_arn: str, container_name: str
+    ) -> dict[str, str] | None:
+        """Get environment variables for a specific container in a task."""
+        task_response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=[task_arn])
+        tasks = task_response.get("tasks", [])
+        if not tasks:
+            return None
+
+        task = tasks[0]
+        task_def_arn = task["taskDefinitionArn"]
+
+        task_def_response = self.ecs_client.describe_task_definition(taskDefinition=task_def_arn)
+        task_definition = task_def_response["taskDefinition"]
+
+        for container_def in task_definition["containerDefinitions"]:
+            if container_def["name"] == container_name:
+                environment = container_def.get("environment", [])
+
+                env_vars = {}
+                for env_var in environment:
+                    env_vars[env_var["name"]] = env_var["value"]
+
+                return env_vars
+
+        return None
+
 
 def _create_service_info(service: ServiceTypeDef) -> ServiceInfo:
     """Create service info from AWS service description."""
