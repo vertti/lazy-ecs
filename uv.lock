@@ -400,21 +400,21 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "boto3", specifier = ">=1.34.0" },
-    { name = "questionary", specifier = ">=2.0.0" },
-    { name = "rich", specifier = ">=13.0.0" },
+    { name = "boto3", specifier = "==1.40.22" },
+    { name = "questionary", specifier = "==2.1.1" },
+    { name = "rich", specifier = "==14.1.0" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "boto3-stubs", extras = ["ecs", "logs"], specifier = ">=1.34.0" },
-    { name = "moto", extras = ["ecs"], specifier = ">=5.0.0" },
-    { name = "pre-commit", specifier = ">=4.0.0" },
-    { name = "pyrefly", specifier = ">=0.1.0" },
-    { name = "pytest", specifier = ">=8.0.0" },
-    { name = "pytest-cov", specifier = ">=4.0.0" },
-    { name = "pytest-mock", specifier = ">=3.12.0" },
-    { name = "ruff", specifier = ">=0.6.0" },
+    { name = "boto3-stubs", extras = ["ecs", "logs"], specifier = "==1.40.23" },
+    { name = "moto", extras = ["ecs"], specifier = "==5.1.11" },
+    { name = "pre-commit", specifier = "==4.3.0" },
+    { name = "pyrefly", specifier = "==0.31.0" },
+    { name = "pytest", specifier = "==8.4.1" },
+    { name = "pytest-cov", specifier = "==6.2.1" },
+    { name = "pytest-mock", specifier = "==3.14.1" },
+    { name = "ruff", specifier = "==0.12.11" },
 ]
 
 [[package]]
