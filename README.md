@@ -35,7 +35,7 @@ uv run lazy-ecs
 # Run tests
 uv run pytest
 
-# Format and lint code
+# Format and lint code (with type annotation enforcement)
 uv run ruff format
 uv run ruff check --fix
 

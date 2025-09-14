@@ -7,6 +7,7 @@ import boto3
 import questionary
 from mypy_boto3_ecs.client import ECSClient
 from mypy_boto3_ecs.type_defs import ServiceTypeDef, TaskDefinitionTypeDef, TaskTypeDef
+from mypy_boto3_logs.client import CloudWatchLogsClient
 from rich.console import Console
 
 console = Console()
@@ -548,7 +549,7 @@ def _get_log_config_from_task(
     return None
 
 
-def _list_log_groups(logs_client, cluster_name: str, container_name: str) -> None:
+def _list_log_groups(logs_client: CloudWatchLogsClient, cluster_name: str, container_name: str) -> None:
     """List available log groups to help with debugging."""
     try:
         response = logs_client.describe_log_groups(limit=50)

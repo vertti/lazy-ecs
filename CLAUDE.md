@@ -55,7 +55,7 @@ uv run pytest                    # Run tests (should fail initially)
 # [implement feature]
 uv run pytest                    # Verify tests pass
 uv run ruff format               # Auto-fix formatting (run first!)
-uv run ruff check --fix          # Fix issues AND check linting (combines both!)
+uv run ruff check --fix          # Fix issues AND check linting with type annotation enforcement
 uv run pyrefly check             # Fast type checking
 
 # Type annotation tools:
