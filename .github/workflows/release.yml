@@ -34,6 +34,13 @@ jobs:
         run: |
           ./scripts/get-pypi-info.sh lazy-ecs ${{ env.PACKAGE_VERSION }} >> $GITHUB_ENV
 
+      - name: Generate dependency resources
+        run: |
+          RESOURCES=$(./scripts/generate-homebrew-resources.sh)
+          echo "HOMEBREW_RESOURCES<<EOF" >> $GITHUB_ENV
+          echo "$RESOURCES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Checkout homebrew tap
         uses: actions/checkout@v4
         with:
@@ -54,7 +61,7 @@ jobs:
             license "MIT"
 
             depends_on "python@3.11"
-
+${{ env.HOMEBREW_RESOURCES }}
             def install
               virtualenv_install_with_resources
             end
