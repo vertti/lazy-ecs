@@ -52,9 +52,9 @@ jobs:
         run: |
           # Copy template and replace placeholders
           cp Formula/lazy-ecs.rb.template homebrew-tap/Formula/lazy-ecs.rb
-          sed -i '' "s|{{PYPI_DOWNLOAD_URL}}|${{ env.PYPI_DOWNLOAD_URL }}|g" homebrew-tap/Formula/lazy-ecs.rb
-          sed -i '' "s|{{PACKAGE_SHA256}}|${{ env.PACKAGE_SHA256 }}|g" homebrew-tap/Formula/lazy-ecs.rb
-          sed -i '' "s|{{HOMEBREW_RESOURCES}}|${{ env.HOMEBREW_RESOURCES }}|g" homebrew-tap/Formula/lazy-ecs.rb
+          sed -i "s|{{PYPI_DOWNLOAD_URL}}|${{ env.PYPI_DOWNLOAD_URL }}|g" homebrew-tap/Formula/lazy-ecs.rb
+          sed -i "s|{{PACKAGE_SHA256}}|${{ env.PACKAGE_SHA256 }}|g" homebrew-tap/Formula/lazy-ecs.rb
+          sed -i "s|{{HOMEBREW_RESOURCES}}|${{ env.HOMEBREW_RESOURCES }}|g" homebrew-tap/Formula/lazy-ecs.rb
 
       - name: Commit and push changes
         run: |
