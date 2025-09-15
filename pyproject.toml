@@ -1,6 +1,6 @@
 [project]
 name = "lazy-ecs"
-version = "0.1.11"
+version = "0.1.12"
 description = "A CLI tool for working with AWS services"
 readme = "README.md"
 authors = [
