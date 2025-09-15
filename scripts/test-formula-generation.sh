@@ -7,10 +7,10 @@ echo "Testing formula generation..."
 # Set test environment variables
 export PYPI_DOWNLOAD_URL="https://files.pythonhosted.org/packages/test/lazy_ecs-0.1.0.tar.gz"
 export PACKAGE_SHA256="test-sha256"
-export HOMEBREW_RESOURCES='  resource "boto3" do
-    url "https://test-url"
-    sha256 "test-hash"
-  end'
+
+# Generate real resources
+echo "Generating resources..." >&2
+export HOMEBREW_RESOURCES=$(./scripts/generate-homebrew-resources.sh)
 
 # Generate formula
 mkdir -p test-output
