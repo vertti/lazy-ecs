@@ -75,6 +75,9 @@ def _handle_task_features(
         elif selected_feature.startswith("Show environment variables for container:"):
             container_name = _extract_container_name(selected_feature)
             navigator.show_container_environment_variables(cluster_name, task_arn, container_name)
+        elif selected_feature.startswith("Show secrets for container:"):
+            container_name = _extract_container_name(selected_feature)
+            navigator.show_container_secrets(cluster_name, task_arn, container_name)
 
 
 def _extract_container_name(feature_text: str) -> str:

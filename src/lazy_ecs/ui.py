@@ -239,6 +239,45 @@ class ECSNavigator:
         console.print("=" * 60, style="dim")
         console.print(f"📊 Total: {len(env_vars)} environment variables", style="blue")
 
+    def show_container_secrets(self, cluster_name: str, task_arn: str, container_name: str) -> None:
+        """Display secrets configuration for a container."""
+        secrets = self.ecs_service.get_container_secrets(cluster_name, task_arn, container_name)
+
+        if secrets is None:
+            console.print(f"❌ Could not find secrets configuration for container '{container_name}'", style="red")
+            return
+
+        if not secrets:
+            console.print(f"🔐 No secrets configured for container '{container_name}'", style="yellow")
+            return
+
+        console.print(f"\n🔐 Secrets for container '{container_name}' (values not shown):", style="bold magenta")
+        console.print("=" * 60, style="dim")
+
+        sorted_secrets = sorted(secrets.items())
+
+        for name, value_from in sorted_secrets:
+            if "secretsmanager" in value_from:
+                parts = value_from.split(":")
+                if len(parts) >= 7:
+                    secret_name = parts[6]
+                    if len(parts) > 7:
+                        secret_name += f"-{parts[7]}"
+                    console.print(f"{name} → Secrets Manager: {secret_name}", style="magenta")
+                else:
+                    console.print(f"{name} → Secrets Manager: {value_from}", style="magenta")
+            elif "ssm" in value_from or "parameter" in value_from:
+                if ":parameter/" in value_from:
+                    param_name = value_from.split(":parameter/", 1)[1]
+                    console.print(f"{name} → Parameter Store: {param_name}", style="magenta")
+                else:
+                    console.print(f"{name} → Parameter Store: {value_from}", style="magenta")
+            else:
+                console.print(f"{name} → {value_from}", style="magenta")
+
+        console.print("=" * 60, style="dim")
+        console.print(f"🔒 Total: {len(secrets)} secrets configured", style="magenta")
+
 
 def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[str]:
     """Build feature menu choices for containers plus exit option."""
@@ -248,6 +287,7 @@ def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[str]:
         container_name = container["name"]
         choices.append(f"Show tail of logs for container: {container_name}")
         choices.append(f"Show environment variables for container: {container_name}")
+        choices.append(f"Show secrets for container: {container_name}")
 
     choices.append("Exit")
 

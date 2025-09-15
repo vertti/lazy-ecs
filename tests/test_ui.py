@@ -205,7 +205,52 @@ def test_build_task_feature_choices_includes_env_vars() -> None:
 
     assert "Show tail of logs for container: web" in choices
     assert "Show environment variables for container: web" in choices
+    assert "Show secrets for container: web" in choices
     assert "Show tail of logs for container: sidecar" in choices
     assert "Show environment variables for container: sidecar" in choices
+    assert "Show secrets for container: sidecar" in choices
     assert "Exit" in choices
-    assert len(choices) == 5
+    assert len(choices) == 7
+
+
+@patch("lazy_ecs.ui.console.print")
+def test_show_container_secrets_success(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.get_container_secrets.return_value = {
+        "API_KEY": "arn:aws:secretsmanager:us-east-1:123456789012:secret:api-key-XyZ123",
+        "DB_PASSWORD": "arn:aws:ssm:us-east-1:123456789012:parameter/db-password",
+        "AUTH_SECRET": "arn:aws:secretsmanager:us-east-1:123456789012:secret:auth-secret",
+    }
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_secrets("production", "task-arn-123", "app")
+
+    assert mock_print.called
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("Secrets for container" in arg for arg in print_args)
+    assert any("API_KEY → Secrets Manager: api-key-XyZ123" in arg for arg in print_args)
+    assert any("DB_PASSWORD → Parameter Store: db-password" in arg for arg in print_args)
+    assert any("AUTH_SECRET → Secrets Manager: auth-secret" in arg for arg in print_args)
+
+
+@patch("lazy_ecs.ui.console.print")
+def test_show_container_secrets_none(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.get_container_secrets.return_value = None
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_secrets("production", "task-arn-123", "app")
+
+    assert mock_print.called
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("Could not find secrets configuration" in arg for arg in print_args)
+
+
+@patch("lazy_ecs.ui.console.print")
+def test_show_container_secrets_empty(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.get_container_secrets.return_value = {}
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_secrets("production", "task-arn-123", "app")
+
+    assert mock_print.called
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("No secrets configured" in arg for arg in print_args)

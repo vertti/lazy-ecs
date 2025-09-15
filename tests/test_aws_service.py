@@ -135,6 +135,64 @@ def ecs_client_with_env_vars():
         yield client
 
 
+@pytest.fixture
+def ecs_client_with_secrets():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="app-with-secrets",
+            containerDefinitions=[
+                {
+                    "name": "app",
+                    "image": "myapp:latest",
+                    "memory": 512,
+                    "environment": [
+                        {"name": "ENV", "value": "production"},
+                    ],
+                    "secrets": [
+                        {
+                            "name": "DATABASE_PASSWORD",
+                            "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:db-password-AbCdEf",
+                        },
+                        {
+                            "name": "API_KEY",
+                            "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:api-key-XyZ123",
+                        },
+                    ],
+                },
+                {
+                    "name": "sidecar",
+                    "image": "nginx:latest",
+                    "memory": 256,
+                    "secrets": [
+                        {
+                            "name": "SSL_CERT",
+                            "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:ssl-cert-MnOpQr",
+                        }
+                    ],
+                },
+            ],
+        )
+
+        client.create_service(
+            cluster="production",
+            serviceName="app-service",
+            taskDefinition="app-with-secrets",
+            desiredCount=1,
+        )
+
+        client.run_task(
+            cluster="production",
+            taskDefinition="app-with-secrets",
+            launchType="FARGATE",
+        )
+
+        yield client
+
+
 def test_get_cluster_names(ecs_client_with_clusters) -> None:
     service = ECSService(ecs_client_with_clusters)
     clusters = service.get_cluster_names()
@@ -326,3 +384,71 @@ def test_get_container_environment_variables_no_env_vars() -> None:
         service = ECSService(client)
         env_vars = service.get_container_environment_variables("production", tasks[0], "web")
         assert env_vars == {}
+
+
+def test_get_container_secrets(ecs_client_with_secrets) -> None:
+    service = ECSService(ecs_client_with_secrets)
+    tasks = service.get_tasks("production", "app-service")
+
+    secrets = service.get_container_secrets("production", tasks[0], "app")
+
+    assert secrets is not None
+    assert len(secrets) == 2
+
+    expected_secrets = {
+        "DATABASE_PASSWORD": "arn:aws:secretsmanager:us-east-1:123456789012:secret:db-password-AbCdEf",
+        "API_KEY": "arn:aws:secretsmanager:us-east-1:123456789012:secret:api-key-XyZ123",
+    }
+
+    assert secrets == expected_secrets
+
+
+def test_get_container_secrets_sidecar(ecs_client_with_secrets) -> None:
+    service = ECSService(ecs_client_with_secrets)
+    tasks = service.get_tasks("production", "app-service")
+
+    secrets = service.get_container_secrets("production", tasks[0], "sidecar")
+
+    assert secrets is not None
+    assert len(secrets) == 1
+    assert secrets["SSL_CERT"] == "arn:aws:secretsmanager:us-east-1:123456789012:secret:ssl-cert-MnOpQr"
+
+
+def test_get_container_secrets_no_container() -> None:
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="simple-task",
+            containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
+        )
+
+        client.run_task(cluster="production", taskDefinition="simple-task", launchType="FARGATE")
+
+        response = client.list_tasks(cluster="production")
+        tasks = response.get("taskArns", [])
+
+        service = ECSService(client)
+        secrets = service.get_container_secrets("production", tasks[0], "nonexistent")
+        assert secrets is None
+
+
+def test_get_container_secrets_no_secrets() -> None:
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="simple-task",
+            containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
+        )
+
+        client.run_task(cluster="production", taskDefinition="simple-task", launchType="FARGATE")
+
+        response = client.list_tasks(cluster="production")
+        tasks = response.get("taskArns", [])
+
+        service = ECSService(client)
+        secrets = service.get_container_secrets("production", tasks[0], "web")
+        assert secrets == {}

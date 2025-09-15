@@ -171,6 +171,21 @@ class ECSService:
 
         return None
 
+    def get_container_secrets(self, cluster_name: str, task_arn: str, container_name: str) -> dict[str, str] | None:
+        """Get secrets configuration for a specific container in a task."""
+        result = _get_task_and_definition(self.ecs_client, cluster_name, task_arn)
+        if not result:
+            return None
+
+        _task, task_definition = result
+
+        for container_def in task_definition["containerDefinitions"]:
+            if container_def["name"] == container_name:
+                secrets = container_def.get("secrets", [])
+                return {secret["name"]: secret["valueFrom"] for secret in secrets}
+
+        return None
+
 
 def _extract_name_from_arn(arn: str) -> str:
     """Extract resource name from AWS ARN."""
