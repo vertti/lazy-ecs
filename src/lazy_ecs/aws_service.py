@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, TypedDict, cast
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import boto3
-from mypy_boto3_ecs.client import ECSClient
-from mypy_boto3_ecs.type_defs import ServiceTypeDef, TaskDefinitionTypeDef, TaskTypeDef
-from mypy_boto3_logs.client import CloudWatchLogsClient
-from mypy_boto3_logs.type_defs import OutputLogEventTypeDef
+
+if TYPE_CHECKING:
+    from mypy_boto3_ecs.client import ECSClient
+    from mypy_boto3_ecs.type_defs import ServiceTypeDef, TaskDefinitionTypeDef, TaskTypeDef
+    from mypy_boto3_logs.client import CloudWatchLogsClient
+    from mypy_boto3_logs.type_defs import OutputLogEventTypeDef
 
 
 class ServiceInfo(TypedDict):
