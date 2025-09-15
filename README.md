@@ -2,9 +2,42 @@
 
 A CLI tool for navigating AWS ECS clusters interactively.
 
-## Why?
+## Why I Built This
 
-The AWS console UI is confusing to navigate for ECS. This tool makes it quick to check exactly what is running in your ECS clusters, drill down to specific services and tasks, all with simple arrow key navigation.
+When running services in ECS, I constantly needed to check:
+- What exactly is running where?
+- Is my service healthy?
+- What parameters or environment variables got applied?
+- What do the latest logs show - did the container start as expected?
+
+The AWS ECS web console is confusing to navigate, with multiple clicks through different screens just to get basic information. The AWS CLI is powerful but verbose and requires memorizing complex commands.
+
+**lazy-ecs** solves this with a simple, interactive CLI that lets you quickly drill down from clusters → services → tasks → containers with just arrow keys. It destroys the AWS CLI in usability for ECS exploration and debugging.
+
+## Installation
+
+### Homebrew (Recommended)
+
+```bash
+# Add the tap
+brew tap vertti/lazy-ecs
+
+# Install lazy-ecs
+brew install lazy-ecs
+
+# Run it
+lazy-ecs
+```
+
+### From Source
+
+```bash
+# Clone and install with uv
+git clone https://github.com/vertti/lazy-ecs.git
+cd lazy-ecs
+uv sync
+uv run lazy-ecs
+```
 
 ## Features
 
