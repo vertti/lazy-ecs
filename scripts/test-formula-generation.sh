@@ -45,5 +45,13 @@ echo ""
 echo "Testing Ruby syntax..."
 ruby -c test-output/lazy-ecs.rb
 
+echo "Checking for binary symlink line..."
+if grep -q "bin.install_symlink" test-output/lazy-ecs.rb; then
+    echo "✅ Binary symlink found"
+else
+    echo "❌ Missing binary symlink - executable won't be available in PATH"
+    exit 1
+fi
+
 echo "✅ Formula generation test passed!"
 rm -rf test-output
