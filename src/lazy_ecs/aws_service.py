@@ -244,12 +244,11 @@ def _determine_service_status(running_count: int, desired_count: int, pending_co
     """Determine service status icon and text."""
     if running_count == desired_count and pending_count == 0:
         return "✅", "HEALTHY"
-    elif running_count < desired_count:
+    if running_count < desired_count:
         return "⚠️", "SCALING"
-    elif running_count > desired_count:
+    if running_count > desired_count:
         return "🔴", "OVER_SCALED"
-    else:
-        return "🟡", "PENDING"
+    return "🟡", "PENDING"
 
 
 def _get_desired_task_definition_arn(ecs_client: ECSClient, cluster_name: str, service_name: str) -> str | None:

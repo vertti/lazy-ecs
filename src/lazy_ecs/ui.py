@@ -166,7 +166,7 @@ class ECSNavigator:
 
         choices = _build_task_feature_choices(containers)
 
-        selected = questionary.select(
+        return questionary.select(
             "Select a feature for this task:",
             choices=choices,
             style=questionary.Style(
@@ -180,8 +180,6 @@ class ECSNavigator:
                 ]
             ),
         ).ask()
-
-        return selected
 
     def show_container_logs(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
         """Display the last N lines of logs for a container."""
