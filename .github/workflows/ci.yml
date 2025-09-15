@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -14,30 +14,30 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v3
-      with:
-        enable-cache: true
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
 
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
 
-    - name: Install dependencies
-      run: uv sync --all-extras --dev
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
 
-    - name: Check formatting
-      run: uv run ruff format --check
+      - name: Check formatting
+        run: uv run ruff format --check
 
-    - name: Run linting
-      run: uv run ruff check
+      - name: Run linting
+        run: uv run ruff check
 
-    - name: Run type checking
-      run: uv run pyrefly check
+      - name: Run type checking
+        run: uv run pyrefly check
 
-    - name: Run tests
-      run: uv run pytest
+      - name: Run tests
+        run: uv run pytest
 
-    - name: Test production dependencies
-      run: ./scripts/test-production-install.sh
+      - name: Test production dependencies
+        run: ./scripts/test-production-install.sh

@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Environment
 
 The project uses:
+
 - `uv` for Python dependency management and virtual environments
 - `mise` for tool management (Python, uv, Node.js)
 - Python 3.11+ required
@@ -101,11 +102,13 @@ uv run pre-commit run --all-files # Run pre-commit on all files manually
 ## Testing Patterns
 
 **AWS Service Mocking with Moto:**
+
 - Use `moto[ecs]` for realistic AWS service mocking
 - Use `pytest-mock` for simple function mocking
 - Create fixtures with `mock_aws` context manager
 
 **Example AWS test pattern:**
+
 ```python
 @pytest.fixture
 def ecs_client_with_clusters():
@@ -122,17 +125,20 @@ def test_get_cluster_names(ecs_client_with_clusters):
 ```
 
 **Interactive CLI Testing:**
+
 - Mock `questionary.select` for user input simulation
 - Use `@patch` decorator for external library mocking
 
 ## Type Checking with Pyrefly
 
 **Pyrefly Configuration:**
+
 - Configured in `[tool.pyrefly]` section of pyproject.toml
 - Uses `boto3-stubs[ecs]` for AWS API type safety
 - TypedDict classes for structured data (ServiceChoice, TaskChoice)
 
 **Type Checking Workflow:**
+
 ```python
 # Comprehensive typing approach:
 def get_task_details(self, cluster_name: str, service_name: str, task_arn: str) -> dict[str, Any]:
@@ -148,6 +154,7 @@ class TaskChoice(TypedDict):
 ```
 
 **Important Pyrefly Notes:**
+
 - Pyrefly does NOT report missing type annotations as errors by design
 - Use `uv run pyrefly infer` to automatically add missing type annotations
 - Run `uv run pyrefly check` as part of TDD cycle for type correctness
@@ -156,12 +163,14 @@ class TaskChoice(TypedDict):
 ## Function Design Guidelines
 
 **Write Small, Testable Functions:**
+
 - Prefer small functions that do one thing well
 - Functions should take all required data as parameters (avoid hidden dependencies)
 - Avoid long "blob" functions that do multiple operations
 - Extract pure functions that can be tested without mocks
 
 **Good Example - Testable Function:**
+
 ```python
 def _determine_service_status(running_count: int, desired_count: int, pending_count: int) -> tuple[str, str]:
     """Pure function - easy to test with simple assertions."""
@@ -173,6 +182,7 @@ def _determine_service_status(running_count: int, desired_count: int, pending_co
 ```
 
 **Bad Example - Hard to Test:**
+
 ```python
 def update_service_status(self):
     """Requires mocking self.client, self.cache, etc."""
@@ -182,12 +192,14 @@ def update_service_status(self):
 ```
 
 **Function Parameter Guidelines:**
+
 - Pass data as parameters rather than accessing instance variables
 - This makes functions pure and easily testable
 - Use dependency injection: pass clients/services as parameters
 - Avoid functions that reach into global state or instance state
 
 **Testing Benefits:**
+
 ```python
 # Easy to test - no mocks needed
 def test_determine_service_status():
@@ -203,6 +215,7 @@ def test_update_service_status():
 ## Code Style Guidelines
 
 **Comments:**
+
 - Do not add comments for the sake of adding comments
 - If test name is descriptive, no need for general test comments
 - Only add comments to explain complex logic that's hard to understand from code alone

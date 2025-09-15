@@ -4,13 +4,13 @@ version = "0.1.12"
 description = "A CLI tool for working with AWS services"
 readme = "README.md"
 authors = [
-    { name = "Janne Sinivirta", email = "janne.sinivirta@gmail.com" }
+  { name = "Janne Sinivirta", email = "janne.sinivirta@gmail.com" },
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "questionary==2.1.1",
-    "boto3==1.40.30",
-    "rich==14.1.0",
+  "questionary==2.1.1",
+  "boto3==1.40.30",
+  "rich==14.1.0",
 ]
 
 [project.scripts]
@@ -18,14 +18,14 @@ lazy-ecs = "lazy_ecs:main"
 
 [tool.uv]
 dev-dependencies = [
-    "pytest==8.4.2",
-    "pytest-cov==7.0.0",
-    "pytest-mock==3.15.0",
-    "moto[ecs]==5.1.12",
-    "ruff==0.13.0",
-    "pre-commit==4.3.0",
-    "pyrefly==0.32.0",
-    "boto3-stubs[ecs,logs]==1.40.30",
+  "pytest==8.4.2",
+  "pytest-cov==7.0.0",
+  "pytest-mock==3.15.0",
+  "moto[ecs]==5.1.12",
+  "ruff==0.13.0",
+  "pre-commit==4.3.0",
+  "pyrefly==0.32.0",
+  "boto3-stubs[ecs,logs]==1.40.30",
 ]
 
 [tool.ruff]
@@ -34,35 +34,35 @@ line-length = 120
 
 [tool.ruff.lint]
 select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # pyflakes
-    "I",    # isort
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "UP",   # pyupgrade
-    "ANN",  # flake8-annotations - require type annotations
-    "N",    # naming conventions
-    "SIM",  # simplify
-    "RET",  # return values
-    "ARG",  # unused arguments
-    "PTH",  # pathlib
-    "RUF",  # ruff-specific rules
+  "E", # pycodestyle errors
+  "W", # pycodestyle warnings
+  "F", # pyflakes
+  "I", # isort
+  "B", # flake8-bugbear
+  "C4", # flake8-comprehensions
+  "UP", # pyupgrade
+  "ANN", # flake8-annotations - require type annotations
+  "N", # naming conventions
+  "SIM", # simplify
+  "RET", # return values
+  "ARG", # unused arguments
+  "PTH", # pathlib
+  "RUF", # ruff-specific rules
 ]
 ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = [
-    "ANN001", # Missing type annotation for function argument (test fixtures/mocks)
-    "ANN201", # Missing return type annotation for public function (test fixtures)
+  "ANN001", # Missing type annotation for function argument (test fixtures/mocks)
+  "ANN201", # Missing return type annotation for public function (test fixtures)
 ]
 
 [tool.pyrefly]
 project-includes = ["**/*"]
 project-excludes = [
-    "**/node_modules",
-    "**/__pycache__",
-    "**/*venv/**/*",
+  "**/node_modules",
+  "**/__pycache__",
+  "**/*venv/**/*",
 ]
 
 [tool.ruff.format]
@@ -75,9 +75,9 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = [
-    "--cov=src/lazy_ecs",
-    "--cov-report=term-missing",
-    "--cov-report=html",
+  "--cov=src/lazy_ecs",
+  "--cov-report=term-missing",
+  "--cov-report=html",
 ]
 
 [build-system]

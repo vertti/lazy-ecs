@@ -5,6 +5,7 @@ A CLI tool for navigating AWS ECS clusters interactively.
 ## Why I Built This
 
 When running services in ECS, I constantly needed to check:
+
 - What exactly is running where?
 - Is my service healthy?
 - What parameters or environment variables got applied?
@@ -47,7 +48,7 @@ uv run lazy-ecs
 - ✅ **Basic container details** - Show container name, image, CPU/memory configuration
 - ✅ **Show environment variables & secrets** - Display environment variables and secrets configuration (without exposing secret values)
 - ⬜ **Show port mappings** - Display container port configurations and networking
-- ⬜ **Show volume mounts** - Display file system mounts and storage configuration  
+- ⬜ **Show volume mounts** - Display file system mounts and storage configuration
 - ⬜ **Show resource limits vs usage** - Display CPU/memory limits and actual consumption
 - ⬜ **Show health check configuration** - Display health check settings and current status
 - ⬜ **Connect to running container** - Execute shell commands inside running containers
@@ -83,7 +84,7 @@ uv run lazy-ecs
 
 - ⬜ **Enhanced log features**:
   - ⬜ Search/filter logs by keywords or time range
-  - ⬜ Follow logs in real-time (tail -f style) 
+  - ⬜ Follow logs in real-time (tail -f style)
   - ⬜ Download logs to file
 - ⬜ **Monitoring integration**:
   - ⬜ Show CloudWatch metrics for containers/tasks
