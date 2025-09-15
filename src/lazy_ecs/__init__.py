@@ -69,15 +69,18 @@ def _handle_task_features(
             console.print("\n👋 Goodbye!", style="cyan")
             break
 
-        if selected_feature.startswith("Show tail of logs for container:"):
-            container_name = _extract_container_name(selected_feature)
-            navigator.show_container_logs(cluster_name, task_arn, container_name)
-        elif selected_feature.startswith("Show environment variables for container:"):
-            container_name = _extract_container_name(selected_feature)
-            navigator.show_container_environment_variables(cluster_name, task_arn, container_name)
-        elif selected_feature.startswith("Show secrets for container:"):
-            container_name = _extract_container_name(selected_feature)
-            navigator.show_container_secrets(cluster_name, task_arn, container_name)
+        # Map feature prefixes to their corresponding methods
+        feature_actions = {
+            "Show tail of logs for container:": navigator.show_container_logs,
+            "Show environment variables for container:": navigator.show_container_environment_variables,
+            "Show secrets for container:": navigator.show_container_secrets,
+        }
+
+        for prefix, action in feature_actions.items():
+            if selected_feature.startswith(prefix):
+                container_name = _extract_container_name(selected_feature)
+                action(cluster_name, task_arn, container_name)
+                break
 
 
 def _extract_container_name(feature_text: str) -> str:

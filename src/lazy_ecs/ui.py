@@ -257,14 +257,12 @@ class ECSNavigator:
 
 def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[str]:
     """Build feature menu choices for containers plus exit option."""
-    choices = []
+    actions = [
+        "Show tail of logs for container: {name}",
+        "Show environment variables for container: {name}",
+        "Show secrets for container: {name}",
+    ]
 
-    for container in containers:
-        container_name = container["name"]
-        choices.append(f"Show tail of logs for container: {container_name}")
-        choices.append(f"Show environment variables for container: {container_name}")
-        choices.append(f"Show secrets for container: {container_name}")
-
+    choices = [action.format(name=container["name"]) for container in containers for action in actions]
     choices.append("Exit")
-
     return choices
