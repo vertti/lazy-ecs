@@ -50,27 +50,11 @@ jobs:
 
       - name: Update formula
         run: |
-          cat > homebrew-tap/Formula/lazy-ecs.rb << EOF
-          class LazyEcs < Formula
-            include Language::Python::Virtualenv
-
-            desc "Interactive CLI tool for navigating AWS ECS clusters"
-            homepage "https://github.com/vertti/lazy-ecs"
-            url "${{ env.PYPI_DOWNLOAD_URL }}"
-            sha256 "${{ env.PACKAGE_SHA256 }}"
-            license "MIT"
-
-            depends_on "python@3.11"
-${{ env.HOMEBREW_RESOURCES }}
-            def install
-              virtualenv_install_with_resources
-            end
-
-            test do
-              assert_match "lazy-ecs", shell_output("#{bin}/lazy-ecs --help")
-            end
-          end
-          EOF
+          # Copy template and replace placeholders
+          cp Formula/lazy-ecs.rb.template homebrew-tap/Formula/lazy-ecs.rb
+          sed -i '' "s|{{PYPI_DOWNLOAD_URL}}|${{ env.PYPI_DOWNLOAD_URL }}|g" homebrew-tap/Formula/lazy-ecs.rb
+          sed -i '' "s|{{PACKAGE_SHA256}}|${{ env.PACKAGE_SHA256 }}|g" homebrew-tap/Formula/lazy-ecs.rb
+          sed -i '' "s|{{HOMEBREW_RESOURCES}}|${{ env.HOMEBREW_RESOURCES }}|g" homebrew-tap/Formula/lazy-ecs.rb
 
       - name: Commit and push changes
         run: |
