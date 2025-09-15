@@ -56,25 +56,13 @@ class ECSService:
         """Get list of ECS cluster names from AWS."""
         response = self.ecs_client.list_clusters()
         cluster_arns = response.get("clusterArns", [])
-
-        cluster_names: list[str] = []
-        for arn in cluster_arns:
-            cluster_name = arn.split("/")[-1]
-            cluster_names.append(cluster_name)
-
-        return cluster_names
+        return [_extract_name_from_arn(arn) for arn in cluster_arns]
 
     def get_services(self, cluster_name: str) -> list[str]:
         """Get list of service names in a cluster."""
         response = self.ecs_client.list_services(cluster=cluster_name)
         service_arns = response.get("serviceArns", [])
-
-        service_names: list[str] = []
-        for arn in service_arns:
-            service_name = arn.split("/")[-1]
-            service_names.append(service_name)
-
-        return service_names
+        return [_extract_name_from_arn(arn) for arn in service_arns]
 
     def get_service_info(self, cluster_name: str) -> list[ServiceInfo]:
         """Get detailed service information with status."""
@@ -84,13 +72,7 @@ class ECSService:
 
         response = self.ecs_client.describe_services(cluster=cluster_name, services=service_names)
         services = response.get("services", [])
-
-        service_choices: list[ServiceInfo] = []
-        for service in services:
-            service_choice = _create_service_info(service)
-            service_choices.append(service_choice)
-
-        return service_choices
+        return [_create_service_info(service) for service in services]
 
     def get_tasks(self, cluster_name: str, service_name: str) -> list[str]:
         """Get list of task ARNs for a service."""
@@ -105,47 +87,27 @@ class ECSService:
 
         response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=task_arns)
         tasks = response.get("tasks", [])
-
         desired_task_def_arn = _get_desired_task_definition_arn(self.ecs_client, cluster_name, service_name)
-
-        task_choices: list[TaskInfo] = []
-        for task in tasks:
-            task_choice = _create_task_info(task, desired_task_def_arn)
-            task_choices.append(task_choice)
-
-        return task_choices
+        return [_create_task_info(task, desired_task_def_arn) for task in tasks]
 
     def get_task_details(self, cluster_name: str, service_name: str, task_arn: str) -> TaskDetails | None:
         """Get comprehensive task details."""
-        task_response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=[task_arn])
-        tasks = task_response.get("tasks", [])
-
-        if not tasks:
+        result = _get_task_and_definition(self.ecs_client, cluster_name, task_arn)
+        if not result:
             return None
 
-        task = tasks[0]
-        task_def_arn = task["taskDefinitionArn"]
-
-        task_def_response = self.ecs_client.describe_task_definition(taskDefinition=task_def_arn)
-        task_definition = task_def_response["taskDefinition"]
-
+        task, task_definition = result
         desired_task_def_arn = _get_desired_task_definition_arn(self.ecs_client, cluster_name, service_name)
-        is_desired_version = task_def_arn == desired_task_def_arn
-
+        is_desired_version = task["taskDefinitionArn"] == desired_task_def_arn
         return _build_task_details(task, task_definition, is_desired_version)
 
     def get_log_config(self, cluster_name: str, task_arn: str, container_name: str) -> LogConfig | None:
         """Get log configuration for a container."""
-        task_response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=[task_arn])
-        tasks = task_response.get("tasks", [])
-        if not tasks:
+        result = _get_task_and_definition(self.ecs_client, cluster_name, task_arn)
+        if not result:
             return None
 
-        task = tasks[0]
-        task_def_arn = task["taskDefinitionArn"]
-
-        task_def_response = self.ecs_client.describe_task_definition(taskDefinition=task_def_arn)
-        task_definition = task_def_response["taskDefinition"]
+        _task, task_definition = result
 
         for container_def in task_definition["containerDefinitions"]:
             if container_def["name"] == container_name:
@@ -196,28 +158,40 @@ class ECSService:
         self, cluster_name: str, task_arn: str, container_name: str
     ) -> dict[str, str] | None:
         """Get environment variables for a specific container in a task."""
-        task_response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=[task_arn])
-        tasks = task_response.get("tasks", [])
-        if not tasks:
+        result = _get_task_and_definition(self.ecs_client, cluster_name, task_arn)
+        if not result:
             return None
 
-        task = tasks[0]
-        task_def_arn = task["taskDefinitionArn"]
-
-        task_def_response = self.ecs_client.describe_task_definition(taskDefinition=task_def_arn)
-        task_definition = task_def_response["taskDefinition"]
+        _task, task_definition = result
 
         for container_def in task_definition["containerDefinitions"]:
             if container_def["name"] == container_name:
                 environment = container_def.get("environment", [])
-
-                env_vars = {}
-                for env_var in environment:
-                    env_vars[env_var["name"]] = env_var["value"]
-
-                return env_vars
+                return {env_var["name"]: env_var["value"] for env_var in environment}
 
         return None
+
+
+def _extract_name_from_arn(arn: str) -> str:
+    """Extract resource name from AWS ARN."""
+    return arn.split("/")[-1]
+
+
+def _get_task_and_definition(
+    ecs_client: ECSClient, cluster_name: str, task_arn: str
+) -> tuple[TaskTypeDef, TaskDefinitionTypeDef] | None:
+    """Get task and its task definition from ECS."""
+    task_response = ecs_client.describe_tasks(cluster=cluster_name, tasks=[task_arn])
+    tasks = task_response.get("tasks", [])
+    if not tasks:
+        return None
+
+    task = tasks[0]
+    task_def_arn = task["taskDefinitionArn"]
+    task_def_response = ecs_client.describe_task_definition(taskDefinition=task_def_arn)
+    task_definition = task_def_response["taskDefinition"]
+
+    return task, task_definition
 
 
 def _create_service_info(service: ServiceTypeDef) -> ServiceInfo:
