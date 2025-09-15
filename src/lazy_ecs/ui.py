@@ -12,6 +12,18 @@ from .aws_service import ECSService, TaskDetails
 
 console = Console()
 
+# Consistent questionary styling across all prompts
+QUESTIONARY_STYLE = questionary.Style(
+    [
+        ("qmark", "fg:cyan bold"),
+        ("question", "bold"),
+        ("answer", "fg:cyan"),
+        ("pointer", "fg:cyan bold"),
+        ("highlighted", "fg:cyan"),
+        ("selected", "fg:green"),
+    ]
+)
+
 
 class ECSNavigator:
     """Navigator for interactive ECS exploration."""
@@ -30,16 +42,7 @@ class ECSNavigator:
         selected = questionary.select(
             "Select an ECS cluster:",
             choices=cluster_names,
-            style=questionary.Style(
-                [
-                    ("qmark", "fg:cyan bold"),
-                    ("question", "bold"),
-                    ("answer", "fg:cyan"),
-                    ("pointer", "fg:cyan bold"),
-                    ("highlighted", "fg:cyan"),
-                    ("selected", "fg:green"),
-                ]
-            ),
+            style=QUESTIONARY_STYLE,
         ).ask()
 
         return selected or ""
@@ -57,16 +60,7 @@ class ECSNavigator:
         selected = questionary.select(
             "Select a service:",
             choices=choices,
-            style=questionary.Style(
-                [
-                    ("qmark", "fg:cyan bold"),
-                    ("question", "bold"),
-                    ("answer", "fg:cyan"),
-                    ("pointer", "fg:cyan bold"),
-                    ("highlighted", "fg:cyan"),
-                    ("selected", "fg:green"),
-                ]
-            ),
+            style=QUESTIONARY_STYLE,
         ).ask()
 
         return selected or ""
@@ -89,16 +83,7 @@ class ECSNavigator:
         selected = questionary.select(
             "Select a task:",
             choices=choices,
-            style=questionary.Style(
-                [
-                    ("qmark", "fg:cyan bold"),
-                    ("question", "bold"),
-                    ("answer", "fg:cyan"),
-                    ("pointer", "fg:cyan bold"),
-                    ("highlighted", "fg:cyan"),
-                    ("selected", "fg:green"),
-                ]
-            ),
+            style=QUESTIONARY_STYLE,
         ).ask()
 
         return selected or ""
@@ -169,16 +154,7 @@ class ECSNavigator:
         return questionary.select(
             "Select a feature for this task:",
             choices=choices,
-            style=questionary.Style(
-                [
-                    ("qmark", "fg:cyan bold"),
-                    ("question", "bold"),
-                    ("answer", "fg:cyan"),
-                    ("pointer", "fg:cyan bold"),
-                    ("highlighted", "fg:cyan"),
-                    ("selected", "fg:green"),
-                ]
-            ),
+            style=QUESTIONARY_STYLE,
         ).ask()
 
     def show_container_logs(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
