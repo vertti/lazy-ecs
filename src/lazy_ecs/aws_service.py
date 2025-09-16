@@ -205,6 +205,54 @@ class ECSService:
 
         return None
 
+    def get_container_volume_mounts(
+        self, cluster_name: str, task_arn: str, container_name: str
+    ) -> list[dict[str, Any]] | None:
+        """Get volume mounts for a specific container in a task."""
+        result = _get_task_and_definition(self.ecs_client, cluster_name, task_arn)
+        if not result:
+            return None
+
+        _task, task_definition = result
+
+        # Get the container definition
+        container_def = None
+        for cont_def in task_definition["containerDefinitions"]:
+            if cont_def["name"] == container_name:
+                container_def = cont_def
+                break
+
+        if not container_def:
+            return None
+
+        mount_points = container_def.get("mountPoints", [])
+        if not mount_points:
+            return []
+
+        # Build volume lookup map from task definition volumes
+        volumes_map = {}
+        for volume in task_definition.get("volumes", []):
+            volume_name = volume["name"]
+            host_config = volume.get("host", {})
+            host_path = host_config.get("sourcePath") if host_config else None
+            volumes_map[volume_name] = host_path
+
+        # Build volume mounts with resolved host paths
+        volume_mounts = []
+        for mount_point in mount_points:
+            source_volume = mount_point["sourceVolume"]
+            host_path = volumes_map.get(source_volume)
+
+            volume_mount = {
+                "source_volume": source_volume,
+                "container_path": mount_point["containerPath"],
+                "read_only": mount_point.get("readOnly", False),
+                "host_path": host_path,
+            }
+            volume_mounts.append(volume_mount)
+
+        return volume_mounts
+
     def force_new_deployment(self, cluster_name: str, service_name: str) -> bool:
         """Force a new deployment for a service."""
         try:

@@ -102,6 +102,7 @@ def _handle_task_features(
                 "show_env": navigator.show_container_environment_variables,
                 "show_secrets": navigator.show_container_secrets,
                 "show_ports": navigator.show_container_port_mappings,
+                "show_volumes": navigator.show_container_volume_mounts,
             }
 
             if action_name in action_methods:

@@ -224,8 +224,10 @@ def test_build_task_feature_choices_includes_env_vars() -> None:
     assert "Show environment variables for container: web" in choice_names
     assert "Show secrets for container: web" in choice_names
     assert "Show port mappings for container: web" in choice_names
+    assert "Show volume mounts for container: web" in choice_names
     assert "Show tail of logs for container: sidecar" in choice_names
     assert "Show environment variables for container: sidecar" in choice_names
+    assert "Show volume mounts for container: sidecar" in choice_names
     assert "Show secrets for container: sidecar" in choice_names
     assert "Show port mappings for container: sidecar" in choice_names
 
@@ -239,7 +241,7 @@ def test_build_task_feature_choices_includes_env_vars() -> None:
     assert "navigation:back" in choice_values
     assert "navigation:exit" in choice_values
 
-    assert len(choices) == 10  # 8 container actions + 2 navigation
+    assert len(choices) == 12  # 10 container actions (5 actions x 2 containers) + 2 navigation
 
 
 @patch("lazy_ecs.ui.questionary.select")
@@ -394,3 +396,64 @@ def test_handle_force_deployment_failure(mock_print, mock_ecs_service) -> None:
 
     print_args = [str(call.args[0]) for call in mock_print.call_args_list]
     assert any("Failed to force new deployment" in arg for arg in print_args)
+
+
+def test_show_container_volume_mounts_success(mock_ecs_service, capsys) -> None:
+    mock_ecs_service.get_container_volume_mounts.return_value = [
+        {
+            "source_volume": "data-volume",
+            "container_path": "/app/data",
+            "read_only": False,
+            "host_path": "/opt/data",
+        },
+        {
+            "source_volume": "logs-volume",
+            "container_path": "/app/logs",
+            "read_only": False,
+            "host_path": "/var/log/app",
+        },
+        {
+            "source_volume": "config-volume",
+            "container_path": "/app/config",
+            "read_only": True,
+            "host_path": None,
+        },
+    ]
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_volume_mounts("test-cluster", "task-arn", "web")
+
+    captured = capsys.readouterr()
+    assert "Volume mounts for container 'web':" in captured.out
+    assert "data-volume" in captured.out
+    assert "/app/data" in captured.out
+    assert "/opt/data" in captured.out
+    assert "read-write" in captured.out
+    assert "logs-volume" in captured.out
+    assert "/app/logs" in captured.out
+    assert "/var/log/app" in captured.out
+    assert "config-volume" in captured.out
+    assert "/app/config" in captured.out
+    assert "read-only" in captured.out
+    assert "Empty volume" in captured.out
+    assert "Total: 3 volume mounts" in captured.out
+
+
+def test_show_container_volume_mounts_none(mock_ecs_service, capsys) -> None:
+    mock_ecs_service.get_container_volume_mounts.return_value = None
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_volume_mounts("test-cluster", "task-arn", "web")
+
+    captured = capsys.readouterr()
+    assert "Could not find volume mounts for container 'web'" in captured.out
+
+
+def test_show_container_volume_mounts_empty(mock_ecs_service, capsys) -> None:
+    mock_ecs_service.get_container_volume_mounts.return_value = []
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_volume_mounts("test-cluster", "task-arn", "web")
+
+    captured = capsys.readouterr()
+    assert "No volume mounts configured for container 'web'" in captured.out

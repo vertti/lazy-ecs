@@ -340,6 +340,39 @@ class ECSNavigator:
         console.print("=" * 60, style="dim")
         console.print(f"🔗 Total: {len(port_mappings)} port mappings configured", style="blue")
 
+    def show_container_volume_mounts(self, cluster_name: str, task_arn: str, container_name: str) -> None:
+        """Display volume mounts for a container."""
+        volume_mounts = self.ecs_service.get_container_volume_mounts(cluster_name, task_arn, container_name)
+
+        if volume_mounts is None:
+            console.print(f"❌ Could not find volume mounts for container '{container_name}'", style="red")
+            return
+
+        if not volume_mounts:
+            console.print(f"💾 No volume mounts configured for container '{container_name}'", style="yellow")
+            return
+
+        console.print(f"\n💾 Volume mounts for container '{container_name}':", style="bold blue")
+        console.print("=" * 60, style="dim")
+
+        for mount in volume_mounts:
+            source_volume = mount["source_volume"]
+            container_path = mount["container_path"]
+            read_only = mount["read_only"]
+            host_path = mount["host_path"]
+
+            access_mode = "read-only" if read_only else "read-write"
+
+            console.print(f"{source_volume} → {container_path} ({access_mode})", style="blue")
+
+            if host_path:
+                console.print(f"    Host path: {host_path}", style="dim")
+            else:
+                console.print("    Empty volume (no host path)", style="dim")
+
+        console.print("=" * 60, style="dim")
+        console.print(f"📁 Total: {len(volume_mounts)} volume mounts configured", style="blue")
+
     def handle_force_deployment(self, cluster_name: str, service_name: str) -> None:
         """Handle force new deployment action."""
         console.print(f"\n🚀 Forcing new deployment for service '{service_name}'...", style="yellow")
@@ -361,6 +394,7 @@ def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[s
         ("Show environment variables for container: {name}", "container_action", "show_env"),
         ("Show secrets for container: {name}", "container_action", "show_secrets"),
         ("Show port mappings for container: {name}", "container_action", "show_ports"),
+        ("Show volume mounts for container: {name}", "container_action", "show_volumes"),
     ]
 
     choices = []

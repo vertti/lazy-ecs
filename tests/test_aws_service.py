@@ -386,6 +386,119 @@ def test_get_container_environment_variables_no_env_vars() -> None:
         assert env_vars == {}
 
 
+@pytest.fixture
+def ecs_client_with_volume_mounts():
+    """Create a mocked ECS client with tasks containing volume mounts."""
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="app-with-volumes-task",
+            volumes=[
+                {"name": "data-volume", "host": {"sourcePath": "/opt/data"}},
+                {"name": "logs-volume", "host": {"sourcePath": "/var/log/app"}},
+                {"name": "config-volume"},  # Empty volume
+            ],
+            containerDefinitions=[
+                {
+                    "name": "app",
+                    "image": "myapp:latest",
+                    "memory": 512,
+                    "mountPoints": [
+                        {"sourceVolume": "data-volume", "containerPath": "/app/data", "readOnly": False},
+                        {"sourceVolume": "logs-volume", "containerPath": "/app/logs", "readOnly": False},
+                        {"sourceVolume": "config-volume", "containerPath": "/app/config", "readOnly": True},
+                    ],
+                },
+                {
+                    "name": "sidecar",
+                    "image": "sidecar:latest",
+                    "memory": 256,
+                    "mountPoints": [
+                        {"sourceVolume": "logs-volume", "containerPath": "/shared/logs", "readOnly": True},
+                    ],
+                },
+                {
+                    "name": "no-mounts",
+                    "image": "simple:latest",
+                    "memory": 128,
+                    "mountPoints": [],
+                },
+            ],
+        )
+
+        client.create_service(cluster="production", serviceName="app-service", taskDefinition="app-with-volumes-task")
+        client.run_task(cluster="production", taskDefinition="app-with-volumes-task", launchType="FARGATE")
+
+        yield client
+
+
+def test_get_container_volume_mounts(ecs_client_with_volume_mounts) -> None:
+    service = ECSService(ecs_client_with_volume_mounts)
+    tasks = service.get_tasks("production", "app-service")
+
+    # Test container with multiple mounts
+    volume_mounts = service.get_container_volume_mounts("production", tasks[0], "app")
+    assert volume_mounts is not None
+    assert len(volume_mounts) == 3
+
+    # Check data volume mount
+    data_mount = next((mount for mount in volume_mounts if mount["source_volume"] == "data-volume"), None)
+    assert data_mount is not None
+    assert data_mount["container_path"] == "/app/data"
+    assert data_mount["read_only"] is False
+    assert data_mount["host_path"] == "/opt/data"
+
+    # Check logs volume mount
+    logs_mount = next((mount for mount in volume_mounts if mount["source_volume"] == "logs-volume"), None)
+    assert logs_mount is not None
+    assert logs_mount["container_path"] == "/app/logs"
+    assert logs_mount["read_only"] is False
+    assert logs_mount["host_path"] == "/var/log/app"
+
+    # Check config volume (empty volume)
+    config_mount = next((mount for mount in volume_mounts if mount["source_volume"] == "config-volume"), None)
+    assert config_mount is not None
+    assert config_mount["container_path"] == "/app/config"
+    assert config_mount["read_only"] is True
+    assert config_mount["host_path"] is None
+
+
+def test_get_container_volume_mounts_sidecar(ecs_client_with_volume_mounts) -> None:
+    service = ECSService(ecs_client_with_volume_mounts)
+    tasks = service.get_tasks("production", "app-service")
+
+    # Test sidecar with single mount
+    volume_mounts = service.get_container_volume_mounts("production", tasks[0], "sidecar")
+    assert volume_mounts is not None
+    assert len(volume_mounts) == 1
+
+    logs_mount = volume_mounts[0]
+    assert logs_mount["source_volume"] == "logs-volume"
+    assert logs_mount["container_path"] == "/shared/logs"
+    assert logs_mount["read_only"] is True
+    assert logs_mount["host_path"] == "/var/log/app"
+
+
+def test_get_container_volume_mounts_no_mounts(ecs_client_with_volume_mounts) -> None:
+    service = ECSService(ecs_client_with_volume_mounts)
+    tasks = service.get_tasks("production", "app-service")
+
+    # Test container with no mounts
+    volume_mounts = service.get_container_volume_mounts("production", tasks[0], "no-mounts")
+    assert volume_mounts == []
+
+
+def test_get_container_volume_mounts_no_container(ecs_client_with_volume_mounts) -> None:
+    service = ECSService(ecs_client_with_volume_mounts)
+    tasks = service.get_tasks("production", "app-service")
+
+    # Test nonexistent container
+    volume_mounts = service.get_container_volume_mounts("production", tasks[0], "nonexistent")
+    assert volume_mounts is None
+
+
 def test_get_container_secrets(ecs_client_with_secrets) -> None:
     service = ECSService(ecs_client_with_secrets)
     tasks = service.get_tasks("production", "app-service")
