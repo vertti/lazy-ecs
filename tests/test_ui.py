@@ -44,7 +44,7 @@ def test_select_service_with_services(mock_select, mock_ecs_service) -> None:
     navigator = ECSNavigator(mock_ecs_service)
     selected = navigator.select_service("production")
 
-    assert selected == {"type": "service", "value": "web-api"}
+    assert selected == "service:web-api"
     mock_select.assert_called_once()
 
 
@@ -54,7 +54,7 @@ def test_select_service_no_services(mock_ecs_service) -> None:
     navigator = ECSNavigator(mock_ecs_service)
     selected = navigator.select_service("production")
 
-    assert selected == {"type": "navigation", "value": "back"}
+    assert selected == "navigation:back"
 
 
 @patch("lazy_ecs.ui.questionary.select")
@@ -67,7 +67,7 @@ def test_select_service_navigation_back(mock_select, mock_ecs_service) -> None:
     navigator = ECSNavigator(mock_ecs_service)
     selected = navigator.select_service("production")
 
-    assert selected == {"type": "navigation", "value": "back"}
+    assert selected == "navigation:back"
 
 
 def test_select_task_auto_select_single_task(mock_ecs_service) -> None:
@@ -123,7 +123,7 @@ def test_select_task_feature_with_containers(mock_select, mock_ecs_service) -> N
 
     selected = navigator.select_task_feature(task_details)
 
-    assert selected == {"type": "container_action", "action": "show_logs", "container": "web"}
+    assert selected == "container_action:show_logs:web"
     mock_select.assert_called_once()
 
 
@@ -262,7 +262,7 @@ def test_select_task_feature_navigation_back(mock_select, mock_ecs_service) -> N
 
     selected = navigator.select_task_feature(task_details)
 
-    assert selected == {"type": "navigation", "value": "back"}
+    assert selected == "navigation:back"
 
 
 @patch("lazy_ecs.ui.console.print")
@@ -353,12 +353,12 @@ def test_select_service_action_with_tasks_and_actions(mock_select, mock_ecs_serv
         {"name": "task-1", "value": "arn:aws:ecs:us-east-1:123:task/task-1"},
         {"name": "task-2", "value": "arn:aws:ecs:us-east-1:123:task/task-2"},
     ]
-    mock_select.return_value.ask.return_value = "task:arn:aws:ecs:us-east-1:123:task/task-1"
+    mock_select.return_value.ask.return_value = "task:show_details:arn:aws:ecs:us-east-1:123:task/task-1"
 
     navigator = ECSNavigator(mock_ecs_service)
     result = navigator.select_service_action("test-cluster", "web-service")
 
-    assert result == {"type": "task", "value": "arn:aws:ecs:us-east-1:123:task/task-1"}
+    assert result == "task:show_details:arn:aws:ecs:us-east-1:123:task/task-1"
     mock_select.assert_called_once()
 
 
@@ -370,7 +370,7 @@ def test_select_service_action_force_deployment(mock_select, mock_ecs_service) -
     navigator = ECSNavigator(mock_ecs_service)
     result = navigator.select_service_action("test-cluster", "web-service")
 
-    assert result == {"type": "action", "value": "force_deployment"}
+    assert result == "action:force_deployment"
 
 
 @patch("lazy_ecs.ui.console.print")

@@ -2,7 +2,7 @@ import boto3
 from rich.console import Console
 
 from .aws_service import ECSService, TaskDetails
-from .ui import ECSNavigator
+from .ui import ECSNavigator, handle_navigation, parse_selection
 
 console = Console()
 
@@ -47,44 +47,37 @@ def _navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster
     """Handle service-level navigation. Returns True if back was chosen, False if exit."""
     service_selection = navigator.select_service(cluster_name)
 
-    if not service_selection:
-        return False
+    # Handle navigation responses (back/exit)
+    should_continue, should_exit = handle_navigation(service_selection)
+    if not should_continue:
+        return not should_exit  # True for back, False for exit
 
-    if service_selection["type"] == "navigation":
-        if service_selection["value"] == "back":
-            return True
-        if service_selection["value"] == "exit":
-            console.print("\n👋 Goodbye!", style="cyan")
-            return False
-
-    if service_selection["type"] != "service":
+    selection_type, selected_service, _ = parse_selection(service_selection)
+    if selection_type != "service":
         return True
 
-    selected_service = service_selection["value"]
     console.print(f"\n✅ Selected service: {selected_service}", style="green")
 
     while True:
         selection = navigator.select_service_action(cluster_name, selected_service)
 
-        if not selection or selection["value"] == "exit":
-            console.print("\n👋 Goodbye!", style="cyan")
-            return False
+        # Handle navigation responses
+        should_continue, should_exit = handle_navigation(selection)
+        if not should_continue:
+            return not should_exit  # True for back, False for exit
 
-        if selection["value"] == "back":
-            return True  # Back to cluster selection
-
-        if selection["type"] == "task":
-            selected_task = selection["value"]
-            task_details = ecs_service.get_task_details(cluster_name, selected_service, selected_task)
+        selection_type, action_name, task_arn = parse_selection(selection)
+        if selection_type == "task" and action_name == "show_details":
+            task_details = ecs_service.get_task_details(cluster_name, selected_service, task_arn)
             if task_details:
                 navigator.display_task_details(task_details)
                 # Navigate to task features, handle back navigation
-                if _handle_task_features(navigator, cluster_name, selected_task, task_details):
+                if _handle_task_features(navigator, cluster_name, task_arn, task_details):
                     continue  # Back to service selection
                 return False  # Exit was chosen
-            console.print(f"\n⚠️ Could not fetch task details for {selected_task}", style="yellow")
+            console.print(f"\n⚠️ Could not fetch task details for {task_arn}", style="yellow")
 
-        elif selection["type"] == "action" and selection["value"] == "force_deployment":
+        elif selection_type == "action" and action_name == "force_deployment":
             navigator.handle_force_deployment(cluster_name, selected_service)
             # Continue the loop to show the menu again
 
@@ -96,21 +89,13 @@ def _handle_task_features(
     while True:
         selection = navigator.select_task_feature(task_details)
 
-        if not selection:
-            console.print("\n👋 Goodbye!", style="cyan")
-            return False
+        # Handle navigation responses
+        should_continue, should_exit = handle_navigation(selection)
+        if not should_continue:
+            return not should_exit  # True for back, False for exit
 
-        if selection["type"] == "navigation":
-            if selection["value"] == "exit":
-                console.print("\n👋 Goodbye!", style="cyan")
-                return False
-            if selection["value"] == "back":
-                return True
-
-        elif selection["type"] == "container_action":
-            container_name = selection["container"]
-            action_name = selection["action"]
-
+        selection_type, action_name, container_name = parse_selection(selection)
+        if selection_type == "container_action":
             # Map action names to methods
             action_methods = {
                 "show_logs": navigator.show_container_logs,

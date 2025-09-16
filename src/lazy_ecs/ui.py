@@ -12,6 +12,43 @@ from .aws_service import ECSService, TaskDetails
 
 console = Console()
 
+
+# Simple navigation utilities
+def parse_selection(selected: str | None) -> tuple[str, str, str]:
+    """Parse selection into (type, value, extra). Returns ('unknown', selected, '') if no colon."""
+    if not selected or ":" not in selected:
+        return ("unknown", selected or "", "")
+
+    parts = selected.split(":", 2)
+    if len(parts) == 3:
+        return (parts[0], parts[1], parts[2])  # container_action:show_logs:web
+    return (parts[0], parts[1], "")  # task:arn or navigation:back
+
+
+def handle_navigation(selected: str | None) -> tuple[bool, bool]:
+    """Handle navigation. Returns (should_continue, should_exit)."""
+    if not selected:
+        console.print("\n👋 Goodbye!", style="cyan")
+        return False, True
+
+    selection_type, value, _ = parse_selection(selected)
+    if selection_type == "navigation":
+        if value == "exit":
+            console.print("\n👋 Goodbye!", style="cyan")
+            return False, True
+        if value == "back":
+            return False, False
+
+    return True, False
+
+
+def add_nav_choices(choices: list[dict[str, str]], back_text: str) -> None:
+    """Add navigation choices to existing choices list."""
+    choices.extend(
+        [{"name": f"⬅️ {back_text}", "value": "navigation:back"}, {"name": "❌ Exit", "value": "navigation:exit"}]
+    )
+
+
 # Consistent questionary styling across all prompts
 QUESTIONARY_STYLE = questionary.Style(
     [
@@ -47,37 +84,24 @@ class ECSNavigator:
 
         return selected or ""
 
-    def select_service(self, cluster_name: str) -> dict[str, str] | None:
+    def select_service(self, cluster_name: str) -> str | None:
         """Interactive service selection with status information and navigation."""
         service_info = self.ecs_service.get_service_info(cluster_name)
 
         if not service_info:
             console.print(f"❌ No services found in cluster '{cluster_name}'", style="red")
-            return {"type": "navigation", "value": "back"}
+            return "navigation:back"
 
         choices = [{"name": info["name"], "value": f"service:{info['name'].split(' ')[1]}"} for info in service_info]
+        add_nav_choices(choices, "Back to cluster selection")
 
-        # Add navigation options
-        choices.extend(
-            [
-                {"name": "⬅️ Back to cluster selection", "value": "navigation:back"},
-                {"name": "❌ Exit", "value": "navigation:exit"},
-            ]
-        )
-
-        selected = questionary.select(
+        return questionary.select(
             "Select a service:",
             choices=choices,
             style=QUESTIONARY_STYLE,
         ).ask()
 
-        if not selected:
-            return {"type": "navigation", "value": "exit"}
-
-        action_type, value = selected.split(":", 1)
-        return {"type": action_type, "value": value}
-
-    def select_service_action(self, cluster_name: str, service_name: str) -> dict[str, str] | None:
+    def select_service_action(self, cluster_name: str, service_name: str) -> str | None:
         """Interactive selection combining tasks and service-level actions."""
         task_info = self.ecs_service.get_task_info(cluster_name, service_name)
 
@@ -85,32 +109,21 @@ class ECSNavigator:
 
         # Add tasks with 🔍 prefix
         for task in task_info:
-            choices.append({"name": f"🔍 {task['name']}", "value": f"task:{task['value']}"})
+            choices.append({"name": f"🔍 {task['name']}", "value": f"task:show_details:{task['value']}"})
 
         # Add service-level actions with different emojis
-        choices.extend(
-            [
-                {"name": "🚀 Force new deployment", "value": "action:force_deployment"},
-                {"name": "⬅️ Back to cluster selection", "value": "action:back"},
-                {"name": "❌ Exit", "value": "action:exit"},
-            ]
-        )
+        choices.append({"name": "🚀 Force new deployment", "value": "action:force_deployment"})
+        add_nav_choices(choices, "Back to cluster selection")
 
         if not choices:
             console.print(f"❌ No options available for service '{service_name}'", style="red")
             return None
 
-        selected = questionary.select(
+        return questionary.select(
             f"Select an option for service '{service_name}':",
             choices=choices,
             style=QUESTIONARY_STYLE,
         ).ask()
-
-        if not selected:
-            return None
-
-        action_type, value = selected.split(":", 1)
-        return {"type": action_type, "value": value}
 
     def select_task(self, cluster_name: str, service_name: str) -> str:
         """Interactive task selection with auto-selection for single tasks."""
@@ -186,7 +199,7 @@ class ECSNavigator:
         console.print("=" * 60, style="dim")
         console.print("🎯 Task selected successfully!", style="blue")
 
-    def select_task_feature(self, task_details: TaskDetails | None) -> dict[str, str] | None:
+    def select_task_feature(self, task_details: TaskDetails | None) -> str | None:
         """Present feature menu for the selected task."""
         if not task_details:
             return None
@@ -198,21 +211,11 @@ class ECSNavigator:
 
         choices = _build_task_feature_choices(containers)
 
-        selected = questionary.select(
+        return questionary.select(
             "Select a feature for this task:",
             choices=choices,
             style=QUESTIONARY_STYLE,
         ).ask()
-
-        if not selected:
-            return None
-
-        parts = selected.split(":", 2)
-        if len(parts) == 3:
-            action_type, action_name, container_name = parts
-            return {"type": action_type, "action": action_name, "container": container_name}
-        action_type, value = parts
-        return {"type": action_type, "value": value}
 
     def show_container_logs(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
         """Display the last N lines of logs for a container."""
@@ -374,11 +377,6 @@ def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[s
             )
 
     # Add navigation options
-    choices.extend(
-        [
-            {"name": "⬅️ Back to service selection", "value": "navigation:back"},
-            {"name": "❌ Exit", "value": "navigation:exit"},
-        ]
-    )
+    add_nav_choices(choices, "Back to service selection")
 
     return choices
