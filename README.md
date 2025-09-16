@@ -70,6 +70,7 @@ uv run lazy-ecs
 
 - ✅ **Service browsing with status** - Display services with health indicators (healthy/scaling/over-scaled)
 - ✅ **Service status indicators** - Show running/desired/pending counts with visual status
+- ✅ **Force new deployment** - Trigger service redeployment directly from CLI (no more AWS console trips!)
 - ⬜ **Show deployment history** - Display service deployment timeline and rollback options
 - ⬜ **Show auto-scaling configuration** - Display scaling policies and current metrics
 - ⬜ **Show load balancer health** - Display target group health and routing configuration
