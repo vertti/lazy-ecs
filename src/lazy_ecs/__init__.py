@@ -74,6 +74,7 @@ def _handle_task_features(
             "Show tail of logs for container:": navigator.show_container_logs,
             "Show environment variables for container:": navigator.show_container_environment_variables,
             "Show secrets for container:": navigator.show_container_secrets,
+            "Show port mappings for container:": navigator.show_container_port_mappings,
         }
 
         for prefix, action in feature_actions.items():

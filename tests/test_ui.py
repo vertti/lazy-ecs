@@ -206,11 +206,13 @@ def test_build_task_feature_choices_includes_env_vars() -> None:
     assert "Show tail of logs for container: web" in choices
     assert "Show environment variables for container: web" in choices
     assert "Show secrets for container: web" in choices
+    assert "Show port mappings for container: web" in choices
     assert "Show tail of logs for container: sidecar" in choices
     assert "Show environment variables for container: sidecar" in choices
     assert "Show secrets for container: sidecar" in choices
+    assert "Show port mappings for container: sidecar" in choices
     assert "Exit" in choices
-    assert len(choices) == 7
+    assert len(choices) == 9
 
 
 @patch("lazy_ecs.ui.console.print")
@@ -254,3 +256,42 @@ def test_show_container_secrets_empty(mock_print, mock_ecs_service) -> None:
     assert mock_print.called
     print_args = [str(call.args[0]) for call in mock_print.call_args_list]
     assert any("No secrets configured" in arg for arg in print_args)
+
+
+@patch("lazy_ecs.ui.console.print")
+def test_show_container_port_mappings_success(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.get_container_port_mappings.return_value = [
+        {"containerPort": 80, "hostPort": 8080, "protocol": "tcp"},
+        {"containerPort": 443, "hostPort": 0, "protocol": "tcp"},
+    ]
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_port_mappings("test-cluster", "task-arn", "web")
+
+    mock_ecs_service.get_container_port_mappings.assert_called_once_with("test-cluster", "task-arn", "web")
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("Port mappings for container 'web'" in arg for arg in print_args)
+    assert any("Container:80 → Host:8080 (TCP)" in arg for arg in print_args)
+    assert any("Container:443 → Host:dynamic (TCP)" in arg for arg in print_args)
+
+
+@patch("lazy_ecs.ui.console.print")
+def test_show_container_port_mappings_none(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.get_container_port_mappings.return_value = None
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_port_mappings("test-cluster", "task-arn", "web")
+
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("Could not find port mappings" in arg for arg in print_args)
+
+
+@patch("lazy_ecs.ui.console.print")
+def test_show_container_port_mappings_empty(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.get_container_port_mappings.return_value = []
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_port_mappings("test-cluster", "task-arn", "web")
+
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("No port mappings configured" in arg for arg in print_args)

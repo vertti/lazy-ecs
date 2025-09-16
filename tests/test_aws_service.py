@@ -452,3 +452,79 @@ def test_get_container_secrets_no_secrets() -> None:
         service = ECSService(client)
         secrets = service.get_container_secrets("production", tasks[0], "web")
         assert secrets == {}
+
+
+@mock_aws
+def test_get_container_port_mappings_success() -> None:
+    client = boto3.client("ecs", region_name="us-east-1")
+    client.create_cluster(clusterName="production")
+
+    client.register_task_definition(
+        family="web-task",
+        containerDefinitions=[
+            {
+                "name": "web",
+                "image": "nginx",
+                "memory": 256,
+                "portMappings": [
+                    {"containerPort": 80, "hostPort": 8080, "protocol": "tcp"},
+                    {"containerPort": 443, "hostPort": 0, "protocol": "tcp"},
+                ],
+            }
+        ],
+    )
+
+    client.run_task(cluster="production", taskDefinition="web-task", launchType="FARGATE")
+    response = client.list_tasks(cluster="production")
+    tasks = response.get("taskArns", [])
+
+    service = ECSService(client)
+    port_mappings = service.get_container_port_mappings("production", tasks[0], "web")
+
+    assert port_mappings is not None
+    assert len(port_mappings) == 2
+    assert port_mappings[0]["containerPort"] == 80
+    assert port_mappings[0]["hostPort"] == 8080
+    assert port_mappings[0]["protocol"] == "tcp"
+    assert port_mappings[1]["containerPort"] == 443
+    assert port_mappings[1]["hostPort"] == 0
+
+
+@mock_aws
+def test_get_container_port_mappings_no_mappings() -> None:
+    client = boto3.client("ecs", region_name="us-east-1")
+    client.create_cluster(clusterName="production")
+
+    client.register_task_definition(
+        family="simple-task",
+        containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
+    )
+
+    client.run_task(cluster="production", taskDefinition="simple-task", launchType="FARGATE")
+    response = client.list_tasks(cluster="production")
+    tasks = response.get("taskArns", [])
+
+    service = ECSService(client)
+    port_mappings = service.get_container_port_mappings("production", tasks[0], "web")
+
+    assert port_mappings == []
+
+
+@mock_aws
+def test_get_container_port_mappings_container_not_found() -> None:
+    client = boto3.client("ecs", region_name="us-east-1")
+    client.create_cluster(clusterName="production")
+
+    client.register_task_definition(
+        family="simple-task",
+        containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
+    )
+
+    client.run_task(cluster="production", taskDefinition="simple-task", launchType="FARGATE")
+    response = client.list_tasks(cluster="production")
+    tasks = response.get("taskArns", [])
+
+    service = ECSService(client)
+    port_mappings = service.get_container_port_mappings("production", tasks[0], "nonexistent")
+
+    assert port_mappings is None

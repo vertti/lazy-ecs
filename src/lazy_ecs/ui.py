@@ -254,6 +254,32 @@ class ECSNavigator:
         console.print("=" * 60, style="dim")
         console.print(f"🔒 Total: {len(secrets)} secrets configured", style="magenta")
 
+    def show_container_port_mappings(self, cluster_name: str, task_arn: str, container_name: str) -> None:
+        """Display port mappings for a container."""
+        port_mappings = self.ecs_service.get_container_port_mappings(cluster_name, task_arn, container_name)
+
+        if port_mappings is None:
+            console.print(f"❌ Could not find port mappings for container '{container_name}'", style="red")
+            return
+
+        if not port_mappings:
+            console.print(f"🔌 No port mappings configured for container '{container_name}'", style="yellow")
+            return
+
+        console.print(f"\n🔌 Port mappings for container '{container_name}':", style="bold blue")
+        console.print("=" * 60, style="dim")
+
+        for mapping in port_mappings:
+            container_port = mapping.get("containerPort", "unknown")
+            host_port = mapping.get("hostPort", "dynamic")
+            protocol = mapping.get("protocol", "tcp").upper()
+
+            host_display = host_port if host_port != 0 else "dynamic"
+            console.print(f"Container:{container_port} → Host:{host_display} ({protocol})", style="blue")
+
+        console.print("=" * 60, style="dim")
+        console.print(f"🔗 Total: {len(port_mappings)} port mappings configured", style="blue")
+
 
 def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[str]:
     """Build feature menu choices for containers plus exit option."""
@@ -261,6 +287,7 @@ def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[str]:
         "Show tail of logs for container: {name}",
         "Show environment variables for container: {name}",
         "Show secrets for container: {name}",
+        "Show port mappings for container: {name}",
     ]
 
     choices = [action.format(name=container["name"]) for container in containers for action in actions]
