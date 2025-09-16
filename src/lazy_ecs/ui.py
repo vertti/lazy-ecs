@@ -47,15 +47,23 @@ class ECSNavigator:
 
         return selected or ""
 
-    def select_service(self, cluster_name: str) -> str:
-        """Interactive service selection with status information."""
+    def select_service(self, cluster_name: str) -> dict[str, str] | None:
+        """Interactive service selection with status information and navigation."""
         service_info = self.ecs_service.get_service_info(cluster_name)
 
         if not service_info:
             console.print(f"❌ No services found in cluster '{cluster_name}'", style="red")
-            return ""
+            return {"type": "navigation", "value": "back"}
 
-        choices = [{"name": info["name"], "value": info["name"].split(" ")[1]} for info in service_info]
+        choices = [{"name": info["name"], "value": f"service:{info['name'].split(' ')[1]}"} for info in service_info]
+
+        # Add navigation options
+        choices.extend(
+            [
+                {"name": "⬅️ Back to cluster selection", "value": "navigation:back"},
+                {"name": "❌ Exit", "value": "navigation:exit"},
+            ]
+        )
 
         selected = questionary.select(
             "Select a service:",
@@ -63,7 +71,11 @@ class ECSNavigator:
             style=QUESTIONARY_STYLE,
         ).ask()
 
-        return selected or ""
+        if not selected:
+            return {"type": "navigation", "value": "exit"}
+
+        action_type, value = selected.split(":", 1)
+        return {"type": action_type, "value": value}
 
     def select_service_action(self, cluster_name: str, service_name: str) -> dict[str, str] | None:
         """Interactive selection combining tasks and service-level actions."""

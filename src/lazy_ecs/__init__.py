@@ -45,14 +45,22 @@ def _navigate_clusters(navigator: ECSNavigator, ecs_service: ECSService) -> None
 
 def _navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster_name: str) -> bool:
     """Handle service-level navigation. Returns True if back was chosen, False if exit."""
-    selected_service = navigator.select_service(cluster_name)
+    service_selection = navigator.select_service(cluster_name)
 
-    if not selected_service:
-        console.print(
-            f"\n❌ No service selected from '{cluster_name}'. Going back to cluster selection.", style="yellow"
-        )
+    if not service_selection:
+        return False
+
+    if service_selection["type"] == "navigation":
+        if service_selection["value"] == "back":
+            return True
+        if service_selection["value"] == "exit":
+            console.print("\n👋 Goodbye!", style="cyan")
+            return False
+
+    if service_selection["type"] != "service":
         return True
 
+    selected_service = service_selection["value"]
     console.print(f"\n✅ Selected service: {selected_service}", style="green")
 
     while True:

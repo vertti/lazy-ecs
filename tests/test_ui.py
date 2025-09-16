@@ -39,12 +39,12 @@ def test_select_service_with_services(mock_select, mock_ecs_service) -> None:
     mock_ecs_service.get_service_info.return_value = [
         {"name": "✅ web-api (2/2)", "status": "HEALTHY", "running_count": 2, "desired_count": 2, "pending_count": 0}
     ]
-    mock_select.return_value.ask.return_value = "web-api"
+    mock_select.return_value.ask.return_value = "service:web-api"
 
     navigator = ECSNavigator(mock_ecs_service)
     selected = navigator.select_service("production")
 
-    assert selected == "web-api"
+    assert selected == {"type": "service", "value": "web-api"}
     mock_select.assert_called_once()
 
 
@@ -54,7 +54,20 @@ def test_select_service_no_services(mock_ecs_service) -> None:
     navigator = ECSNavigator(mock_ecs_service)
     selected = navigator.select_service("production")
 
-    assert selected == ""
+    assert selected == {"type": "navigation", "value": "back"}
+
+
+@patch("lazy_ecs.ui.questionary.select")
+def test_select_service_navigation_back(mock_select, mock_ecs_service) -> None:
+    mock_ecs_service.get_service_info.return_value = [
+        {"name": "✅ web-api (2/2)", "status": "HEALTHY", "running_count": 2, "desired_count": 2, "pending_count": 0}
+    ]
+    mock_select.return_value.ask.return_value = "navigation:back"
+
+    navigator = ECSNavigator(mock_ecs_service)
+    selected = navigator.select_service("production")
+
+    assert selected == {"type": "navigation", "value": "back"}
 
 
 def test_select_task_auto_select_single_task(mock_ecs_service) -> None:
