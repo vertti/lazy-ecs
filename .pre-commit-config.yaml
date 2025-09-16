@@ -1,7 +1,14 @@
 repos:
   - repo: local
     hooks:
-      # Run the formatter first
+      # Format markdown/yaml/json/toml files first
+      - id: dprint
+        name: dprint format
+        entry: dprint fmt --staged
+        language: system
+        types_or: [markdown, yaml, json, toml]
+        pass_filenames: false
+      # Run the Python formatter
       - id: ruff-format
         name: ruff format
         entry: uv run ruff format

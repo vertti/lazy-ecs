@@ -30,6 +30,9 @@ jobs:
       - name: Check formatting
         run: uv run ruff format --check
 
+      - name: Check markdown/yaml formatting
+        uses: dprint/check@v2.2
+
       - name: Run linting
         run: uv run ruff check
 
