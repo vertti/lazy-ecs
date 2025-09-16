@@ -79,6 +79,7 @@ class ECSNavigator:
         choices.extend(
             [
                 {"name": "🚀 Force new deployment", "value": "action:force_deployment"},
+                {"name": "⬅️ Back to cluster selection", "value": "action:back"},
                 {"name": "❌ Exit", "value": "action:exit"},
             ]
         )
@@ -173,7 +174,7 @@ class ECSNavigator:
         console.print("=" * 60, style="dim")
         console.print("🎯 Task selected successfully!", style="blue")
 
-    def select_task_feature(self, task_details: TaskDetails | None) -> str | None:
+    def select_task_feature(self, task_details: TaskDetails | None) -> dict[str, str] | None:
         """Present feature menu for the selected task."""
         if not task_details:
             return None
@@ -185,11 +186,21 @@ class ECSNavigator:
 
         choices = _build_task_feature_choices(containers)
 
-        return questionary.select(
+        selected = questionary.select(
             "Select a feature for this task:",
             choices=choices,
             style=QUESTIONARY_STYLE,
         ).ask()
+
+        if not selected:
+            return None
+
+        parts = selected.split(":", 2)
+        if len(parts) == 3:
+            action_type, action_name, container_name = parts
+            return {"type": action_type, "action": action_name, "container": container_name}
+        action_type, value = parts
+        return {"type": action_type, "value": value}
 
     def show_container_logs(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
         """Display the last N lines of logs for a container."""
@@ -328,15 +339,34 @@ class ECSNavigator:
             console.print("💡 Check your AWS permissions or service status", style="dim")
 
 
-def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[str]:
-    """Build feature menu choices for containers plus exit option."""
+def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """Build feature menu choices for containers plus navigation options."""
     actions = [
-        "Show tail of logs for container: {name}",
-        "Show environment variables for container: {name}",
-        "Show secrets for container: {name}",
-        "Show port mappings for container: {name}",
+        ("Show tail of logs for container: {name}", "container_action", "show_logs"),
+        ("Show environment variables for container: {name}", "container_action", "show_env"),
+        ("Show secrets for container: {name}", "container_action", "show_secrets"),
+        ("Show port mappings for container: {name}", "container_action", "show_ports"),
     ]
 
-    choices = [action.format(name=container["name"]) for container in containers for action in actions]
-    choices.append("Exit")
+    choices = []
+
+    # Add container actions
+    for display_template, action_type, action_name in actions:
+        for container in containers:
+            container_name = container["name"]
+            choices.append(
+                {
+                    "name": display_template.format(name=container_name),
+                    "value": f"{action_type}:{action_name}:{container_name}",
+                }
+            )
+
+    # Add navigation options
+    choices.extend(
+        [
+            {"name": "⬅️ Back to service selection", "value": "navigation:back"},
+            {"name": "❌ Exit", "value": "navigation:exit"},
+        ]
+    )
+
     return choices

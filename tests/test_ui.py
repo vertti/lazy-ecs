@@ -94,7 +94,7 @@ def test_select_task_no_tasks(mock_ecs_service) -> None:
 def test_select_task_feature_with_containers(mock_select, mock_ecs_service) -> None:
     from lazy_ecs.aws_service import TaskDetails
 
-    mock_select.return_value.ask.return_value = "Show tail of logs for container: web"
+    mock_select.return_value.ask.return_value = "container_action:show_logs:web"
 
     navigator = ECSNavigator(mock_ecs_service)
     task_details: TaskDetails = {
@@ -110,7 +110,7 @@ def test_select_task_feature_with_containers(mock_select, mock_ecs_service) -> N
 
     selected = navigator.select_task_feature(task_details)
 
-    assert selected == "Show tail of logs for container: web"
+    assert selected == {"type": "container_action", "action": "show_logs", "container": "web"}
     mock_select.assert_called_once()
 
 
@@ -203,16 +203,53 @@ def test_build_task_feature_choices_includes_env_vars() -> None:
     containers = [{"name": "web"}, {"name": "sidecar"}]
     choices = _build_task_feature_choices(containers)
 
-    assert "Show tail of logs for container: web" in choices
-    assert "Show environment variables for container: web" in choices
-    assert "Show secrets for container: web" in choices
-    assert "Show port mappings for container: web" in choices
-    assert "Show tail of logs for container: sidecar" in choices
-    assert "Show environment variables for container: sidecar" in choices
-    assert "Show secrets for container: sidecar" in choices
-    assert "Show port mappings for container: sidecar" in choices
-    assert "Exit" in choices
-    assert len(choices) == 9
+    # Check that we have structured choices
+    choice_names = [choice["name"] for choice in choices]
+    choice_values = [choice["value"] for choice in choices]
+
+    assert "Show tail of logs for container: web" in choice_names
+    assert "Show environment variables for container: web" in choice_names
+    assert "Show secrets for container: web" in choice_names
+    assert "Show port mappings for container: web" in choice_names
+    assert "Show tail of logs for container: sidecar" in choice_names
+    assert "Show environment variables for container: sidecar" in choice_names
+    assert "Show secrets for container: sidecar" in choice_names
+    assert "Show port mappings for container: sidecar" in choice_names
+
+    # Check navigation options
+    assert "⬅️ Back to service selection" in choice_names
+    assert "❌ Exit" in choice_names
+
+    # Check structured values
+    assert "container_action:show_logs:web" in choice_values
+    assert "container_action:show_env:web" in choice_values
+    assert "navigation:back" in choice_values
+    assert "navigation:exit" in choice_values
+
+    assert len(choices) == 10  # 8 container actions + 2 navigation
+
+
+@patch("lazy_ecs.ui.questionary.select")
+def test_select_task_feature_navigation_back(mock_select, mock_ecs_service) -> None:
+    from lazy_ecs.aws_service import TaskDetails
+
+    mock_select.return_value.ask.return_value = "navigation:back"
+
+    navigator = ECSNavigator(mock_ecs_service)
+    task_details: TaskDetails = {
+        "task_arn": "task-123",
+        "task_definition_name": "web-task",
+        "task_definition_revision": "1",
+        "is_desired_version": True,
+        "task_status": "RUNNING",
+        "containers": [{"name": "web"}],
+        "created_at": None,
+        "started_at": None,
+    }
+
+    selected = navigator.select_task_feature(task_details)
+
+    assert selected == {"type": "navigation", "value": "back"}
 
 
 @patch("lazy_ecs.ui.console.print")

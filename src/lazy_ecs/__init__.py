@@ -18,80 +18,101 @@ def main() -> None:
         ecs_service = ECSService(ecs_client)
         navigator = ECSNavigator(ecs_service)
 
-        # Start interactive navigation
-        selected_cluster = navigator.select_cluster()
-
-        if selected_cluster:
-            console.print(f"\n✅ Selected cluster: {selected_cluster}", style="green")
-
-            # Navigate to services in the selected cluster
-            selected_service = navigator.select_service(selected_cluster)
-
-            if selected_service:
-                console.print(f"\n✅ Selected service: {selected_service}", style="green")
-
-                # Show combined tasks and service actions
-                while True:
-                    selection = navigator.select_service_action(selected_cluster, selected_service)
-
-                    if not selection or selection["value"] == "exit":
-                        console.print("\n👋 Goodbye!", style="cyan")
-                        break
-
-                    if selection["type"] == "task":
-                        selected_task = selection["value"]
-                        task_details = ecs_service.get_task_details(selected_cluster, selected_service, selected_task)
-                        if task_details:
-                            navigator.display_task_details(task_details)
-                            _handle_task_features(navigator, selected_cluster, selected_task, task_details)
-                        else:
-                            console.print(f"\n⚠️ Could not fetch task details for {selected_task}", style="yellow")
-                        break
-                    if selection["type"] == "action" and selection["value"] == "force_deployment":
-                        navigator.handle_force_deployment(selected_cluster, selected_service)
-                        # Continue the loop to show the menu again
-            else:
-                console.print(
-                    f"\n❌ No service selected from '{selected_cluster}'. Goodbye!",
-                    style="yellow",
-                )
-        else:
-            console.print("\n❌ No cluster selected. Goodbye!", style="yellow")
+        # Start hierarchical navigation
+        _navigate_clusters(navigator, ecs_service)
 
     except Exception as e:
         console.print(f"\n❌ Error: {e}", style="red")
         console.print("Make sure your AWS credentials are configured.", style="dim")
 
 
-def _handle_task_features(
-    navigator: ECSNavigator, cluster_name: str, task_arn: str, task_details: TaskDetails | None
-) -> None:
-    """Handle task feature selection and execution."""
+def _navigate_clusters(navigator: ECSNavigator, ecs_service: ECSService) -> None:
+    """Handle cluster-level navigation with back support."""
     while True:
-        selected_feature = navigator.select_task_feature(task_details)
+        selected_cluster = navigator.select_cluster()
 
-        if not selected_feature or selected_feature == "Exit":
-            console.print("\n👋 Goodbye!", style="cyan")
+        if not selected_cluster:
+            console.print("\n❌ No cluster selected. Goodbye!", style="yellow")
             break
 
-        # Map feature prefixes to their corresponding methods
-        feature_actions = {
-            "Show tail of logs for container:": navigator.show_container_logs,
-            "Show environment variables for container:": navigator.show_container_environment_variables,
-            "Show secrets for container:": navigator.show_container_secrets,
-            "Show port mappings for container:": navigator.show_container_port_mappings,
-        }
+        console.print(f"\n✅ Selected cluster: {selected_cluster}", style="green")
 
-        for prefix, action in feature_actions.items():
-            if selected_feature.startswith(prefix):
-                container_name = _extract_container_name(selected_feature)
-                action(cluster_name, task_arn, container_name)
-                break
+        # Navigate to services, handle back navigation
+        if _navigate_services(navigator, ecs_service, selected_cluster):
+            continue  # Back to cluster selection
+        break  # Exit was chosen
 
 
-def _extract_container_name(feature_text: str) -> str:
-    """Extract container name from feature selection text."""
-    return feature_text.split("container: ")[-1]
+def _navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster_name: str) -> bool:
+    """Handle service-level navigation. Returns True if back was chosen, False if exit."""
+    selected_service = navigator.select_service(cluster_name)
+
+    if not selected_service:
+        console.print(
+            f"\n❌ No service selected from '{cluster_name}'. Going back to cluster selection.", style="yellow"
+        )
+        return True
+
+    console.print(f"\n✅ Selected service: {selected_service}", style="green")
+
+    while True:
+        selection = navigator.select_service_action(cluster_name, selected_service)
+
+        if not selection or selection["value"] == "exit":
+            console.print("\n👋 Goodbye!", style="cyan")
+            return False
+
+        if selection["value"] == "back":
+            return True  # Back to cluster selection
+
+        if selection["type"] == "task":
+            selected_task = selection["value"]
+            task_details = ecs_service.get_task_details(cluster_name, selected_service, selected_task)
+            if task_details:
+                navigator.display_task_details(task_details)
+                # Navigate to task features, handle back navigation
+                if _handle_task_features(navigator, cluster_name, selected_task, task_details):
+                    continue  # Back to service selection
+                return False  # Exit was chosen
+            console.print(f"\n⚠️ Could not fetch task details for {selected_task}", style="yellow")
+
+        elif selection["type"] == "action" and selection["value"] == "force_deployment":
+            navigator.handle_force_deployment(cluster_name, selected_service)
+            # Continue the loop to show the menu again
+
+
+def _handle_task_features(
+    navigator: ECSNavigator, cluster_name: str, task_arn: str, task_details: TaskDetails | None
+) -> bool:
+    """Handle task feature selection and execution. Returns True if back was chosen, False if exit."""
+    while True:
+        selection = navigator.select_task_feature(task_details)
+
+        if not selection:
+            console.print("\n👋 Goodbye!", style="cyan")
+            return False
+
+        if selection["type"] == "navigation":
+            if selection["value"] == "exit":
+                console.print("\n👋 Goodbye!", style="cyan")
+                return False
+            if selection["value"] == "back":
+                return True
+
+        elif selection["type"] == "container_action":
+            container_name = selection["container"]
+            action_name = selection["action"]
+
+            # Map action names to methods
+            action_methods = {
+                "show_logs": navigator.show_container_logs,
+                "show_env": navigator.show_container_environment_variables,
+                "show_secrets": navigator.show_container_secrets,
+                "show_ports": navigator.show_container_port_mappings,
+            }
+
+            if action_name in action_methods:
+                action_methods[action_name](cluster_name, task_arn, container_name)
 
 
 if __name__ == "__main__":
