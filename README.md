@@ -47,7 +47,7 @@ uv run lazy-ecs
 - ✅ **Container log viewing** - Display recent logs with timestamps from CloudWatch
 - ✅ **Basic container details** - Show container name, image, CPU/memory configuration
 - ✅ **Show environment variables & secrets** - Display environment variables and secrets configuration (without exposing secret values)
-- ⬜ **Show port mappings** - Display container port configurations and networking
+- ✅ **Show port mappings** - Display container port configurations and networking
 - ⬜ **Show volume mounts** - Display file system mounts and storage configuration
 - ⬜ **Show resource limits vs usage** - Display CPU/memory limits and actual consumption
 - ⬜ **Show health check configuration** - Display health check settings and current status
