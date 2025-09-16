@@ -205,6 +205,14 @@ class ECSService:
 
         return None
 
+    def force_new_deployment(self, cluster_name: str, service_name: str) -> bool:
+        """Force a new deployment for a service."""
+        try:
+            self.ecs_client.update_service(cluster=cluster_name, service=service_name, forceNewDeployment=True)
+            return True
+        except Exception:
+            return False
+
 
 def _extract_name_from_arn(arn: str) -> str:
     """Extract resource name from AWS ARN."""

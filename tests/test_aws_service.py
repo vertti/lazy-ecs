@@ -528,3 +528,37 @@ def test_get_container_port_mappings_container_not_found() -> None:
     port_mappings = service.get_container_port_mappings("production", tasks[0], "nonexistent")
 
     assert port_mappings is None
+
+
+@mock_aws
+def test_force_new_deployment_success() -> None:
+    client = boto3.client("ecs", region_name="us-east-1")
+    client.create_cluster(clusterName="production")
+
+    client.register_task_definition(
+        family="web-task",
+        containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
+    )
+
+    client.create_service(
+        cluster="production",
+        serviceName="web-service",
+        taskDefinition="web-task",
+        desiredCount=1,
+    )
+
+    service = ECSService(client)
+    result = service.force_new_deployment("production", "web-service")
+
+    assert result is True
+
+
+@mock_aws
+def test_force_new_deployment_service_not_found() -> None:
+    client = boto3.client("ecs", region_name="us-east-1")
+    client.create_cluster(clusterName="production")
+
+    service = ECSService(client)
+    result = service.force_new_deployment("production", "nonexistent-service")
+
+    assert result is False

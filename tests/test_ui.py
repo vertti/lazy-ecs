@@ -295,3 +295,52 @@ def test_show_container_port_mappings_empty(mock_print, mock_ecs_service) -> Non
 
     print_args = [str(call.args[0]) for call in mock_print.call_args_list]
     assert any("No port mappings configured" in arg for arg in print_args)
+
+
+@patch("questionary.select")
+def test_select_service_action_with_tasks_and_actions(mock_select, mock_ecs_service) -> None:
+    mock_ecs_service.get_task_info.return_value = [
+        {"name": "task-1", "value": "arn:aws:ecs:us-east-1:123:task/task-1"},
+        {"name": "task-2", "value": "arn:aws:ecs:us-east-1:123:task/task-2"},
+    ]
+    mock_select.return_value.ask.return_value = "task:arn:aws:ecs:us-east-1:123:task/task-1"
+
+    navigator = ECSNavigator(mock_ecs_service)
+    result = navigator.select_service_action("test-cluster", "web-service")
+
+    assert result == {"type": "task", "value": "arn:aws:ecs:us-east-1:123:task/task-1"}
+    mock_select.assert_called_once()
+
+
+@patch("questionary.select")
+def test_select_service_action_force_deployment(mock_select, mock_ecs_service) -> None:
+    mock_ecs_service.get_task_info.return_value = [{"name": "task-1", "value": "arn:aws:ecs:us-east-1:123:task/task-1"}]
+    mock_select.return_value.ask.return_value = "action:force_deployment"
+
+    navigator = ECSNavigator(mock_ecs_service)
+    result = navigator.select_service_action("test-cluster", "web-service")
+
+    assert result == {"type": "action", "value": "force_deployment"}
+
+
+@patch("lazy_ecs.ui.console.print")
+def test_handle_force_deployment_success(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.force_new_deployment.return_value = True
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.handle_force_deployment("test-cluster", "web-service")
+
+    mock_ecs_service.force_new_deployment.assert_called_once_with("test-cluster", "web-service")
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("Successfully triggered new deployment" in arg for arg in print_args)
+
+
+@patch("lazy_ecs.ui.console.print")
+def test_handle_force_deployment_failure(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.force_new_deployment.return_value = False
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.handle_force_deployment("test-cluster", "web-service")
+
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("Failed to force new deployment" in arg for arg in print_args)

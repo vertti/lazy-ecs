@@ -30,21 +30,26 @@ def main() -> None:
             if selected_service:
                 console.print(f"\n✅ Selected service: {selected_service}", style="green")
 
-                # Navigate to tasks in the selected service
-                selected_task = navigator.select_task(selected_cluster, selected_service)
+                # Show combined tasks and service actions
+                while True:
+                    selection = navigator.select_service_action(selected_cluster, selected_service)
 
-                if selected_task:
-                    task_details = ecs_service.get_task_details(selected_cluster, selected_service, selected_task)
-                    if task_details:
-                        navigator.display_task_details(task_details)
-                        _handle_task_features(navigator, selected_cluster, selected_task, task_details)
-                    else:
-                        console.print(f"\n⚠️ Could not fetch task details for {selected_task}", style="yellow")
-                else:
-                    console.print(
-                        f"\n❌ No task selected from '{selected_service}'. Goodbye!",
-                        style="yellow",
-                    )
+                    if not selection or selection["value"] == "exit":
+                        console.print("\n👋 Goodbye!", style="cyan")
+                        break
+
+                    if selection["type"] == "task":
+                        selected_task = selection["value"]
+                        task_details = ecs_service.get_task_details(selected_cluster, selected_service, selected_task)
+                        if task_details:
+                            navigator.display_task_details(task_details)
+                            _handle_task_features(navigator, selected_cluster, selected_task, task_details)
+                        else:
+                            console.print(f"\n⚠️ Could not fetch task details for {selected_task}", style="yellow")
+                        break
+                    if selection["type"] == "action" and selection["value"] == "force_deployment":
+                        navigator.handle_force_deployment(selected_cluster, selected_service)
+                        # Continue the loop to show the menu again
             else:
                 console.print(
                     f"\n❌ No service selected from '{selected_cluster}'. Goodbye!",

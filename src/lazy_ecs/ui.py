@@ -65,6 +65,40 @@ class ECSNavigator:
 
         return selected or ""
 
+    def select_service_action(self, cluster_name: str, service_name: str) -> dict[str, str] | None:
+        """Interactive selection combining tasks and service-level actions."""
+        task_info = self.ecs_service.get_task_info(cluster_name, service_name)
+
+        choices = []
+
+        # Add tasks with 🔍 prefix
+        for task in task_info:
+            choices.append({"name": f"🔍 {task['name']}", "value": f"task:{task['value']}"})
+
+        # Add service-level actions with different emojis
+        choices.extend(
+            [
+                {"name": "🚀 Force new deployment", "value": "action:force_deployment"},
+                {"name": "❌ Exit", "value": "action:exit"},
+            ]
+        )
+
+        if not choices:
+            console.print(f"❌ No options available for service '{service_name}'", style="red")
+            return None
+
+        selected = questionary.select(
+            f"Select an option for service '{service_name}':",
+            choices=choices,
+            style=QUESTIONARY_STYLE,
+        ).ask()
+
+        if not selected:
+            return None
+
+        action_type, value = selected.split(":", 1)
+        return {"type": action_type, "value": value}
+
     def select_task(self, cluster_name: str, service_name: str) -> str:
         """Interactive task selection with auto-selection for single tasks."""
         task_info = self.ecs_service.get_task_info(cluster_name, service_name)
@@ -279,6 +313,19 @@ class ECSNavigator:
 
         console.print("=" * 60, style="dim")
         console.print(f"🔗 Total: {len(port_mappings)} port mappings configured", style="blue")
+
+    def handle_force_deployment(self, cluster_name: str, service_name: str) -> None:
+        """Handle force new deployment action."""
+        console.print(f"\n🚀 Forcing new deployment for service '{service_name}'...", style="yellow")
+
+        success = self.ecs_service.force_new_deployment(cluster_name, service_name)
+
+        if success:
+            console.print(f"✅ Successfully triggered new deployment for '{service_name}'", style="green")
+            console.print("📝 New tasks will be created and old ones will be drained", style="dim")
+        else:
+            console.print(f"❌ Failed to force new deployment for '{service_name}'", style="red")
+            console.print("💡 Check your AWS permissions or service status", style="dim")
 
 
 def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[str]:
