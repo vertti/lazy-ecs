@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 import questionary
+from mypy_boto3_logs.type_defs import OutputLogEventTypeDef
 from rich.console import Console
 
 from .aws_service import ECSService, TaskDetails
@@ -217,8 +218,16 @@ class ECSNavigator:
             style=QUESTIONARY_STYLE,
         ).ask()
 
-    def show_container_logs(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
-        """Display the last N lines of logs for a container."""
+    def show_container_logs(
+        self,
+        cluster_name: str,
+        task_arn: str,
+        container_name: str,
+        lines: int = 50,
+        include_patterns: list[str] | None = None,
+        exclude_patterns: list[str] | None = None,
+    ) -> None:
+        """Display the last N lines of logs for a container with optional filtering."""
         log_config = self.ecs_service.get_log_config(cluster_name, task_arn, container_name)
         if not log_config:
             console.print(f"❌ Could not find log configuration for container '{container_name}'", style="red")
@@ -239,17 +248,59 @@ class ECSNavigator:
             )
             return
 
-        console.print(f"\n📋 Last {len(events)} log entries for container '{container_name}':", style="bold cyan")
+        # Apply filtering
+        filtered_events = self._filter_log_events(events, include_patterns, exclude_patterns)
+
+        if not filtered_events:
+            console.print(f"📝 No logs match the filter criteria for container '{container_name}'", style="yellow")
+            return
+
+        console.print(
+            f"\n📋 Last {len(filtered_events)} log entries for container '{container_name}':", style="bold cyan"
+        )
         console.print(f"Log group: {log_group_name}", style="dim")
         console.print(f"Log stream: {log_stream_name}", style="dim")
+
+        if include_patterns:
+            console.print(f"Include patterns: {', '.join(include_patterns)}", style="dim")
+        if exclude_patterns:
+            console.print(f"Exclude patterns: {', '.join(exclude_patterns)}", style="dim")
+
         console.print("=" * 80, style="dim")
 
-        for event in events:
+        for event in filtered_events:
             timestamp = datetime.fromtimestamp(event["timestamp"] / 1000)
             message = event["message"].rstrip()
             console.print(f"[{timestamp.strftime('%H:%M:%S')}] {message}")
 
         console.print("=" * 80, style="dim")
+
+    def _filter_log_events(
+        self,
+        events: list[OutputLogEventTypeDef],
+        include_patterns: list[str] | None,
+        exclude_patterns: list[str] | None,
+    ) -> list[OutputLogEventTypeDef]:
+        """Filter log events based on include/exclude patterns."""
+        if not include_patterns and not exclude_patterns:
+            return events
+
+        filtered_events = []
+
+        for event in events:
+            message = event["message"].lower()
+
+            # Check include patterns (at least one must match)
+            if include_patterns and not any(pattern.lower() in message for pattern in include_patterns):
+                continue
+
+            # Check exclude patterns (none should match)
+            if exclude_patterns and any(pattern.lower() in message for pattern in exclude_patterns):
+                continue
+
+            filtered_events.append(event)
+
+        return filtered_events
 
     def show_container_environment_variables(self, cluster_name: str, task_arn: str, container_name: str) -> None:
         """Display environment variables for a container."""

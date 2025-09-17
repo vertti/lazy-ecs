@@ -7,6 +7,21 @@ from .ui import ECSNavigator, handle_navigation, parse_selection
 console = Console()
 
 
+def _get_search_parameters() -> tuple[list[str] | None, list[str] | None]:
+    """Get search parameters from user input."""
+    console.print("\n🔍 Log Search Options (press Enter to skip):", style="bold cyan")
+
+    # Get include patterns
+    include_input = console.input("Include patterns (comma-separated): ").strip()
+    include_patterns = [p.strip() for p in include_input.split(",") if p.strip()] if include_input else None
+
+    # Get exclude patterns
+    exclude_input = console.input("Exclude patterns (comma-separated): ").strip()
+    exclude_patterns = [p.strip() for p in exclude_input.split(",") if p.strip()] if exclude_input else None
+
+    return include_patterns, exclude_patterns
+
+
 def main() -> None:
     """Interactive AWS ECS navigation tool."""
     console.print("🚀 Welcome to lazy-ecs!", style="bold cyan")
@@ -96,17 +111,23 @@ def _handle_task_features(
 
         selection_type, action_name, container_name = parse_selection(selection)
         if selection_type == "container_action":
-            # Map action names to methods
-            action_methods = {
-                "show_logs": navigator.show_container_logs,
-                "show_env": navigator.show_container_environment_variables,
-                "show_secrets": navigator.show_container_secrets,
-                "show_ports": navigator.show_container_port_mappings,
-                "show_volumes": navigator.show_container_volume_mounts,
-            }
+            # Handle log viewing with search parameters
+            if action_name == "show_logs":
+                include_patterns, exclude_patterns = _get_search_parameters()
+                navigator.show_container_logs(
+                    cluster_name, task_arn, container_name, 50, include_patterns, exclude_patterns
+                )
+            else:
+                # Map other action names to methods
+                action_methods = {
+                    "show_env": navigator.show_container_environment_variables,
+                    "show_secrets": navigator.show_container_secrets,
+                    "show_ports": navigator.show_container_port_mappings,
+                    "show_volumes": navigator.show_container_volume_mounts,
+                }
 
-            if action_name in action_methods:
-                action_methods[action_name](cluster_name, task_arn, container_name)
+                if action_name in action_methods:
+                    action_methods[action_name](cluster_name, task_arn, container_name)
 
 
 if __name__ == "__main__":

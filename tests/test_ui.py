@@ -169,6 +169,104 @@ def test_show_container_logs_no_config(mock_print, mock_ecs_service) -> None:
 
 
 @patch("lazy_ecs.ui.console.print")
+def test_show_container_logs_with_include_filter(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.get_log_config.return_value = {
+        "log_group": "/ecs/production/web",
+        "log_stream": "ecs/web/task-123",
+    }
+    mock_ecs_service.get_container_logs.return_value = [
+        {"timestamp": 1693766400000, "message": "Starting application"},
+        {"timestamp": 1693766401000, "message": "Server listening on port 8080"},
+        {"timestamp": 1693766402000, "message": "Database connection failed"},
+    ]
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_logs("production", "task-arn-123", "web", 50, ["server", "database"], None)
+
+    assert mock_print.called
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("log entries" in arg.lower() for arg in print_args)
+    assert any("Include patterns: server, database" in arg for arg in print_args)
+    assert any("Server listening" in arg for arg in print_args)
+    assert any("Database connection" in arg for arg in print_args)
+    # Starting application should not be in filtered results
+    assert not any("Starting application" in arg for arg in print_args)
+
+
+@patch("lazy_ecs.ui.console.print")
+def test_show_container_logs_with_exclude_filter(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.get_log_config.return_value = {
+        "log_group": "/ecs/production/web",
+        "log_stream": "ecs/web/task-123",
+    }
+    mock_ecs_service.get_container_logs.return_value = [
+        {"timestamp": 1693766400000, "message": "Starting application"},
+        {"timestamp": 1693766401000, "message": "Server listening on port 8080"},
+        {"timestamp": 1693766402000, "message": "Database connection failed"},
+    ]
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_logs("production", "task-arn-123", "web", 50, None, ["database", "failed"])
+
+    assert mock_print.called
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("log entries" in arg.lower() for arg in print_args)
+    assert any("Exclude patterns: database, failed" in arg for arg in print_args)
+    assert any("Starting application" in arg for arg in print_args)
+    assert any("Server listening" in arg for arg in print_args)
+    # Database connection failed should not be in filtered results
+    assert not any("Database connection" in arg for arg in print_args)
+
+
+@patch("lazy_ecs.ui.console.print")
+def test_show_container_logs_with_both_filters(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.get_log_config.return_value = {
+        "log_group": "/ecs/production/web",
+        "log_stream": "ecs/web/task-123",
+    }
+    mock_ecs_service.get_container_logs.return_value = [
+        {"timestamp": 1693766400000, "message": "Starting application"},
+        {"timestamp": 1693766401000, "message": "Server listening on port 8080"},
+        {"timestamp": 1693766402000, "message": "Database connection failed"},
+        {"timestamp": 1693766403000, "message": "Server error occurred"},
+    ]
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_logs("production", "task-arn-123", "web", 50, ["server"], ["failed"])
+
+    assert mock_print.called
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("log entries" in arg.lower() for arg in print_args)
+    assert any("Include patterns: server" in arg for arg in print_args)
+    assert any("Exclude patterns: failed" in arg for arg in print_args)
+    assert any("Server listening" in arg for arg in print_args)
+    assert any("Server error occurred" in arg for arg in print_args)
+    # Starting application should not be in filtered results (doesn't include "server")
+    assert not any("Starting application" in arg for arg in print_args)
+    # Database connection failed should not be in filtered results (excluded)
+    assert not any("Database connection" in arg for arg in print_args)
+
+
+@patch("lazy_ecs.ui.console.print")
+def test_show_container_logs_no_matches_after_filtering(mock_print, mock_ecs_service) -> None:
+    mock_ecs_service.get_log_config.return_value = {
+        "log_group": "/ecs/production/web",
+        "log_stream": "ecs/web/task-123",
+    }
+    mock_ecs_service.get_container_logs.return_value = [
+        {"timestamp": 1693766400000, "message": "Starting application"},
+        {"timestamp": 1693766401000, "message": "Server listening on port 8080"},
+    ]
+
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator.show_container_logs("production", "task-arn-123", "web", 50, ["database"], None)
+
+    assert mock_print.called
+    print_args = [str(call.args[0]) for call in mock_print.call_args_list]
+    assert any("No logs match the filter criteria" in arg for arg in print_args)
+
+
+@patch("lazy_ecs.ui.console.print")
 def test_show_container_environment_variables_success(mock_print, mock_ecs_service) -> None:
     mock_ecs_service.get_container_environment_variables.return_value = {
         "ENV": "production",
