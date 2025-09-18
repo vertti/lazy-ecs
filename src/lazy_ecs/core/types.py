@@ -1,0 +1,43 @@
+"""Type definitions for lazy-ecs."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, TypedDict
+
+if TYPE_CHECKING:
+    pass
+
+
+class ServiceInfo(TypedDict):
+    name: str
+    status: str
+    running_count: int
+    desired_count: int
+    pending_count: int
+
+
+class TaskInfo(TypedDict):
+    name: str
+    value: str
+    task_def_arn: str
+    is_desired: bool
+    revision: str
+    images: list[str]
+    created_at: datetime | None
+
+
+class TaskDetails(TypedDict):
+    task_arn: str
+    task_definition_name: str
+    task_definition_revision: str
+    is_desired_version: bool
+    task_status: str
+    containers: list[dict[str, Any]]
+    created_at: datetime | None
+    started_at: datetime | None
+
+
+class LogConfig(TypedDict):
+    log_group: str
+    log_stream: str
