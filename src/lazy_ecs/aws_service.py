@@ -7,12 +7,13 @@ from typing import TYPE_CHECKING, Any, cast
 import boto3
 
 from .core.types import LogConfig, ServiceInfo, TaskDetails, TaskInfo
-from .core.utils import determine_service_status, extract_name_from_arn
 from .features.cluster.cluster import ClusterService
+from .features.service.actions import ServiceActions
+from .features.service.service import ServiceService
 
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
-    from mypy_boto3_ecs.type_defs import ServiceTypeDef, TaskDefinitionTypeDef, TaskTypeDef
+    from mypy_boto3_ecs.type_defs import TaskDefinitionTypeDef, TaskTypeDef
     from mypy_boto3_logs.client import CloudWatchLogsClient
     from mypy_boto3_logs.type_defs import OutputLogEventTypeDef
 
@@ -24,6 +25,8 @@ class ECSService:
         self.ecs_client = ecs_client
         # Initialize feature services
         self._cluster = ClusterService(ecs_client)
+        self._service = ServiceService(ecs_client)
+        self._service_actions = ServiceActions(ecs_client)
 
     def get_cluster_names(self) -> list[str]:
         """Get list of ECS cluster names from AWS."""
@@ -31,19 +34,11 @@ class ECSService:
 
     def get_services(self, cluster_name: str) -> list[str]:
         """Get list of service names in a cluster."""
-        response = self.ecs_client.list_services(cluster=cluster_name)
-        service_arns = response.get("serviceArns", [])
-        return [extract_name_from_arn(arn) for arn in service_arns]
+        return self._service.get_services(cluster_name)
 
     def get_service_info(self, cluster_name: str) -> list[ServiceInfo]:
         """Get detailed service information with status."""
-        service_names = self.get_services(cluster_name)
-        if not service_names:
-            return []
-
-        response = self.ecs_client.describe_services(cluster=cluster_name, services=service_names)
-        services = response.get("services", [])
-        return [_create_service_info(service) for service in services]
+        return self._service.get_service_info(cluster_name)
 
     def get_tasks(self, cluster_name: str, service_name: str) -> list[str]:
         """Get list of task ARNs for a service."""
@@ -58,7 +53,7 @@ class ECSService:
 
         response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=task_arns)
         tasks = response.get("tasks", [])
-        desired_task_def_arn = _get_desired_task_definition_arn(self.ecs_client, cluster_name, service_name)
+        desired_task_def_arn = self._service.get_desired_task_definition_arn(cluster_name, service_name)
         return [_create_task_info(task, desired_task_def_arn) for task in tasks]
 
     def get_task_details(self, cluster_name: str, service_name: str, task_arn: str) -> TaskDetails | None:
@@ -68,7 +63,7 @@ class ECSService:
             return None
 
         task, task_definition = result
-        desired_task_def_arn = _get_desired_task_definition_arn(self.ecs_client, cluster_name, service_name)
+        desired_task_def_arn = self._service.get_desired_task_definition_arn(cluster_name, service_name)
         is_desired_version = task["taskDefinitionArn"] == desired_task_def_arn
         return _build_task_details(task, task_definition, is_desired_version)
 
@@ -224,11 +219,7 @@ class ECSService:
 
     def force_new_deployment(self, cluster_name: str, service_name: str) -> bool:
         """Force a new deployment for a service."""
-        try:
-            self.ecs_client.update_service(cluster=cluster_name, service=service_name, forceNewDeployment=True)
-            return True
-        except Exception:
-            return False
+        return self._service_actions.force_new_deployment(cluster_name, service_name)
 
 
 def _get_task_and_definition(
@@ -246,35 +237,6 @@ def _get_task_and_definition(
     task_definition = task_def_response["taskDefinition"]
 
     return task, task_definition
-
-
-def _create_service_info(service: ServiceTypeDef) -> ServiceInfo:
-    """Create service info from AWS service description."""
-    service_name = service["serviceName"]
-    running_count = service.get("runningCount", 0)
-    desired_count = service.get("desiredCount", 0)
-    pending_count = service.get("pendingCount", 0)
-
-    icon, status = determine_service_status(running_count, desired_count, pending_count)
-
-    display_name = f"{icon} {service_name} ({running_count}/{desired_count})"
-
-    return {
-        "name": display_name,
-        "status": status,
-        "running_count": running_count,
-        "desired_count": desired_count,
-        "pending_count": pending_count,
-    }
-
-
-def _get_desired_task_definition_arn(ecs_client: ECSClient, cluster_name: str, service_name: str) -> str | None:
-    """Get the desired task definition ARN for a service."""
-    response = ecs_client.describe_services(cluster=cluster_name, services=[service_name])
-    services = response.get("services", [])
-    if services:
-        return services[0].get("taskDefinition")
-    return None
 
 
 def _create_task_info(task: TaskTypeDef, desired_task_def_arn: str | None) -> TaskInfo:
