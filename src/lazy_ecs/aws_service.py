@@ -7,10 +7,6 @@ from typing import TYPE_CHECKING, Any
 from .core.types import LogConfig, ServiceInfo, TaskDetails, TaskInfo
 from .features.cluster.cluster import ClusterService
 from .features.container.container import ContainerService
-from .features.container.features.environment import EnvironmentFeature
-from .features.container.features.logs import LogsFeature
-from .features.container.features.ports import PortsFeature
-from .features.container.features.volumes import VolumesFeature
 from .features.service.actions import ServiceActions
 from .features.service.service import ServiceService
 from .features.task.task import TaskService
@@ -31,10 +27,6 @@ class ECSService:
         self._service_actions = ServiceActions(ecs_client)
         self._task = TaskService(ecs_client)
         self._container = ContainerService(ecs_client, self._task)
-        self._logs = LogsFeature(ecs_client)
-        self._environment = EnvironmentFeature(ecs_client)
-        self._ports = PortsFeature(ecs_client)
-        self._volumes = VolumesFeature(ecs_client)
 
     def get_cluster_names(self) -> list[str]:
         """Get list of ECS cluster names from AWS."""
@@ -68,11 +60,11 @@ class ECSService:
 
     def get_container_logs(self, log_group: str, log_stream: str, lines: int = 50) -> list[OutputLogEventTypeDef]:
         """Get container logs from CloudWatch."""
-        return self._logs.get_container_logs(log_group, log_stream, lines)
+        return self._container.get_container_logs(log_group, log_stream, lines)
 
     def list_log_groups(self, cluster_name: str, container_name: str) -> list[str]:
         """List available log groups for debugging."""
-        return self._logs.list_log_groups(cluster_name, container_name)
+        return self._container.list_log_groups(cluster_name, container_name)
 
     def get_container_environment_variables(
         self, cluster_name: str, task_arn: str, container_name: str
@@ -81,14 +73,14 @@ class ECSService:
         context = self._container.get_container_context(cluster_name, task_arn, container_name)
         if not context:
             return None
-        return self._environment.get_environment_variables(context)
+        return self._container.get_environment_variables(context)
 
     def get_container_secrets(self, cluster_name: str, task_arn: str, container_name: str) -> dict[str, str] | None:
         """Get secrets configuration for a specific container in a task."""
         context = self._container.get_container_context(cluster_name, task_arn, container_name)
         if not context:
             return None
-        return self._environment.get_secrets(context)
+        return self._container.get_secrets(context)
 
     def get_container_port_mappings(
         self, cluster_name: str, task_arn: str, container_name: str
@@ -97,7 +89,7 @@ class ECSService:
         context = self._container.get_container_context(cluster_name, task_arn, container_name)
         if not context:
             return None
-        return self._ports.get_port_mappings(context)
+        return self._container.get_port_mappings(context)
 
     def get_container_volume_mounts(
         self, cluster_name: str, task_arn: str, container_name: str
@@ -106,7 +98,7 @@ class ECSService:
         context = self._container.get_container_context(cluster_name, task_arn, container_name)
         if not context:
             return None
-        return self._volumes.get_volume_mounts(context)
+        return self._container.get_volume_mounts(context)
 
     def force_new_deployment(self, cluster_name: str, service_name: str) -> bool:
         """Force a new deployment for a service."""

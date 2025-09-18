@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+import boto3
 
 from ...core.base import BaseAWSService
 from ...core.context import ContainerContext
@@ -11,6 +13,8 @@ from ...core.types import LogConfig
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
     from mypy_boto3_ecs.type_defs import ContainerDefinitionOutputTypeDef, TaskDefinitionTypeDef
+    from mypy_boto3_logs.client import CloudWatchLogsClient
+    from mypy_boto3_logs.type_defs import OutputLogEventTypeDef
 
     from ..task.task import TaskService
 
@@ -74,3 +78,72 @@ class ContainerService(BaseAWSService):
         log_stream = f"{stream_prefix}/{container_name}/{context.task_id}"
 
         return {"log_group": log_group, "log_stream": log_stream}
+
+    def get_environment_variables(self, context: ContainerContext) -> dict[str, str]:
+        """Get environment variables for a container."""
+        environment = context.container_definition.get("environment", [])
+        return {env_var["name"]: env_var["value"] for env_var in environment}
+
+    def get_secrets(self, context: ContainerContext) -> dict[str, str]:
+        """Get secrets configuration for a container."""
+        secrets = context.container_definition.get("secrets", [])
+        return {secret["name"]: secret["valueFrom"] for secret in secrets}
+
+    def get_container_logs(self, log_group: str, log_stream: str, lines: int = 50) -> list[OutputLogEventTypeDef]:
+        """Get container logs from CloudWatch."""
+        logs_client: CloudWatchLogsClient = boto3.client("logs")
+
+        response = logs_client.get_log_events(
+            logGroupName=log_group, logStreamName=log_stream, limit=lines, startFromHead=False
+        )
+        return response.get("events", [])
+
+    def list_log_groups(self, cluster_name: str, container_name: str) -> list[str]:
+        """List available log groups for debugging."""
+        logs_client: CloudWatchLogsClient = boto3.client("logs")
+
+        response = logs_client.describe_log_groups(limit=50)
+        groups = response.get("logGroups", [])
+
+        relevant_groups = []
+        for group in groups[:10]:
+            name = group["logGroupName"]
+            if cluster_name.lower() in name.lower() or container_name.lower() in name.lower() or "ecs" in name.lower():
+                relevant_groups.append(name)
+
+        return relevant_groups
+
+    def get_port_mappings(self, context: ContainerContext) -> list[dict[str, Any]]:
+        """Get port mappings for a container."""
+        port_mappings = context.container_definition.get("portMappings", [])
+        return [dict(mapping) for mapping in port_mappings]
+
+    def get_volume_mounts(self, context: ContainerContext) -> list[dict[str, Any]]:
+        """Get volume mounts for a container."""
+        mount_points = context.container_definition.get("mountPoints", [])
+        if not mount_points:
+            return []
+
+        # Build volume lookup map from task definition volumes
+        volumes_map = {}
+        for volume in context.task_definition.get("volumes", []):
+            volume_name = volume["name"]
+            host_config = volume.get("host", {})
+            host_path = host_config.get("sourcePath") if host_config else None
+            volumes_map[volume_name] = host_path
+
+        # Build volume mounts with resolved host paths
+        volume_mounts = []
+        for mount_point in mount_points:
+            source_volume = mount_point["sourceVolume"]
+            host_path = volumes_map.get(source_volume)
+
+            volume_mount = {
+                "source_volume": source_volume,
+                "container_path": mount_point["containerPath"],
+                "read_only": mount_point.get("readOnly", False),
+                "host_path": host_path,
+            }
+            volume_mounts.append(volume_mount)
+
+        return volume_mounts
