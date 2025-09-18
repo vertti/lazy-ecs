@@ -10,10 +10,10 @@ from .core.types import LogConfig, ServiceInfo, TaskDetails, TaskInfo
 from .features.cluster.cluster import ClusterService
 from .features.service.actions import ServiceActions
 from .features.service.service import ServiceService
+from .features.task.task import TaskService
 
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
-    from mypy_boto3_ecs.type_defs import TaskDefinitionTypeDef, TaskTypeDef
     from mypy_boto3_logs.client import CloudWatchLogsClient
     from mypy_boto3_logs.type_defs import OutputLogEventTypeDef
 
@@ -27,6 +27,7 @@ class ECSService:
         self._cluster = ClusterService(ecs_client)
         self._service = ServiceService(ecs_client)
         self._service_actions = ServiceActions(ecs_client)
+        self._task = TaskService(ecs_client)
 
     def get_cluster_names(self) -> list[str]:
         """Get list of ECS cluster names from AWS."""
@@ -42,34 +43,21 @@ class ECSService:
 
     def get_tasks(self, cluster_name: str, service_name: str) -> list[str]:
         """Get list of task ARNs for a service."""
-        response = self.ecs_client.list_tasks(cluster=cluster_name, serviceName=service_name)
-        return response.get("taskArns", [])
+        return self._task.get_tasks(cluster_name, service_name)
 
     def get_task_info(self, cluster_name: str, service_name: str) -> list[TaskInfo]:
         """Get detailed task information with human-readable names."""
-        task_arns = self.get_tasks(cluster_name, service_name)
-        if not task_arns:
-            return []
-
-        response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=task_arns)
-        tasks = response.get("tasks", [])
         desired_task_def_arn = self._service.get_desired_task_definition_arn(cluster_name, service_name)
-        return [_create_task_info(task, desired_task_def_arn) for task in tasks]
+        return self._task.get_task_info(cluster_name, service_name, desired_task_def_arn)
 
     def get_task_details(self, cluster_name: str, service_name: str, task_arn: str) -> TaskDetails | None:
         """Get comprehensive task details."""
-        result = _get_task_and_definition(self.ecs_client, cluster_name, task_arn)
-        if not result:
-            return None
-
-        task, task_definition = result
         desired_task_def_arn = self._service.get_desired_task_definition_arn(cluster_name, service_name)
-        is_desired_version = task["taskDefinitionArn"] == desired_task_def_arn
-        return _build_task_details(task, task_definition, is_desired_version)
+        return self._task.get_task_details(cluster_name, task_arn, desired_task_def_arn)
 
     def get_log_config(self, cluster_name: str, task_arn: str, container_name: str) -> LogConfig | None:
         """Get log configuration for a container."""
-        result = _get_task_and_definition(self.ecs_client, cluster_name, task_arn)
+        result = self._task.get_task_and_definition(cluster_name, task_arn)
         if not result:
             return None
 
@@ -124,7 +112,7 @@ class ECSService:
         self, cluster_name: str, task_arn: str, container_name: str
     ) -> dict[str, str] | None:
         """Get environment variables for a specific container in a task."""
-        result = _get_task_and_definition(self.ecs_client, cluster_name, task_arn)
+        result = self._task.get_task_and_definition(cluster_name, task_arn)
         if not result:
             return None
 
@@ -139,7 +127,7 @@ class ECSService:
 
     def get_container_secrets(self, cluster_name: str, task_arn: str, container_name: str) -> dict[str, str] | None:
         """Get secrets configuration for a specific container in a task."""
-        result = _get_task_and_definition(self.ecs_client, cluster_name, task_arn)
+        result = self._task.get_task_and_definition(cluster_name, task_arn)
         if not result:
             return None
 
@@ -156,7 +144,7 @@ class ECSService:
         self, cluster_name: str, task_arn: str, container_name: str
     ) -> list[dict[str, Any]] | None:
         """Get port mappings for a specific container in a task."""
-        result = _get_task_and_definition(self.ecs_client, cluster_name, task_arn)
+        result = self._task.get_task_and_definition(cluster_name, task_arn)
         if not result:
             return None
 
@@ -173,7 +161,7 @@ class ECSService:
         self, cluster_name: str, task_arn: str, container_name: str
     ) -> list[dict[str, Any]] | None:
         """Get volume mounts for a specific container in a task."""
-        result = _get_task_and_definition(self.ecs_client, cluster_name, task_arn)
+        result = self._task.get_task_and_definition(cluster_name, task_arn)
         if not result:
             return None
 
@@ -220,89 +208,3 @@ class ECSService:
     def force_new_deployment(self, cluster_name: str, service_name: str) -> bool:
         """Force a new deployment for a service."""
         return self._service_actions.force_new_deployment(cluster_name, service_name)
-
-
-def _get_task_and_definition(
-    ecs_client: ECSClient, cluster_name: str, task_arn: str
-) -> tuple[TaskTypeDef, TaskDefinitionTypeDef] | None:
-    """Get task and its task definition from ECS."""
-    task_response = ecs_client.describe_tasks(cluster=cluster_name, tasks=[task_arn])
-    tasks = task_response.get("tasks", [])
-    if not tasks:
-        return None
-
-    task = tasks[0]
-    task_def_arn = task["taskDefinitionArn"]
-    task_def_response = ecs_client.describe_task_definition(taskDefinition=task_def_arn)
-    task_definition = task_def_response["taskDefinition"]
-
-    return task, task_definition
-
-
-def _create_task_info(task: TaskTypeDef, desired_task_def_arn: str | None) -> TaskInfo:
-    """Create task info from AWS task description."""
-    task_arn = task["taskArn"]
-    task_def_arn = task["taskDefinitionArn"]
-    is_desired = task_def_arn == desired_task_def_arn
-
-    task_id = task_arn.split("/")[-1][:8]
-    task_def_family = task_def_arn.split("/")[-1].split(":")[0]
-    revision = task_def_arn.split(":")[-1]
-
-    created_at = task.get("createdAt")
-
-    container_images = []
-    for container in task.get("containers", []):
-        if "image" in container:
-            image = container["image"]
-            if ":" in image:
-                container_images.append(image.split(":")[-1])
-
-    image_display = ", ".join(container_images) if container_images else "unknown"
-
-    status_icon = "✅" if is_desired else "🔴"
-    time_str = created_at.strftime("%H:%M:%S") if created_at else "unknown"
-
-    display_name = f"{status_icon} v{revision} {task_def_family} ({task_id}) - {image_display} - {time_str}"
-
-    return {
-        "name": display_name,
-        "value": task_arn,
-        "task_def_arn": task_def_arn,
-        "is_desired": is_desired,
-        "revision": revision,
-        "images": container_images,
-        "created_at": created_at,
-    }
-
-
-def _build_task_details(
-    task: TaskTypeDef, task_definition: TaskDefinitionTypeDef, is_desired_version: bool
-) -> TaskDetails:
-    """Build comprehensive task details dictionary."""
-    task_arn = task["taskArn"]
-    task_def_arn = task["taskDefinitionArn"]
-    task_def_family = task_def_arn.split("/")[-1].split(":")[0]
-    task_def_revision = task_def_arn.split(":")[-1]
-
-    containers = []
-    for container_def in task_definition["containerDefinitions"]:
-        container_info = {
-            "name": container_def["name"],
-            "image": container_def["image"],
-            "cpu": container_def.get("cpu"),
-            "memory": container_def.get("memory"),
-            "memoryReservation": container_def.get("memoryReservation"),
-        }
-        containers.append(container_info)
-
-    return {
-        "task_arn": task_arn,
-        "task_definition_name": task_def_family,
-        "task_definition_revision": task_def_revision,
-        "is_desired_version": is_desired_version,
-        "task_status": task.get("lastStatus", "UNKNOWN"),
-        "containers": containers,
-        "created_at": task.get("createdAt"),
-        "started_at": task.get("startedAt"),
-    }
