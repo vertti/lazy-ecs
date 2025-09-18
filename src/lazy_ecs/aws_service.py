@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from .core.types import LogConfig, ServiceInfo, TaskDetails, TaskInfo
@@ -44,15 +45,24 @@ class ECSService:
         """Get list of task ARNs for a service."""
         return self._task.get_tasks(cluster_name, service_name)
 
+    def _with_desired_task_definition(
+        self, cluster_name: str, service_name: str, operation: Callable[[str | None], Any]
+    ) -> Any:  # noqa: ANN401
+        """Helper to reduce repetition in task operations that need desired task definition."""
+        desired_task_def_arn = self._service.get_desired_task_definition_arn(cluster_name, service_name)
+        return operation(desired_task_def_arn)
+
     def get_task_info(self, cluster_name: str, service_name: str) -> list[TaskInfo]:
         """Get detailed task information with human-readable names."""
-        desired_task_def_arn = self._service.get_desired_task_definition_arn(cluster_name, service_name)
-        return self._task.get_task_info(cluster_name, service_name, desired_task_def_arn)
+        return self._with_desired_task_definition(
+            cluster_name, service_name, lambda arn: self._task.get_task_info(cluster_name, service_name, arn)
+        )
 
     def get_task_details(self, cluster_name: str, service_name: str, task_arn: str) -> TaskDetails | None:
         """Get comprehensive task details."""
-        desired_task_def_arn = self._service.get_desired_task_definition_arn(cluster_name, service_name)
-        return self._task.get_task_details(cluster_name, task_arn, desired_task_def_arn)
+        return self._with_desired_task_definition(
+            cluster_name, service_name, lambda arn: self._task.get_task_details(cluster_name, task_arn, arn)
+        )
 
     def get_log_config(self, cluster_name: str, task_arn: str, container_name: str) -> LogConfig | None:
         """Get log configuration for a container."""
@@ -66,39 +76,38 @@ class ECSService:
         """List available log groups for debugging."""
         return self._container.list_log_groups(cluster_name, container_name)
 
+    def _with_container_context(
+        self, cluster_name: str, task_arn: str, container_name: str, operation: Callable[[Any], Any]
+    ) -> Any:  # noqa: ANN401
+        """Helper to reduce repetition in container operations."""
+        context = self._container.get_container_context(cluster_name, task_arn, container_name)
+        if not context:
+            return None
+        return operation(context)
+
     def get_container_environment_variables(
         self, cluster_name: str, task_arn: str, container_name: str
     ) -> dict[str, str] | None:
         """Get environment variables for a specific container in a task."""
-        context = self._container.get_container_context(cluster_name, task_arn, container_name)
-        if not context:
-            return None
-        return self._container.get_environment_variables(context)
+        return self._with_container_context(
+            cluster_name, task_arn, container_name, self._container.get_environment_variables
+        )
 
     def get_container_secrets(self, cluster_name: str, task_arn: str, container_name: str) -> dict[str, str] | None:
         """Get secrets configuration for a specific container in a task."""
-        context = self._container.get_container_context(cluster_name, task_arn, container_name)
-        if not context:
-            return None
-        return self._container.get_secrets(context)
+        return self._with_container_context(cluster_name, task_arn, container_name, self._container.get_secrets)
 
     def get_container_port_mappings(
         self, cluster_name: str, task_arn: str, container_name: str
     ) -> list[dict[str, Any]] | None:
         """Get port mappings for a specific container in a task."""
-        context = self._container.get_container_context(cluster_name, task_arn, container_name)
-        if not context:
-            return None
-        return self._container.get_port_mappings(context)
+        return self._with_container_context(cluster_name, task_arn, container_name, self._container.get_port_mappings)
 
     def get_container_volume_mounts(
         self, cluster_name: str, task_arn: str, container_name: str
     ) -> list[dict[str, Any]] | None:
         """Get volume mounts for a specific container in a task."""
-        context = self._container.get_container_context(cluster_name, task_arn, container_name)
-        if not context:
-            return None
-        return self._container.get_volume_mounts(context)
+        return self._with_container_context(cluster_name, task_arn, container_name, self._container.get_volume_mounts)
 
     def force_new_deployment(self, cluster_name: str, service_name: str) -> bool:
         """Force a new deployment for a service."""
