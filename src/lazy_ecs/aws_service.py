@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, cast
 import boto3
 
 from .core.types import LogConfig, ServiceInfo, TaskDetails, TaskInfo
+from .core.utils import determine_service_status, extract_name_from_arn
 
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
@@ -25,13 +26,13 @@ class ECSService:
         """Get list of ECS cluster names from AWS."""
         response = self.ecs_client.list_clusters()
         cluster_arns = response.get("clusterArns", [])
-        return [_extract_name_from_arn(arn) for arn in cluster_arns]
+        return [extract_name_from_arn(arn) for arn in cluster_arns]
 
     def get_services(self, cluster_name: str) -> list[str]:
         """Get list of service names in a cluster."""
         response = self.ecs_client.list_services(cluster=cluster_name)
         service_arns = response.get("serviceArns", [])
-        return [_extract_name_from_arn(arn) for arn in service_arns]
+        return [extract_name_from_arn(arn) for arn in service_arns]
 
     def get_service_info(self, cluster_name: str) -> list[ServiceInfo]:
         """Get detailed service information with status."""
@@ -229,11 +230,6 @@ class ECSService:
             return False
 
 
-def _extract_name_from_arn(arn: str) -> str:
-    """Extract resource name from AWS ARN."""
-    return arn.split("/")[-1]
-
-
 def _get_task_and_definition(
     ecs_client: ECSClient, cluster_name: str, task_arn: str
 ) -> tuple[TaskTypeDef, TaskDefinitionTypeDef] | None:
@@ -258,7 +254,7 @@ def _create_service_info(service: ServiceTypeDef) -> ServiceInfo:
     desired_count = service.get("desiredCount", 0)
     pending_count = service.get("pendingCount", 0)
 
-    icon, status = _determine_service_status(running_count, desired_count, pending_count)
+    icon, status = determine_service_status(running_count, desired_count, pending_count)
 
     display_name = f"{icon} {service_name} ({running_count}/{desired_count})"
 
@@ -269,17 +265,6 @@ def _create_service_info(service: ServiceTypeDef) -> ServiceInfo:
         "desired_count": desired_count,
         "pending_count": pending_count,
     }
-
-
-def _determine_service_status(running_count: int, desired_count: int, pending_count: int) -> tuple[str, str]:
-    """Determine service status icon and text."""
-    if running_count == desired_count and pending_count == 0:
-        return "✅", "HEALTHY"
-    if running_count < desired_count:
-        return "⚠️", "SCALING"
-    if running_count > desired_count:
-        return "🔴", "OVER_SCALED"
-    return "🟡", "PENDING"
 
 
 def _get_desired_task_definition_arn(ecs_client: ECSClient, cluster_name: str, service_name: str) -> str | None:
