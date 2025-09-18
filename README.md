@@ -86,7 +86,7 @@ uv run lazy-ecs
 ### Advanced Features 🎯
 
 - ⬜ **Enhanced log features**:
-  - ⬜ Search/filter logs by keywords or time range
+  - ✅ Search/filter logs by keywords or time range
   - ⬜ Follow logs in real-time (tail -f style)
   - ⬜ Download logs to file
 - ⬜ **Monitoring integration**:
