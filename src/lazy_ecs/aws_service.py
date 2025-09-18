@@ -2,50 +2,17 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import boto3
+
+from .core.types import LogConfig, ServiceInfo, TaskDetails, TaskInfo
 
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
     from mypy_boto3_ecs.type_defs import ServiceTypeDef, TaskDefinitionTypeDef, TaskTypeDef
     from mypy_boto3_logs.client import CloudWatchLogsClient
     from mypy_boto3_logs.type_defs import OutputLogEventTypeDef
-
-
-class ServiceInfo(TypedDict):
-    name: str
-    status: str
-    running_count: int
-    desired_count: int
-    pending_count: int
-
-
-class TaskInfo(TypedDict):
-    name: str
-    value: str
-    task_def_arn: str
-    is_desired: bool
-    revision: str
-    images: list[str]
-    created_at: datetime | None
-
-
-class TaskDetails(TypedDict):
-    task_arn: str
-    task_definition_name: str
-    task_definition_revision: str
-    is_desired_version: bool
-    task_status: str
-    containers: list[dict[str, Any]]
-    created_at: datetime | None
-    started_at: datetime | None
-
-
-class LogConfig(TypedDict):
-    log_group: str
-    log_stream: str
 
 
 class ECSService:

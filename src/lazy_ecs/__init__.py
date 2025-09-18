@@ -1,7 +1,8 @@
 import boto3
 from rich.console import Console
 
-from .aws_service import ECSService, TaskDetails
+from .aws_service import ECSService
+from .core.types import TaskDetails
 from .ui import ECSNavigator, handle_navigation, parse_selection
 
 console = Console()

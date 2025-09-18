@@ -8,7 +8,8 @@ from typing import Any
 import questionary
 from rich.console import Console
 
-from .aws_service import ECSService, TaskDetails
+from .aws_service import ECSService
+from .core.types import TaskDetails
 
 console = Console()
 
