@@ -13,9 +13,10 @@ def mock_ecs_service():
     return Mock()
 
 
-@patch("lazy_ecs.ui.questionary.select")
-def test_select_cluster_with_clusters(mock_select, mock_ecs_service) -> None:
-    mock_ecs_service.get_cluster_names.return_value = ["production", "staging", "dev"]
+@patch("lazy_ecs.features.cluster.ui.questionary.select")
+@patch("lazy_ecs.features.cluster.cluster.ClusterService.get_cluster_names")
+def test_select_cluster_with_clusters(mock_get_clusters, mock_select, mock_ecs_service) -> None:
+    mock_get_clusters.return_value = ["production", "staging", "dev"]
     mock_select.return_value.ask.return_value = "production"
 
     navigator = ECSNavigator(mock_ecs_service)
@@ -25,8 +26,9 @@ def test_select_cluster_with_clusters(mock_select, mock_ecs_service) -> None:
     mock_select.assert_called_once()
 
 
-def test_select_cluster_no_clusters(mock_ecs_service) -> None:
-    mock_ecs_service.get_cluster_names.return_value = []
+@patch("lazy_ecs.features.cluster.cluster.ClusterService.get_cluster_names")
+def test_select_cluster_no_clusters(mock_get_clusters, mock_ecs_service) -> None:
+    mock_get_clusters.return_value = []
 
     navigator = ECSNavigator(mock_ecs_service)
     selected = navigator.select_cluster()

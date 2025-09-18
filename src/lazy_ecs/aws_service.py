@@ -8,6 +8,7 @@ import boto3
 
 from .core.types import LogConfig, ServiceInfo, TaskDetails, TaskInfo
 from .core.utils import determine_service_status, extract_name_from_arn
+from .features.cluster.cluster import ClusterService
 
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
@@ -21,12 +22,12 @@ class ECSService:
 
     def __init__(self, ecs_client: ECSClient) -> None:
         self.ecs_client = ecs_client
+        # Initialize feature services
+        self._cluster = ClusterService(ecs_client)
 
     def get_cluster_names(self) -> list[str]:
         """Get list of ECS cluster names from AWS."""
-        response = self.ecs_client.list_clusters()
-        cluster_arns = response.get("clusterArns", [])
-        return [extract_name_from_arn(arn) for arn in cluster_arns]
+        return self._cluster.get_cluster_names()
 
     def get_services(self, cluster_name: str) -> list[str]:
         """Get list of service names in a cluster."""

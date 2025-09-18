@@ -10,6 +10,8 @@ from rich.console import Console
 
 from .aws_service import ECSService
 from .core.types import TaskDetails
+from .features.cluster.cluster import ClusterService
+from .features.cluster.ui import ClusterUI
 
 console = Console()
 
@@ -68,22 +70,13 @@ class ECSNavigator:
 
     def __init__(self, ecs_service: ECSService) -> None:
         self.ecs_service = ecs_service
+        # Initialize feature UI components
+        cluster_service = ClusterService(ecs_service.ecs_client)
+        self._cluster_ui = ClusterUI(cluster_service)
 
     def select_cluster(self) -> str:
         """Interactive cluster selection."""
-        cluster_names = self.ecs_service.get_cluster_names()
-
-        if not cluster_names:
-            console.print("❌ No ECS clusters found", style="red")
-            return ""
-
-        selected = questionary.select(
-            "Select an ECS cluster:",
-            choices=cluster_names,
-            style=QUESTIONARY_STYLE,
-        ).ask()
-
-        return selected or ""
+        return self._cluster_ui.select_cluster()
 
     def select_service(self, cluster_name: str) -> str | None:
         """Interactive service selection with status information and navigation."""
