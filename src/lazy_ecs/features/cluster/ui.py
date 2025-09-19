@@ -6,6 +6,7 @@ import questionary
 from rich.console import Console
 
 from ...core.base import BaseUIComponent
+from ...core.navigation import get_questionary_style
 from .cluster import ClusterService
 
 console = Console()
@@ -29,7 +30,7 @@ class ClusterUI(BaseUIComponent):
         selected = questionary.select(
             "Select an ECS cluster:",
             choices=cluster_names,
-            style=self._get_questionary_style(),
+            style=get_questionary_style(),
         ).ask()
 
         return selected or ""

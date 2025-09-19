@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-import questionary
 from rich.console import Console
+
+from .navigation import select_with_navigation
 
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
@@ -26,31 +27,7 @@ class BaseUIComponent:
 
     def select_with_nav(self, prompt: str, choices: list[dict[str, str]], back_text: str) -> str | None:
         """Standard selection with back/exit navigation."""
-        # Add navigation choices
-        nav_choices = [
-            *choices,
-            {"name": f"⬅️ {back_text}", "value": "navigation:back"},
-            {"name": "❌ Exit", "value": "navigation:exit"},
-        ]
-
-        return questionary.select(
-            prompt,
-            choices=nav_choices,
-            style=self._get_questionary_style(),
-        ).ask()
-
-    def _get_questionary_style(self) -> questionary.Style:
-        """Consistent questionary styling across all prompts."""
-        return questionary.Style(
-            [
-                ("qmark", "fg:cyan bold"),
-                ("question", "bold"),
-                ("answer", "fg:cyan"),
-                ("pointer", "fg:cyan bold"),
-                ("highlighted", "fg:cyan"),
-                ("selected", "fg:green"),
-            ]
-        )
+        return select_with_navigation(prompt, choices, back_text)
 
     def display_table(self, data: list[dict[str, Any]], title: str | None = None) -> None:
         """Display data in a formatted table (placeholder for future rich table)."""

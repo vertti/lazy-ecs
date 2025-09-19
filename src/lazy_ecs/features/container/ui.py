@@ -8,10 +8,6 @@ from rich.console import Console
 
 from ...core.base import BaseUIComponent
 from .container import ContainerService
-from .features.environment import EnvironmentFeature
-from .features.logs import LogsFeature
-from .features.ports import PortsFeature
-from .features.volumes import VolumesFeature
 
 console = Console()
 
@@ -19,20 +15,9 @@ console = Console()
 class ContainerUI(BaseUIComponent):
     """UI component for container display."""
 
-    def __init__(
-        self,
-        container_service: ContainerService,
-        logs_feature: LogsFeature,
-        environment_feature: EnvironmentFeature,
-        ports_feature: PortsFeature,
-        volumes_feature: VolumesFeature,
-    ) -> None:
+    def __init__(self, container_service: ContainerService) -> None:
         super().__init__()
         self.container_service = container_service
-        self.logs_feature = logs_feature
-        self.environment_feature = environment_feature
-        self.ports_feature = ports_feature
-        self.volumes_feature = volumes_feature
 
     def show_container_logs(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
         """Display the last N lines of logs for a container."""
@@ -40,7 +25,7 @@ class ContainerUI(BaseUIComponent):
         if not log_config:
             console.print(f"❌ Could not find log configuration for container '{container_name}'", style="red")
             console.print("Available log groups:", style="dim")
-            log_groups = self.logs_feature.list_log_groups(cluster_name, container_name)
+            log_groups = self.container_service.list_log_groups(cluster_name, container_name)
             for group in log_groups:
                 console.print(f"  • {group}", style="cyan")
             return
@@ -48,7 +33,7 @@ class ContainerUI(BaseUIComponent):
         log_group_name = log_config["log_group"]
         log_stream_name = log_config["log_stream"]
 
-        events = self.logs_feature.get_container_logs(log_group_name, log_stream_name, lines)
+        events = self.container_service.get_container_logs(log_group_name, log_stream_name, lines)
 
         if not events:
             console.print(
@@ -75,7 +60,7 @@ class ContainerUI(BaseUIComponent):
             console.print(f"❌ Could not find container '{container_name}'", style="red")
             return
 
-        env_vars = self.environment_feature.get_environment_variables(context)
+        env_vars = self.container_service.get_environment_variables(context)
 
         if not env_vars:
             console.print(f"📝 No environment variables found for container '{container_name}'", style="yellow")
@@ -100,7 +85,7 @@ class ContainerUI(BaseUIComponent):
             console.print(f"❌ Could not find container '{container_name}'", style="red")
             return
 
-        secrets = self.environment_feature.get_secrets(context)
+        secrets = self.container_service.get_secrets(context)
 
         if not secrets:
             console.print(f"🔐 No secrets configured for container '{container_name}'", style="yellow")
@@ -140,7 +125,7 @@ class ContainerUI(BaseUIComponent):
             console.print(f"❌ Could not find container '{container_name}'", style="red")
             return
 
-        port_mappings = self.ports_feature.get_port_mappings(context)
+        port_mappings = self.container_service.get_port_mappings(context)
 
         if not port_mappings:
             console.print(f"🌐 No port mappings configured for container '{container_name}'", style="yellow")
@@ -165,7 +150,7 @@ class ContainerUI(BaseUIComponent):
             console.print(f"❌ Could not find container '{container_name}'", style="red")
             return
 
-        volume_mounts = self.volumes_feature.get_volume_mounts(context)
+        volume_mounts = self.container_service.get_volume_mounts(context)
 
         if not volume_mounts:
             console.print(f"💾 No volume mounts configured for container '{container_name}'", style="yellow")

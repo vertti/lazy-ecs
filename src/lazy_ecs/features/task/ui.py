@@ -9,8 +9,8 @@ from rich.console import Console
 from rich.table import Table
 
 from ...core.base import BaseUIComponent
+from ...core.navigation import add_navigation_choices, get_questionary_style
 from ...core.types import TaskDetails
-from ...ui import add_nav_choices  # Temporary import until we refactor navigation
 from .task import TaskService
 
 console = Console()
@@ -40,7 +40,7 @@ class TaskUI(BaseUIComponent):
         selected = questionary.select(
             "Select a task:",
             choices=choices,
-            style=self._get_questionary_style(),
+            style=get_questionary_style(),
         ).ask()
 
         if selected:
@@ -120,7 +120,7 @@ class TaskUI(BaseUIComponent):
         return questionary.select(
             "Select a feature for this task:",
             choices=choices,
-            style=self._get_questionary_style(),
+            style=get_questionary_style(),
         ).ask()
 
 
@@ -157,5 +157,5 @@ def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[s
             ]
         )
 
-    add_nav_choices(choices, "Back to service selection")
+    add_navigation_choices(choices, "Back to service selection")
     return choices
