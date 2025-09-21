@@ -1,5 +1,11 @@
+import argparse
+from typing import TYPE_CHECKING
+
 import boto3
 from rich.console import Console
+
+if TYPE_CHECKING:
+    from mypy_boto3_ecs import ECSClient
 
 from .aws_service import ECSService
 from .core.navigation import handle_navigation, parse_selection
@@ -11,21 +17,31 @@ console = Console()
 
 def main() -> None:
     """Interactive AWS ECS navigation tool."""
+    parser = argparse.ArgumentParser(description="Interactive AWS ECS cluster navigator")
+    parser.add_argument("--profile", help="AWS profile to use for authentication", type=str, default=None)
+    args = parser.parse_args()
+
     console.print("🚀 Welcome to lazy-ecs!", style="bold cyan")
     console.print("Interactive AWS ECS cluster navigator\n", style="dim")
 
     try:
-        # Initialize AWS ECS client and service layer
-        ecs_client = boto3.client("ecs")
+        ecs_client = _create_aws_client(args.profile)
         ecs_service = ECSService(ecs_client)
         navigator = ECSNavigator(ecs_service)
 
-        # Start hierarchical navigation
         _navigate_clusters(navigator, ecs_service)
 
     except Exception as e:
         console.print(f"\n❌ Error: {e}", style="red")
         console.print("Make sure your AWS credentials are configured.", style="dim")
+
+
+def _create_aws_client(profile_name: str | None) -> "ECSClient":
+    """Create AWS ECS client with optional profile support."""
+    if profile_name:
+        session = boto3.Session(profile_name=profile_name)
+        return session.client("ecs")
+    return boto3.client("ecs")
 
 
 def _navigate_clusters(navigator: ECSNavigator, ecs_service: ECSService) -> None:
