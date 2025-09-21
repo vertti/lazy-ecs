@@ -31,7 +31,7 @@ class ServiceUI(BaseUIComponent):
             return "navigation:back"
 
         choices = [{"name": info["name"], "value": f"service:{info['name'].split(' ')[1]}"} for info in service_info]
-        add_navigation_choices(choices, "Back to cluster selection")
+        choices = add_navigation_choices(choices, "Back to cluster selection")
 
         return questionary.select(
             "Select a service:",
@@ -50,7 +50,7 @@ class ServiceUI(BaseUIComponent):
         # Add service actions
         choices.append({"name": "🚀 Force new deployment", "value": "action:force_deployment"})
 
-        add_navigation_choices(choices, "Back to cluster selection")
+        choices = add_navigation_choices(choices, "Back to cluster selection")
 
         return questionary.select(
             f"Select action for service '{service_name}':",

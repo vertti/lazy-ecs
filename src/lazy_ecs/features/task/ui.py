@@ -37,6 +37,7 @@ class TaskUI(BaseUIComponent):
             return task_info[0]["value"]
 
         choices = [{"name": task["name"], "value": task["value"]} for task in task_info]
+        choices = add_navigation_choices(choices, "Back to service selection")
 
         selected = questionary.select(
             "Select a task:",
@@ -148,7 +149,7 @@ class TaskUI(BaseUIComponent):
         table.add_column("Task ID", style="yellow", width=12)
         table.add_column("Revision", style="green", width=8)
         table.add_column("Created", style="blue", width=16)
-        table.add_column("Failure Analysis", style="red", width=40)
+        table.add_column("Status Details", width=40)
 
         for task in recent_tasks:
             status_icon = "✅" if task["last_status"] == "RUNNING" else "🔴"
@@ -161,14 +162,22 @@ class TaskUI(BaseUIComponent):
             if task["created_at"]:
                 created_time = task["created_at"].strftime("%m/%d %H:%M")
 
-            # Get failure analysis
-            failure_analysis = self.task_service.get_task_failure_analysis(task)
+            # Get status details with appropriate styling
+            status_details = self.task_service.get_task_failure_analysis(task)
 
-            # Truncate long failure messages
-            if len(failure_analysis) > 38:
-                failure_analysis = failure_analysis[:35] + "..."
+            # Apply color based on task status
+            if task["last_status"] == "RUNNING":
+                status_details = f"[green]{status_details}[/green]"
+            elif "🔴" in status_details or "failed" in status_details.lower():
+                status_details = f"[red]{status_details}[/red]"
+            else:
+                status_details = f"[yellow]{status_details}[/yellow]"
 
-            table.add_row(status_display, task_id, revision, created_time, failure_analysis)
+            # Truncate long messages
+            if len(status_details) > 50:  # Account for markup tags
+                status_details = status_details[:47] + "..."
+
+            table.add_row(status_display, task_id, revision, created_time, status_details)
 
         console.print(table)
 
@@ -254,5 +263,4 @@ def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[s
             ]
         )
 
-    add_navigation_choices(choices, "Back to service selection")
-    return choices
+    return add_navigation_choices(choices, "Back to service selection")

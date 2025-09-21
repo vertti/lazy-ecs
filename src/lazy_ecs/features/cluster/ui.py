@@ -27,9 +27,13 @@ class ClusterUI(BaseUIComponent):
             console.print("❌ No ECS clusters found", style="red")
             return ""
 
+        # Convert cluster names to choice format and add Exit (top-level, no Back needed)
+        choices = [{"name": name, "value": name} for name in cluster_names]
+        choices.append({"name": "❌ Exit", "value": "navigation:exit"})
+
         selected = questionary.select(
             "Select an ECS cluster:",
-            choices=cluster_names,
+            choices=choices,
             style=get_questionary_style(),
         ).ask()
 

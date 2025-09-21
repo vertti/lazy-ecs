@@ -59,6 +59,7 @@ class ECSNavigator:
             return ""
 
         choices = [{"name": info["name"], "value": info["value"]} for info in task_info]
+        choices = add_navigation_choices(choices, "Back to service selection")
 
         selected = questionary.select(
             "Select a task:",
