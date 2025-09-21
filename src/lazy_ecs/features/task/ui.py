@@ -33,7 +33,7 @@ class TaskUI(BaseUIComponent):
             return ""
 
         if len(task_info) == 1:
-            console.print(f"🎯 Auto-selected single task: {task_info[0]['name']}", style="cyan")
+            console.print(f"Auto-selected single task: {task_info[0]['name']}", style="cyan")
             return task_info[0]["value"]
 
         choices = [{"name": task["name"], "value": task["value"]} for task in task_info]
@@ -46,7 +46,7 @@ class TaskUI(BaseUIComponent):
         ).ask()
 
         if selected:
-            console.print("🎯 Task selected successfully!", style="blue")
+            console.print("Task selected successfully!", style="blue")
             return selected
 
         return ""
@@ -56,10 +56,9 @@ class TaskUI(BaseUIComponent):
         if not task_details:
             return
 
-        console.print(f"\n📋 Task Details: {task_details['task_definition_name']}", style="bold cyan")
+        console.print(f"\nTask Details: {task_details['task_definition_name']}", style="bold cyan")
         console.print("=" * 80, style="dim")
 
-        # Basic info
         console.print(f"Task ARN: {task_details['task_arn']}", style="white")
         console.print(
             f"Task Definition: {task_details['task_definition_name']}:{task_details['task_definition_revision']}",
@@ -67,22 +66,18 @@ class TaskUI(BaseUIComponent):
         )
         console.print(f"Status: {task_details['task_status']}", style="white")
 
-        # Version status
         version_status = "✅ Desired version" if task_details["is_desired_version"] else "🔴 Outdated version"
         console.print(f"Version: {version_status}", style="green" if task_details["is_desired_version"] else "red")
 
-        # Timestamps
         created_at = task_details.get("created_at")
         started_at = task_details.get("started_at")
         if created_at:
             console.print(f"Created: {created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}", style="white")
         if started_at:
             console.print(f"Started: {started_at.strftime('%Y-%m-%d %H:%M:%S UTC')}", style="white")
-
-        # Container info
         containers = task_details.get("containers", [])
         if containers:
-            console.print(f"\n📦 Containers ({len(containers)}):", style="bold cyan")
+            console.print(f"\nContainers ({len(containers)}):", style="bold cyan")
             table = Table(show_header=True, header_style="bold magenta")
             table.add_column("Name", style="cyan")
             table.add_column("Image", style="yellow")
@@ -127,7 +122,7 @@ class TaskUI(BaseUIComponent):
 
     def display_task_history(self, cluster_name: str, service_name: str) -> None:
         """Display task history with failure analysis."""
-        console.print(f"\n📈 Task History for service '{service_name}'", style="bold cyan")
+        console.print(f"\nTask History for service '{service_name}'", style="bold cyan")
         console.print("=" * 80, style="dim")
 
         task_history = self.task_service.get_task_history(cluster_name, service_name)
@@ -136,12 +131,10 @@ class TaskUI(BaseUIComponent):
             console.print("❌ No task history found for this service", style="yellow")
             return
 
-        # Sort by creation time, newest first
         sorted_history = sorted(
             task_history, key=lambda t: t["created_at"] if t["created_at"] else datetime.min, reverse=True
         )
 
-        # Display up to 10 most recent tasks
         recent_tasks = sorted_history[:10]
 
         table = Table(show_header=True, header_style="bold magenta")
@@ -162,10 +155,8 @@ class TaskUI(BaseUIComponent):
             if task["created_at"]:
                 created_time = task["created_at"].strftime("%m/%d %H:%M")
 
-            # Get status details with appropriate styling
             status_details = self.task_service.get_task_failure_analysis(task)
 
-            # Apply color based on task status
             if task["last_status"] == "RUNNING":
                 status_details = f"[green]{status_details}[/green]"
             elif "🔴" in status_details or "failed" in status_details.lower():
@@ -173,7 +164,6 @@ class TaskUI(BaseUIComponent):
             else:
                 status_details = f"[yellow]{status_details}[/yellow]"
 
-            # Truncate long messages
             if len(status_details) > 50:  # Account for markup tags
                 status_details = status_details[:47] + "..."
 
@@ -181,16 +171,15 @@ class TaskUI(BaseUIComponent):
 
         console.print(table)
 
-        # Show summary
         running_count = sum(1 for t in recent_tasks if t["last_status"] == "RUNNING")
         failed_count = len(recent_tasks) - running_count
 
-        console.print(f"\n📊 Summary: {running_count} running, {failed_count} stopped/failed", style="dim")
+        console.print(f"\nSummary: {running_count} running, {failed_count} stopped/failed", style="dim")
         console.print("=" * 80, style="dim")
 
     def display_failure_analysis(self, task_history: TaskHistoryDetails) -> None:
         """Display detailed failure analysis for a specific task."""
-        console.print("\n🔍 Failure Analysis", style="bold red")
+        console.print("\nFailure Analysis", style="bold red")
         console.print("=" * 60, style="dim")
 
         task_id = task_history["task_arn"].split("/")[-1][:12]
@@ -213,7 +202,7 @@ class TaskUI(BaseUIComponent):
             c for c in task_history["containers"] if c["exit_code"] is not None and c["exit_code"] != 0
         ]
         if failed_containers:
-            console.print("\n📦 Container Details:", style="bold yellow")
+            console.print("\nContainer Details:", style="bold yellow")
             for container in failed_containers:
                 console.print(f"  • {container['name']}: exit code {container['exit_code']}", style="white")
                 if container["reason"]:
@@ -229,7 +218,7 @@ def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[s
     # Add task-level features first
     choices.append(
         {
-            "name": "📈 Show task history and failures",
+            "name": "Show task history and failures",
             "value": "task_action:show_history",
         }
     )
@@ -241,23 +230,23 @@ def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[s
         choices.extend(
             [
                 {
-                    "name": f"📋 Show logs for '{container_name}'",
+                    "name": f"Show logs for '{container_name}'",
                     "value": f"container_action:show_logs:{container_name}",
                 },
                 {
-                    "name": f"🔧 Show environment variables for '{container_name}'",
+                    "name": f"Show environment variables for '{container_name}'",
                     "value": f"container_action:show_env:{container_name}",
                 },
                 {
-                    "name": f"🔐 Show secrets for '{container_name}'",
+                    "name": f"Show secrets for '{container_name}'",
                     "value": f"container_action:show_secrets:{container_name}",
                 },
                 {
-                    "name": f"🌐 Show port mappings for '{container_name}'",
+                    "name": f"Show port mappings for '{container_name}'",
                     "value": f"container_action:show_ports:{container_name}",
                 },
                 {
-                    "name": f"💾 Show volume mounts for '{container_name}'",
+                    "name": f"Show volume mounts for '{container_name}'",
                     "value": f"container_action:show_volumes:{container_name}",
                 },
             ]

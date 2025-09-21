@@ -88,7 +88,7 @@ class TestTaskHistoryUI:
         mock_task_service.get_task_failure_analysis.assert_called()
 
         # Verify title was printed
-        assert any("📈 Task History" in str(call) for call in mock_print.call_args_list)
+        assert any("Task History" in str(call) for call in mock_print.call_args_list)
 
         # The status indicators are displayed in a table, so we check that the table was created
         # The exact string matching is tricky with Rich tables, so we check the method calls
@@ -136,7 +136,7 @@ class TestTaskHistoryUI:
         task_ui.display_failure_analysis(failed_task)
 
         mock_task_service.get_task_failure_analysis.assert_called_once_with(failed_task)
-        assert any("🔍 Failure Analysis" in str(call) for call in mock_print.call_args_list)
+        assert any("Failure Analysis" in str(call) for call in mock_print.call_args_list)
         assert any("memory" in str(call) for call in mock_print.call_args_list)
 
     def test_build_task_history_choices_includes_history_option(self):
@@ -150,4 +150,4 @@ class TestTaskHistoryUI:
         # Check that task history option is included
         history_choices = [c for c in choices if "task history" in c["name"].lower()]
         assert len(history_choices) > 0
-        assert any("📈" in choice["name"] for choice in history_choices)
+        assert any("task history" in choice["name"].lower() for choice in history_choices)
