@@ -74,21 +74,7 @@ class ECSNavigator:
 
     def select_task_feature(self, task_details: TaskDetails | None) -> str | None:
         """Present feature menu for the selected task."""
-        if not task_details:
-            return None
-
-        containers = task_details.get("containers", [])
-
-        if not containers:
-            return None
-
-        choices = _build_task_feature_choices(containers)
-
-        return questionary.select(
-            "Select a feature for this task:",
-            choices=choices,
-            style=get_questionary_style(),
-        ).ask()
+        return self._task_ui.select_task_feature(task_details)
 
     def show_container_logs(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
         """Display the last N lines of logs for a container."""
@@ -113,6 +99,10 @@ class ECSNavigator:
     def handle_force_deployment(self, cluster_name: str, service_name: str) -> None:
         """Handle force new deployment action."""
         return self._service_ui.handle_force_deployment(cluster_name, service_name)
+
+    def show_task_history(self, cluster_name: str, service_name: str) -> None:
+        """Display task history with failure analysis."""
+        self._task_ui.display_task_history(cluster_name, service_name)
 
 
 def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[str, str]]:
