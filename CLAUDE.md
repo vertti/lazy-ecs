@@ -99,6 +99,31 @@ uv run pre-commit run --all-files # Run pre-commit on all files manually
 - Comprehensive test coverage with moto for AWS mocking
 - All tooling configured in pyproject.toml
 
+## Testing the Interactive UI
+
+After implementing and testing a feature, verify it works correctly in the full interactive CLI:
+
+```bash
+# Test the interactive UI by piping keyboard inputs
+printf '\n\033[B\n' | timeout 5 aws-vault exec working-aws-profile-name -- uv run lazy-ecs
+
+# Key sequences:
+# \n = Enter key (select)
+# \033[B = Down arrow
+# \033[A = Up arrow
+# q = Quit (only works if Exit button is present)
+```
+
+**Important UI Verification Checklist:**
+
+- ✅ Back button appears at bottom of selection menus
+- ✅ Exit button appears at bottom of selection menus
+- ✅ Navigation works correctly between screens
+- ✅ Visual elements display correctly (no red text for healthy items)
+- ✅ New features are accessible through the menu system
+
+This allows testing the full navigation flow without manual interaction, ensuring features like navigation buttons haven't been accidentally removed during refactoring.
+
 ## Testing Patterns
 
 **AWS Service Mocking with Moto:**
