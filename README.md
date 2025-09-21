@@ -42,6 +42,37 @@ uv sync
 uv run lazy-ecs
 ```
 
+## AWS Authentication
+
+lazy-ecs supports multiple ways to authenticate with AWS:
+
+### 1. AWS Profile (--profile flag)
+
+```bash
+lazy-ecs --profile your-profile-name
+```
+
+### 2. Environment Variables
+
+```bash
+export AWS_DEFAULT_PROFILE=your-profile-name
+lazy-ecs
+```
+
+### 3. AWS Vault (existing workflow)
+
+```bash
+aws-vault exec Platform-Test.AWSAdministratorAccess -- lazy-ecs
+```
+
+### 4. Default Credentials Chain
+
+lazy-ecs will automatically use the standard AWS credentials chain:
+
+- Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+- AWS credentials file (~/.aws/credentials)
+- IAM instance profile (when running on EC2)
+
 ## Features
 
 ### Container-Level Features 🚀
