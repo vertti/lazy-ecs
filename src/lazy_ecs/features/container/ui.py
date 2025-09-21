@@ -7,6 +7,7 @@ from datetime import datetime
 from rich.console import Console
 
 from ...core.base import BaseUIComponent
+from ...core.utils import print_error
 from .container import ContainerService
 
 console = Console()
@@ -23,7 +24,7 @@ class ContainerUI(BaseUIComponent):
         """Display the last N lines of logs for a container."""
         log_config = self.container_service.get_log_config(cluster_name, task_arn, container_name)
         if not log_config:
-            console.print(f"❌ Could not find log configuration for container '{container_name}'", style="red")
+            print_error(f"Could not find log configuration for container '{container_name}'")
             console.print("Available log groups:", style="dim")
             log_groups = self.container_service.list_log_groups(cluster_name, container_name)
             for group in log_groups:
@@ -57,7 +58,7 @@ class ContainerUI(BaseUIComponent):
         """Display environment variables for a container."""
         context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
         if not context:
-            console.print(f"❌ Could not find container '{container_name}'", style="red")
+            print_error(f"Could not find container '{container_name}'")
             return
 
         env_vars = self.container_service.get_environment_variables(context)
@@ -82,7 +83,7 @@ class ContainerUI(BaseUIComponent):
         """Display secrets configuration for a container."""
         context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
         if not context:
-            console.print(f"❌ Could not find container '{container_name}'", style="red")
+            print_error(f"Could not find container '{container_name}'")
             return
 
         secrets = self.container_service.get_secrets(context)
@@ -122,7 +123,7 @@ class ContainerUI(BaseUIComponent):
         """Display port mappings for a container."""
         context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
         if not context:
-            console.print(f"❌ Could not find container '{container_name}'", style="red")
+            print_error(f"Could not find container '{container_name}'")
             return
 
         port_mappings = self.container_service.get_port_mappings(context)
@@ -147,7 +148,7 @@ class ContainerUI(BaseUIComponent):
         """Display volume mounts for a container."""
         context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
         if not context:
-            console.print(f"❌ Could not find container '{container_name}'", style="red")
+            print_error(f"Could not find container '{container_name}'")
             return
 
         volume_mounts = self.container_service.get_volume_mounts(context)

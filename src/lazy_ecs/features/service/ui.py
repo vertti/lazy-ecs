@@ -43,11 +43,9 @@ class ServiceUI(BaseUIComponent):
         """Present service action menu."""
         choices = []
 
-        # Show task selection if there are tasks
         for task in task_info:
             choices.append({"name": task["name"], "value": f"task:show_details:{task['value']}"})
 
-        # Add service actions
         choices.append({"name": "🚀 Force new deployment", "value": "action:force_deployment"})
 
         choices = add_navigation_choices(choices, "Back to cluster selection")

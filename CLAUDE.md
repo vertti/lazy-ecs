@@ -239,9 +239,48 @@ def test_update_service_status():
 
 ## Code Style Guidelines
 
-**Comments:**
+### Comments
 
-- Do not add comments for the sake of adding comments
-- If test name is descriptive, no need for general test comments
-- Only add comments to explain complex logic that's hard to understand from code alone
-- Avoid obvious comments like "Create a client" or "Test successful flow"
+Remove obvious comments that repeat what the code already says. Only add comments for complex business logic or non-obvious decisions. Test names should be self-documenting, no docstrings needed.
+
+**Bad:**
+
+```python
+def mock_task_service():
+    """Mock task service for testing."""
+    return Mock()
+
+# Sort by creation time
+tasks.sort(key=lambda t: t["created_at"])
+
+# Add service actions
+choices.append({"name": "🚀 Force new deployment", "value": "action:force_deployment"})
+```
+
+**Good:**
+
+```python
+def mock_task_service():
+    return Mock()
+
+# Sort newest first to show recent failures prominently
+tasks.sort(key=lambda t: t["created_at"], reverse=True)
+
+choices.append({"name": "🚀 Force new deployment", "value": "action:force_deployment"})
+```
+
+### Emoji Usage
+
+Use emojis sparingly and only where they improve clarity:
+
+**Keep (functional):**
+
+- Status indicators: ✅ (success), 🔴/❌ (error), ⚠️ (warning)
+- Navigation: ⬅️ (back), ❌ (exit)
+
+**Remove (decorative):**
+
+- 🚀 "Welcome to lazy-ecs" (doesn't add meaning)
+- 🎯 "Auto-selected" (redundant with text)
+- 📋, 📦, 📈, 📊, 🔍 (decorative section headers)
+- 💾, 🌐, 🔧 (could use text: "Volumes:", "Ports:", "Environment:")

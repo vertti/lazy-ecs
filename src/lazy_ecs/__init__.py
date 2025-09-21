@@ -55,7 +55,6 @@ def _navigate_clusters(navigator: ECSNavigator, ecs_service: ECSService) -> None
 
         console.print(f"\n✅ Selected cluster: {selected_cluster}", style="green")
 
-        # Navigate to services, handle back navigation
         if _navigate_services(navigator, ecs_service, selected_cluster):
             continue  # Back to cluster selection
         break  # Exit was chosen
