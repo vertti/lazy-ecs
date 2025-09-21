@@ -21,7 +21,7 @@ def main() -> None:
     parser.add_argument("--profile", help="AWS profile to use for authentication", type=str, default=None)
     args = parser.parse_args()
 
-    console.print("Welcome to lazy-ecs!", style="bold cyan")
+    console.print("🚀 Welcome to lazy-ecs!", style="bold cyan")
     console.print("Interactive AWS ECS cluster navigator\n", style="dim")
 
     try:

@@ -94,15 +94,15 @@ class TestTaskHistoryUI:
         # The exact string matching is tricky with Rich tables, so we check the method calls
         assert len(mock_print.call_args_list) > 3  # Title, table, summary lines
 
-    @patch("lazy_ecs.features.task.ui.console.print")
-    def test_display_task_history_empty(self, mock_print, task_ui, mock_task_service):
+    @patch("lazy_ecs.features.task.ui.print_warning")
+    def test_display_task_history_empty(self, mock_print_warning, task_ui, mock_task_service):
         """Test displaying empty task history."""
         mock_task_service.get_task_history.return_value = []
 
         task_ui.display_task_history("test-cluster", "web-service")
 
         mock_task_service.get_task_history.assert_called_once_with("test-cluster", "web-service")
-        assert any("No task history found" in str(call) for call in mock_print.call_args_list)
+        mock_print_warning.assert_called_once_with("No task history found for this service")
 
     @patch("lazy_ecs.features.task.ui.console.print")
     def test_display_failure_analysis(self, mock_print, task_ui, mock_task_service):

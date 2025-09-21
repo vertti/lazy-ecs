@@ -12,9 +12,15 @@ from rich.table import Table
 from ...core.base import BaseUIComponent
 from ...core.navigation import add_navigation_choices, get_questionary_style
 from ...core.types import TaskDetails, TaskHistoryDetails
+from ...core.utils import print_warning
 from .task import TaskService
 
 console = Console()
+
+# Constants
+MAX_RECENT_TASKS = 10
+MAX_STATUS_DETAILS_LENGTH = 50
+SEPARATOR_WIDTH = 80
 
 
 class TaskUI(BaseUIComponent):
@@ -26,17 +32,17 @@ class TaskUI(BaseUIComponent):
 
     def select_task(self, cluster_name: str, service_name: str, desired_task_def_arn: str | None) -> str:
         """Interactive task selection."""
-        task_info = self.task_service.get_task_info(cluster_name, service_name, desired_task_def_arn)
+        available_tasks = self.task_service.get_task_info(cluster_name, service_name, desired_task_def_arn)
 
-        if not task_info:
+        if not available_tasks:
             console.print(f"❌ No tasks found for service '{service_name}' in cluster '{cluster_name}'", style="red")
             return ""
 
-        if len(task_info) == 1:
-            console.print(f"Auto-selected single task: {task_info[0]['name']}", style="cyan")
-            return task_info[0]["value"]
+        if len(available_tasks) == 1:
+            console.print(f"Auto-selected single task: {available_tasks[0]['name']}", style="cyan")
+            return available_tasks[0]["value"]
 
-        choices = [{"name": task["name"], "value": task["value"]} for task in task_info]
+        choices = [{"name": task["name"], "value": task["value"]} for task in available_tasks]
         choices = add_navigation_choices(choices, "Back to service selection")
 
         selected = questionary.select(
@@ -123,59 +129,65 @@ class TaskUI(BaseUIComponent):
     def display_task_history(self, cluster_name: str, service_name: str) -> None:
         """Display task history with failure analysis."""
         console.print(f"\nTask History for service '{service_name}'", style="bold cyan")
-        console.print("=" * 80, style="dim")
+        console.print("=" * SEPARATOR_WIDTH, style="dim")
 
         task_history = self.task_service.get_task_history(cluster_name, service_name)
 
         if not task_history:
-            console.print("❌ No task history found for this service", style="yellow")
+            print_warning("No task history found for this service")
             return
 
         sorted_history = sorted(
             task_history, key=lambda t: t["created_at"] if t["created_at"] else datetime.min, reverse=True
         )
+        recent_tasks = sorted_history[:MAX_RECENT_TASKS]
 
-        recent_tasks = sorted_history[:10]
+        table = self._create_history_table()
+        for task in recent_tasks:
+            table.add_row(*self._format_task_row(task))
 
+        console.print(table)
+        self._display_history_summary(recent_tasks)
+        console.print("=" * SEPARATOR_WIDTH, style="dim")
+
+    def _create_history_table(self) -> Table:
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("Status", style="cyan", width=12)
         table.add_column("Task ID", style="yellow", width=12)
         table.add_column("Revision", style="green", width=8)
         table.add_column("Created", style="blue", width=16)
         table.add_column("Status Details", width=40)
+        return table
 
-        for task in recent_tasks:
-            status_icon = "✅" if task["last_status"] == "RUNNING" else "🔴"
-            status_display = f"{status_icon} {task['last_status']}"
+    def _format_task_row(self, task: TaskHistoryDetails) -> tuple[str, str, str, str, str]:
+        status_icon = "✅" if task["last_status"] == "RUNNING" else "🔴"
+        status_display = f"{status_icon} {task['last_status']}"
 
-            task_id = task["task_arn"].split("/")[-1][:12]
-            revision = f"v{task['task_definition_revision']}"
+        task_id = task["task_arn"].split("/")[-1][:12]
+        revision = f"v{task['task_definition_revision']}"
 
-            created_time = "Unknown"
-            if task["created_at"]:
-                created_time = task["created_at"].strftime("%m/%d %H:%M")
+        created_time = "Unknown"
+        if task["created_at"]:
+            created_time = task["created_at"].strftime("%m/%d %H:%M")
 
-            status_details = self.task_service.get_task_failure_analysis(task)
+        status_details = self.task_service.get_task_failure_analysis(task)
 
-            if task["last_status"] == "RUNNING":
-                status_details = f"[green]{status_details}[/green]"
-            elif "🔴" in status_details or "failed" in status_details.lower():
-                status_details = f"[red]{status_details}[/red]"
-            else:
-                status_details = f"[yellow]{status_details}[/yellow]"
+        if task["last_status"] == "RUNNING":
+            status_details = f"[green]{status_details}[/green]"
+        elif "🔴" in status_details or "failed" in status_details.lower():
+            status_details = f"[red]{status_details}[/red]"
+        else:
+            status_details = f"[yellow]{status_details}[/yellow]"
 
-            if len(status_details) > 50:  # Account for markup tags
-                status_details = status_details[:47] + "..."
+        if len(status_details) > MAX_STATUS_DETAILS_LENGTH:
+            status_details = status_details[:47] + "..."
 
-            table.add_row(status_display, task_id, revision, created_time, status_details)
+        return status_display, task_id, revision, created_time, status_details
 
-        console.print(table)
-
+    def _display_history_summary(self, recent_tasks: list[TaskHistoryDetails]) -> None:
         running_count = sum(1 for t in recent_tasks if t["last_status"] == "RUNNING")
         failed_count = len(recent_tasks) - running_count
-
         console.print(f"\nSummary: {running_count} running, {failed_count} stopped/failed", style="dim")
-        console.print("=" * 80, style="dim")
 
     def display_failure_analysis(self, task_history: TaskHistoryDetails) -> None:
         """Display detailed failure analysis for a specific task."""

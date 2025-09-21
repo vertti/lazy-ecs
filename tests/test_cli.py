@@ -18,7 +18,7 @@ def test_main_successful_flow(mock_console, mock_navigator_class, mock_create_cl
 
     mock_create_client.assert_called_once_with(None)
     mock_navigator.select_cluster.assert_called_once()
-    mock_console.print.assert_any_call("Welcome to lazy-ecs!", style="bold cyan")
+    mock_console.print.assert_any_call("🚀 Welcome to lazy-ecs!", style="bold cyan")
     mock_console.print.assert_any_call("\n✅ Selected cluster: production", style="green")
 
 
