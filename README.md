@@ -59,7 +59,7 @@ export AWS_DEFAULT_PROFILE=your-profile-name
 lazy-ecs
 ```
 
-### 3. AWS Vault (existing workflow)
+### 3. AWS Vault
 
 ```bash
 aws-vault exec Platform-Test.AWSAdministratorAccess -- lazy-ecs
