@@ -41,3 +41,25 @@ class TaskDetails(TypedDict):
 class LogConfig(TypedDict):
     log_group: str
     log_stream: str
+
+
+class ContainerHistoryInfo(TypedDict):
+    name: str
+    exit_code: int | None
+    reason: str | None
+    health_status: str | None
+    last_status: str
+
+
+class TaskHistoryDetails(TypedDict):
+    task_arn: str
+    task_definition_name: str
+    task_definition_revision: str
+    last_status: str
+    desired_status: str
+    stop_code: str | None
+    stopped_reason: str | None
+    created_at: datetime | None
+    started_at: datetime | None
+    stopped_at: datetime | None
+    containers: list[ContainerHistoryInfo]
