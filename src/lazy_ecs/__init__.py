@@ -90,7 +90,7 @@ def _navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster
             if task_details:
                 navigator.display_task_details(task_details)
                 # Navigate to task features, handle back navigation
-                if _handle_task_features(navigator, cluster_name, task_arn, task_details):
+                if _handle_task_features(navigator, cluster_name, task_arn, task_details, selected_service):
                     continue  # Back to service selection
                 return False  # Exit was chosen
             console.print(f"\n⚠️ Could not fetch task details for {task_arn}", style="yellow")
@@ -101,7 +101,7 @@ def _navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster
 
 
 def _handle_task_features(
-    navigator: ECSNavigator, cluster_name: str, task_arn: str, task_details: TaskDetails | None
+    navigator: ECSNavigator, cluster_name: str, task_arn: str, task_details: TaskDetails | None, service_name: str
 ) -> bool:
     """Handle task feature selection and execution. Returns True if back was chosen, False if exit."""
     while True:
@@ -125,6 +125,9 @@ def _handle_task_features(
 
             if action_name in action_methods:
                 action_methods[action_name](cluster_name, task_arn, container_name)
+
+        elif selection_type == "task_action" and action_name == "show_history":
+            navigator.show_task_history(cluster_name, service_name)
 
 
 if __name__ == "__main__":

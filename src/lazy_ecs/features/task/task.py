@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ...core.base import BaseAWSService
-from ...core.types import TaskDetails, TaskInfo
+from ...core.types import TaskDetails, TaskHistoryDetails, TaskInfo
 
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
@@ -60,6 +60,137 @@ class TaskService(BaseAWSService):
         task_definition = task_def_response["taskDefinition"]
 
         return task, task_definition
+
+    def get_task_history(self, cluster_name: str, service_name: str | None = None) -> list[TaskHistoryDetails]:
+        """Get task history including stopped tasks with failure information."""
+        task_arns = []
+
+        # Get running tasks
+        if service_name:
+            running_response = self.ecs_client.list_tasks(
+                cluster=cluster_name, serviceName=service_name, desiredStatus="RUNNING"
+            )
+        else:
+            running_response = self.ecs_client.list_tasks(cluster=cluster_name, desiredStatus="RUNNING")
+        task_arns.extend(running_response.get("taskArns", []))
+
+        # Get stopped tasks
+        if service_name:
+            stopped_response = self.ecs_client.list_tasks(
+                cluster=cluster_name, serviceName=service_name, desiredStatus="STOPPED"
+            )
+        else:
+            stopped_response = self.ecs_client.list_tasks(cluster=cluster_name, desiredStatus="STOPPED")
+        task_arns.extend(stopped_response.get("taskArns", []))
+
+        if not task_arns:
+            return []
+
+        # Get detailed task information
+        response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=task_arns)
+        tasks = response.get("tasks", [])
+
+        return [self._parse_task_history(task) for task in tasks]
+
+    def get_task_failure_analysis(self, task_history: TaskHistoryDetails) -> str:
+        """Analyze task failure and provide human-readable explanation."""
+        if task_history["last_status"] == "RUNNING":
+            return "✅ Task is currently running"
+
+        stop_code = task_history["stop_code"]
+        stopped_reason = task_history["stopped_reason"]
+
+        # Check container exit codes
+        for container in task_history["containers"]:
+            exit_code = container["exit_code"]
+            container_reason = container["reason"]
+
+            if exit_code is not None and exit_code != 0:
+                return self._analyze_container_failure(
+                    container["name"], exit_code, container_reason, stop_code, stopped_reason
+                )
+
+        # No container failures, analyze task-level issues
+        return self._analyze_task_failure(stop_code, stopped_reason)
+
+    @staticmethod
+    def _parse_task_history(task: TaskTypeDef) -> TaskHistoryDetails:
+        """Parse task data into TaskHistoryDetails structure."""
+        task_arn = task["taskArn"]
+        task_def_arn = task["taskDefinitionArn"]
+        task_def_family = task_def_arn.split("/")[-1].split(":")[0]
+        task_def_revision = task_def_arn.split(":")[-1]
+
+        containers = []
+        for container in task.get("containers", []):
+            containers.append(
+                {
+                    "name": container["name"],
+                    "exit_code": container.get("exitCode"),
+                    "reason": container.get("reason"),
+                    "health_status": container.get("healthStatus"),
+                    "last_status": container.get("lastStatus", "UNKNOWN"),
+                }
+            )
+
+        return {
+            "task_arn": task_arn,
+            "task_definition_name": task_def_family,
+            "task_definition_revision": task_def_revision,
+            "last_status": task.get("lastStatus", "UNKNOWN"),
+            "desired_status": task.get("desiredStatus", "UNKNOWN"),
+            "stop_code": task.get("stopCode"),
+            "stopped_reason": task.get("stoppedReason"),
+            "created_at": task.get("createdAt"),
+            "started_at": task.get("startedAt"),
+            "stopped_at": task.get("stoppedAt"),
+            "containers": containers,
+        }
+
+    @staticmethod
+    def _analyze_container_failure(
+        container_name: str,
+        exit_code: int,
+        container_reason: str | None,
+        _stop_code: str | None,
+        _stopped_reason: str | None,
+    ) -> str:
+        """Analyze container-level failure."""
+        if exit_code == 137:
+            if container_reason and "OutOfMemoryError" in container_reason:
+                return f"🔴 Container '{container_name}' killed due to out of memory (OOM)"
+            return f"⏰ Container '{container_name}' killed after timeout (exit code 137)"
+        if exit_code == 139:
+            return f"💥 Container '{container_name}' crashed with segmentation fault (exit code 139)"
+        if exit_code == 143:
+            return f"🛑 Container '{container_name}' gracefully stopped (SIGTERM)"
+        if exit_code == 1:
+            return f"❌ Container '{container_name}' application error (exit code 1)"
+        reason_text = f" - {container_reason}" if container_reason else ""
+        return f"🔴 Container '{container_name}' failed with exit code {exit_code}{reason_text}"
+
+    @staticmethod
+    def _analyze_task_failure(stop_code: str | None, stopped_reason: str | None) -> str:
+        """Analyze task-level failure."""
+        if not stop_code and not stopped_reason:
+            return "✅ Task completed successfully"
+
+        if stop_code == "TaskFailedToStart":
+            if stopped_reason and "CannotPullContainerError" in stopped_reason:
+                return "📦 Failed to pull container image - check image exists and permissions"
+            if stopped_reason and "ResourcesNotAvailable" in stopped_reason:
+                return "⚠️ Insufficient resources available to start task"
+            reason_text = f" - {stopped_reason}" if stopped_reason else ""
+            return f"🚫 Task failed to start{reason_text}"
+        if stop_code == "ServiceSchedulerInitiated":
+            return "🔄 Task stopped by service scheduler (deployment/scaling)"
+        if stop_code == "SpotInterruption":
+            return "💸 Task stopped due to spot instance interruption"
+        if stop_code == "UserInitiated":
+            return "👤 Task manually stopped by user"
+        reason_text = f" - {stopped_reason}" if stopped_reason else ""
+        code_text = f"({stop_code}) " if stop_code else ""
+        return f"🔴 Task stopped {code_text}{reason_text}"
 
 
 def _create_task_info(task: TaskTypeDef, desired_task_def_arn: str | None) -> TaskInfo:
