@@ -69,7 +69,11 @@ def test_create_aws_client_without_profile():
     """Test _create_aws_client without profile returns default client."""
     with patch("lazy_ecs.boto3.client") as mock_client:
         _create_aws_client(None)
-        mock_client.assert_called_once_with("ecs")
+        # Should be called with ECS and config for connection pooling
+        assert mock_client.call_count == 1
+        args, kwargs = mock_client.call_args
+        assert args[0] == "ecs"
+        assert "config" in kwargs
 
 
 def test_create_aws_client_with_profile():
@@ -82,5 +86,9 @@ def test_create_aws_client_with_profile():
         result = _create_aws_client("my-profile")
 
         mock_session_class.assert_called_once_with(profile_name="my-profile")
-        mock_session.client.assert_called_once_with("ecs")
+        # Should be called with ECS and config for connection pooling
+        assert mock_session.client.call_count == 1
+        args, kwargs = mock_session.client.call_args
+        assert args[0] == "ecs"
+        assert "config" in kwargs
         assert result == mock_client
