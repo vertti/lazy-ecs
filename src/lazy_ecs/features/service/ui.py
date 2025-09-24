@@ -93,9 +93,9 @@ class ServiceUI(BaseUIComponent):
                 service_display = service_part
                 message = message[service_end + 2 :]  # Skip ") "
 
-            # Truncate service name if too long for column
+            # Truncate service name if too long for column - show end since that's usually the distinguishing part
             if len(service_display) > 18:
-                service_display = service_display[:15] + "..."
+                service_display = "..." + service_display[-15:]
 
             # Now we have more space for the actual message
             if len(message) > 100:
