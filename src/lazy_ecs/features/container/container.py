@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-import boto3
-
 from ...core.base import BaseAWSService
 from ...core.context import ContainerContext
 from ...core.types import LogConfig
@@ -27,7 +25,7 @@ class ContainerService(BaseAWSService):
     ) -> None:
         super().__init__(ecs_client)
         self.task_service = task_service
-        self.logs_client = logs_client or boto3.client("logs")
+        self.logs_client = logs_client
 
     def get_container_context(self, cluster_name: str, task_arn: str, container_name: str) -> ContainerContext | None:
         """Create a rich container context for operations."""
@@ -94,6 +92,8 @@ class ContainerService(BaseAWSService):
 
     def get_container_logs(self, log_group: str, log_stream: str, lines: int = 50) -> list[OutputLogEventTypeDef]:
         """Get container logs from CloudWatch."""
+        if not self.logs_client:
+            return []
         response = self.logs_client.get_log_events(
             logGroupName=log_group, logStreamName=log_stream, limit=lines, startFromHead=False
         )
@@ -101,6 +101,8 @@ class ContainerService(BaseAWSService):
 
     def list_log_groups(self, cluster_name: str, container_name: str) -> list[str]:
         """List available log groups for debugging."""
+        if not self.logs_client:
+            return []
 
         response = self.logs_client.describe_log_groups(limit=50)
         groups = response.get("logGroups", [])
