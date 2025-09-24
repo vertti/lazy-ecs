@@ -14,6 +14,8 @@ def test_categorize_event_deployment():
         "deployment completed successfully",
         "stopped 2 running tasks",
         "has started 3 tasks",
+        "registered 1 targets in target-group",
+        "deregistered 1 targets in target-group",
     ]
 
     for message in deployment_messages:
@@ -50,10 +52,10 @@ def test_categorize_event_failure():
 def test_categorize_event_other():
     """Test other event categorization."""
     other_messages = [
-        "service registered with load balancer",
         "ELB health check configuration has been changed",
         "service discovery configuration changed",
         "random message that doesn't fit categories",
+        "task definition family revision changed",
     ]
 
     for message in other_messages:

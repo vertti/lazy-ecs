@@ -103,7 +103,10 @@ def _categorize_event(message: str) -> str:
     # Check failure first to catch "deployment failed" as failure, not deployment
     if any(term in message_lower for term in ["failed", "error", "unhealthy", "unable"]):
         return "failure"
-    if any(term in message_lower for term in ["deployment", "deploy", "started", "stopped", "updated"]):
+    if any(
+        term in message_lower
+        for term in ["deployment", "deploy", "started", "stopped", "updated", "registered", "deregistered", "targets"]
+    ):
         return "deployment"
     if any(
         term in message_lower
