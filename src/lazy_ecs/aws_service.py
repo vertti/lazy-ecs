@@ -14,20 +14,21 @@ from .features.task.task import TaskService
 
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
+    from mypy_boto3_logs.client import CloudWatchLogsClient
     from mypy_boto3_logs.type_defs import OutputLogEventTypeDef
 
 
 class ECSService:
     """Service for interacting with AWS ECS."""
 
-    def __init__(self, ecs_client: ECSClient) -> None:
+    def __init__(self, ecs_client: ECSClient, logs_client: CloudWatchLogsClient | None = None) -> None:
         self.ecs_client = ecs_client
         # Initialize feature services
         self._cluster = ClusterService(ecs_client)
         self._service = ServiceService(ecs_client)
         self._service_actions = ServiceActions(ecs_client)
         self._task = TaskService(ecs_client)
-        self._container = ContainerService(ecs_client, self._task)
+        self._container = ContainerService(ecs_client, self._task, logs_client)
 
     def get_cluster_names(self) -> list[str]:
         """Get list of ECS cluster names from AWS."""

@@ -22,9 +22,12 @@ if TYPE_CHECKING:
 class ContainerService(BaseAWSService):
     """Service for ECS container operations."""
 
-    def __init__(self, ecs_client: ECSClient, task_service: TaskService) -> None:
+    def __init__(
+        self, ecs_client: ECSClient, task_service: TaskService, logs_client: CloudWatchLogsClient | None = None
+    ) -> None:
         super().__init__(ecs_client)
         self.task_service = task_service
+        self.logs_client = logs_client or boto3.client("logs")
 
     def get_container_context(self, cluster_name: str, task_arn: str, container_name: str) -> ContainerContext | None:
         """Create a rich container context for operations."""
@@ -91,18 +94,15 @@ class ContainerService(BaseAWSService):
 
     def get_container_logs(self, log_group: str, log_stream: str, lines: int = 50) -> list[OutputLogEventTypeDef]:
         """Get container logs from CloudWatch."""
-        logs_client: CloudWatchLogsClient = boto3.client("logs")
-
-        response = logs_client.get_log_events(
+        response = self.logs_client.get_log_events(
             logGroupName=log_group, logStreamName=log_stream, limit=lines, startFromHead=False
         )
         return response.get("events", [])
 
     def list_log_groups(self, cluster_name: str, container_name: str) -> list[str]:
         """List available log groups for debugging."""
-        logs_client: CloudWatchLogsClient = boto3.client("logs")
 
-        response = logs_client.describe_log_groups(limit=50)
+        response = self.logs_client.describe_log_groups(limit=50)
         groups = response.get("logGroups", [])
 
         relevant_groups = []
