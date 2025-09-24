@@ -82,7 +82,7 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - ✅ **Show environment variables & secrets** - Display environment variables and secrets configuration (without exposing secret values)
 - ✅ **Show port mappings** - Display container port configurations and networking
 - ✅ **Show volume mounts** - Display file system mounts and storage configuration
-- 🚧 **Show resource limits vs usage** - Display CPU/memory limits and actual consumption (planned next)
+- ⬜ **Show resource limits vs usage** - Display CPU/memory limits and actual consumption
 - ⬜ **Show health check configuration** - Display health check settings and current status
 - ⬜ **Connect to running container** - Execute shell commands inside running containers (skip - against immutable philosophy)
 - ⬜ **Export container environment** - Save environment variables to .env file for local development
@@ -106,7 +106,7 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - ✅ **Service browsing with status** - Display services with health indicators (healthy/scaling/over-scaled)
 - ✅ **Service status indicators** - Show running/desired/pending counts with visual status
 - ✅ **Force new deployment** - Trigger service redeployment directly from CLI (no more AWS console trips!)
-- 🚧 **Show service events** - Display service-level events and deployment status (planned next)
+- ✅ **Show service events** - Display service-level events and deployment status with chronological sorting and proper categorization
 - ⬜ **Show deployment history** - Display service deployment timeline and rollback options
 - ⬜ **Show auto-scaling configuration** - Display scaling policies and current metrics
 - ⬜ **Show load balancer health** - Display target group health and routing configuration
