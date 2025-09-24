@@ -139,13 +139,13 @@ def test_display_service_events_with_events(mock_print, service_ui):
         {
             "id": "event-1",
             "created_at": datetime(2024, 1, 15, 10, 30, 45),
-            "message": "Service has started a deployment",
+            "message": "(service web-api) has started a deployment",
             "event_type": "deployment",
         },
         {
             "id": "event-2",
             "created_at": datetime(2024, 1, 15, 10, 25, 30),
-            "message": "Service scaling completed successfully",
+            "message": "(service web-api) scaling completed successfully",
             "event_type": "scaling",
         },
     ]

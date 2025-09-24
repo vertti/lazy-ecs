@@ -72,6 +72,7 @@ class ServiceUI(BaseUIComponent):
         table = Table(title=f"Service Events: {service_name}")
         table.add_column("Time", style="cyan", no_wrap=True)
         table.add_column("Type", style="magenta", width=12)
+        table.add_column("Service", style="green", width=20)
         table.add_column("Message", style="white")
 
         for event in events[:20]:  # Show most recent 20 events
@@ -83,10 +84,24 @@ class ServiceUI(BaseUIComponent):
             type_display = f"[{type_style}]{event_type.title()}[/{type_style}]"
 
             message = event["message"]
-            if len(message) > 80:
-                message = message[:77] + "..."
 
-            table.add_row(time_str, type_display, message)
+            # Extract service name from message and clean it up
+            service_display = ""
+            if message.startswith("(service ") and ") " in message:
+                service_end = message.find(") ")
+                service_part = message[9:service_end]  # Skip "(service "
+                service_display = service_part
+                message = message[service_end + 2 :]  # Skip ") "
+
+            # Truncate service name if too long for column
+            if len(service_display) > 18:
+                service_display = service_display[:15] + "..."
+
+            # Now we have more space for the actual message
+            if len(message) > 100:
+                message = message[:97] + "..."
+
+            table.add_row(time_str, type_display, service_display, message)
 
         console.print(table)
 
