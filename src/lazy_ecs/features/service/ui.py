@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import questionary
 from rich.console import Console
+from rich.table import Table
 
 from ...core.base import BaseUIComponent
 from ...core.types import TaskInfo
@@ -40,6 +41,7 @@ class ServiceUI(BaseUIComponent):
         for task in task_info:
             choices.append({"name": task["name"], "value": f"task:show_details:{task['value']}"})
 
+        choices.append({"name": "📋 Show service events", "value": "action:show_events"})
         choices.append({"name": "🚀 Force new deployment", "value": "action:force_deployment"})
 
         return self.select_with_nav(
@@ -58,3 +60,58 @@ class ServiceUI(BaseUIComponent):
                 console.print(f"✅ Successfully triggered deployment for '{service_name}'", style="green")
             else:
                 console.print(f"❌ Failed to trigger deployment for '{service_name}'", style="red")
+
+    def display_service_events(self, cluster_name: str, service_name: str) -> None:
+        """Display service events in a Rich table."""
+        events = self.service_service.get_service_events(cluster_name, service_name)
+
+        if not events:
+            console.print(f"No events found for service '{service_name}'", style="blue")
+            return
+
+        table = Table(title=f"Service Events: {service_name}")
+        table.add_column("Time", style="cyan", no_wrap=True)
+        table.add_column("Type", style="magenta", width=12)
+        table.add_column("Service", style="green", width=20)
+        table.add_column("Message", style="white")
+
+        for event in events[:20]:  # Show most recent 20 events
+            created_at = event["created_at"]
+            time_str = created_at.strftime("%m/%d %H:%M") if created_at else "Unknown"
+
+            event_type = event["event_type"]
+            type_style = _get_event_type_style(event_type)
+            type_display = f"[{type_style}]{event_type.title()}[/{type_style}]"
+
+            message = event["message"]
+
+            # Extract service name from message and clean it up
+            service_display = ""
+            if message.startswith("(service ") and ") " in message:
+                service_end = message.find(") ")
+                service_part = message[9:service_end]  # Skip "(service "
+                service_display = service_part
+                message = message[service_end + 2 :]  # Skip ") "
+
+            # Truncate service name if too long for column - show end since that's usually the distinguishing part
+            if len(service_display) > 18:
+                service_display = "..." + service_display[-15:]
+
+            # Now we have more space for the actual message
+            if len(message) > 100:
+                message = message[:97] + "..."
+
+            table.add_row(time_str, type_display, service_display, message)
+
+        console.print(table)
+
+
+def _get_event_type_style(event_type: str) -> str:
+    """Get Rich style for event type."""
+    event_styles = {
+        "deployment": "blue",
+        "scaling": "yellow",
+        "failure": "red",
+        "other": "white",
+    }
+    return event_styles.get(event_type, "white")

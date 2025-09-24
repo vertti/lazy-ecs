@@ -51,6 +51,13 @@ class ContainerHistoryInfo(TypedDict):
     last_status: str
 
 
+class ServiceEvent(TypedDict):
+    id: str
+    created_at: datetime | None
+    message: str
+    event_type: str  # "deployment", "scaling", "failure", "other"
+
+
 class TaskHistoryDetails(TypedDict):
     task_arn: str
     task_definition_name: str
