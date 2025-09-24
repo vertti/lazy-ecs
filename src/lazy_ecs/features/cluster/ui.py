@@ -5,7 +5,7 @@ from __future__ import annotations
 from rich.console import Console
 
 from ...core.base import BaseUIComponent
-from ...core.navigation import select_with_navigation
+from ...core.navigation import handle_navigation, select_with_navigation
 from .cluster import ClusterService
 
 console = Console()
@@ -26,13 +26,18 @@ class ClusterUI(BaseUIComponent):
             console.print("❌ No ECS clusters found", style="red")
             return ""
 
-        # Convert cluster names to choice format (top-level menu gets both Back and Exit, but Back will just exit)
+        # Convert cluster names to choice format
         choices = [{"name": name, "value": name} for name in cluster_names]
 
         selected = select_with_navigation(
             "Select an ECS cluster:",
             choices,
-            "Exit",  # This will show as "Back: Exit" but ESC and 'b' will both act like exit at top level
+            None,  # No back option for top-level menu
         )
+
+        # Handle navigation responses
+        should_continue, _should_exit = handle_navigation(selected)
+        if not should_continue:
+            return ""  # Exit was chosen
 
         return selected or ""
