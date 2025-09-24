@@ -5,12 +5,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-import questionary
 from rich.console import Console
 from rich.table import Table
 
 from ...core.base import BaseUIComponent
-from ...core.navigation import add_navigation_choices, get_questionary_style
+from ...core.navigation import add_navigation_choices
 from ...core.types import TaskDetails, TaskHistoryDetails
 from ...core.utils import print_warning
 from .task import TaskService
@@ -43,13 +42,8 @@ class TaskUI(BaseUIComponent):
             return available_tasks[0]["value"]
 
         choices = [{"name": task["name"], "value": task["value"]} for task in available_tasks]
-        choices = add_navigation_choices(choices, "Back to service selection")
 
-        selected = questionary.select(
-            "Select a task:",
-            choices=choices,
-            style=get_questionary_style(),
-        ).ask()
+        selected = self.select_with_nav("Select a task:", choices, "Back to service selection")
 
         if selected:
             console.print("Task selected successfully!", style="blue")
@@ -118,13 +112,45 @@ class TaskUI(BaseUIComponent):
         if not containers:
             return None
 
-        choices = _build_task_feature_choices(containers)
+        # Build choices but don't add navigation - select_with_nav will handle it
+        choices = []
 
-        return questionary.select(
-            "Select a feature for this task:",
-            choices=choices,
-            style=get_questionary_style(),
-        ).ask()
+        # Add task-level features first - show task details as first option
+        choices.extend(
+            [
+                {"name": "Show task details", "value": "task_action:show_details"},
+                {"name": "Show task history and failures", "value": "task_action:show_history"},
+            ]
+        )
+
+        for container in containers:
+            container_name = container["name"]
+            choices.extend(
+                [
+                    {
+                        "name": f"Show logs for '{container_name}'",
+                        "value": f"container_action:show_logs:{container_name}",
+                    },
+                    {
+                        "name": f"Show environment variables for '{container_name}'",
+                        "value": f"container_action:show_env:{container_name}",
+                    },
+                    {
+                        "name": f"Show secrets for '{container_name}'",
+                        "value": f"container_action:show_secrets:{container_name}",
+                    },
+                    {
+                        "name": f"Show port mappings for '{container_name}'",
+                        "value": f"container_action:show_ports:{container_name}",
+                    },
+                    {
+                        "name": f"Show volume mounts for '{container_name}'",
+                        "value": f"container_action:show_volumes:{container_name}",
+                    },
+                ]
+            )
+
+        return self.select_with_nav("Select a feature for this task:", choices, "Back to service selection")
 
     def display_task_history(self, cluster_name: str, service_name: str) -> None:
         """Display task history with failure analysis."""
@@ -227,12 +253,18 @@ def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[s
     """Build feature choices for containers."""
     choices = []
 
-    # Add task-level features first
-    choices.append(
-        {
-            "name": "Show task history and failures",
-            "value": "task_action:show_history",
-        }
+    # Add task-level features first - show task details as first option
+    choices.extend(
+        [
+            {
+                "name": "Show task details",
+                "value": "task_action:show_details",
+            },
+            {
+                "name": "Show task history and failures",
+                "value": "task_action:show_history",
+            },
+        ]
     )
 
     for container in containers:

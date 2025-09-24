@@ -125,8 +125,11 @@ def _handle_task_features(
             if action_name in action_methods:
                 action_methods[action_name](cluster_name, task_arn, container_name)
 
-        elif selection_type == "task_action" and action_name == "show_history":
-            navigator.show_task_history(cluster_name, service_name)
+        elif selection_type == "task_action":
+            if action_name == "show_history":
+                navigator.show_task_history(cluster_name, service_name)
+            elif action_name == "show_details":
+                navigator.display_task_details(task_details)
 
 
 if __name__ == "__main__":

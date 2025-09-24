@@ -61,14 +61,14 @@ def test_select_service_action_integration(mock_ecs_service) -> None:
     )
 
 
-@patch("lazy_ecs.ui.questionary.select")
+@patch("lazy_ecs.core.base.select_with_navigation")
 def test_select_task_integration(mock_select, mock_ecs_service) -> None:
     """Test that select_task integrates with ECSService properly."""
     mock_ecs_service.get_task_info.return_value = [
         {"name": "task-1", "value": "task-arn-1"},
         {"name": "task-2", "value": "task-arn-2"},
     ]
-    mock_select.return_value.ask.return_value = "task-arn-1"
+    mock_select.return_value = "task-arn-1"
 
     navigator = ECSNavigator(mock_ecs_service)
     result = navigator.select_task("production", "web-api")
@@ -109,12 +109,12 @@ def test_display_task_details_delegates_to_task_ui(mock_ecs_service) -> None:
     navigator._task_ui.display_task_details.assert_called_once_with(task_details)
 
 
-@patch("lazy_ecs.ui.questionary.select")
+@patch("lazy_ecs.core.base.select_with_navigation")
 def test_select_task_feature_with_containers(mock_select, mock_ecs_service) -> None:
     """Test task feature selection with containers."""
     from lazy_ecs.core.types import TaskDetails
 
-    mock_select.return_value.ask.return_value = "container_action:show_logs:web"
+    mock_select.return_value = "container_action:show_logs:web"
 
     navigator = ECSNavigator(mock_ecs_service)
     task_details: TaskDetails = {

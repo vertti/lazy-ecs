@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import questionary
 from rich.console import Console
 
 from ...core.base import BaseUIComponent
-from ...core.navigation import get_questionary_style
+from ...core.navigation import select_with_navigation
 from .cluster import ClusterService
 
 console = Console()
@@ -27,14 +26,13 @@ class ClusterUI(BaseUIComponent):
             console.print("❌ No ECS clusters found", style="red")
             return ""
 
-        # Convert cluster names to choice format and add Exit (top-level, no Back needed)
+        # Convert cluster names to choice format (top-level menu gets both Back and Exit, but Back will just exit)
         choices = [{"name": name, "value": name} for name in cluster_names]
-        choices.append({"name": "❌ Exit", "value": "navigation:exit"})
 
-        selected = questionary.select(
+        selected = select_with_navigation(
             "Select an ECS cluster:",
-            choices=choices,
-            style=get_questionary_style(),
-        ).ask()
+            choices,
+            "Exit",  # This will show as "Back: Exit" but ESC and 'b' will both act like exit at top level
+        )
 
         return selected or ""
