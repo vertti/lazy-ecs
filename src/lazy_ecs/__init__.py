@@ -123,6 +123,10 @@ def _navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster
             navigator.handle_force_deployment(cluster_name, selected_service)
             # Continue the loop to show the menu again
 
+        elif selection_type == "action" and action_name == "show_events":
+            navigator.show_service_events(cluster_name, selected_service)
+            # Continue the loop to show the menu again
+
 
 def _handle_task_features(
     navigator: ECSNavigator, cluster_name: str, task_arn: str, task_details: TaskDetails | None, service_name: str

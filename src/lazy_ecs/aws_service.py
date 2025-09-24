@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
-from .core.types import LogConfig, ServiceInfo, TaskDetails, TaskInfo
+from .core.types import LogConfig, ServiceEvent, ServiceInfo, TaskDetails, TaskInfo
 from .features.cluster.cluster import ClusterService
 from .features.container.container import ContainerService
 from .features.service.actions import ServiceActions
@@ -109,6 +109,10 @@ class ECSService:
     ) -> list[dict[str, Any]] | None:
         """Get volume mounts for a specific container in a task."""
         return self._with_container_context(cluster_name, task_arn, container_name, self._container.get_volume_mounts)
+
+    def get_service_events(self, cluster_name: str, service_name: str) -> list[ServiceEvent]:
+        """Get recent events for a service."""
+        return self._service.get_service_events(cluster_name, service_name)
 
     def force_new_deployment(self, cluster_name: str, service_name: str) -> bool:
         """Force a new deployment for a service."""

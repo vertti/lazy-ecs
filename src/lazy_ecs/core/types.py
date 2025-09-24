@@ -47,8 +47,13 @@ class ContainerHistoryInfo(TypedDict):
     name: str
     exit_code: int | None
     reason: str | None
-    health_status: str | None
-    last_status: str
+
+
+class ServiceEvent(TypedDict):
+    id: str
+    created_at: datetime | None
+    message: str
+    event_type: str  # "deployment", "scaling", "failure", "other"
 
 
 class TaskHistoryDetails(TypedDict):

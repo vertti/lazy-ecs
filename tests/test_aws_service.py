@@ -675,3 +675,43 @@ def test_force_new_deployment_service_not_found() -> None:
     result = service.force_new_deployment("production", "nonexistent-service")
 
     assert result is False
+
+
+@pytest.fixture
+def ecs_client_with_service_events():
+    """Create a mocked ECS client with service events."""
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="web-task",
+            containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
+        )
+
+        client.create_service(
+            cluster="production",
+            serviceName="web-service",
+            taskDefinition="web-task",
+            desiredCount=2,
+        )
+
+        yield client
+
+
+def test_get_service_events_empty_service():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        client.create_cluster(clusterName="production")
+
+        service = ECSService(client)
+        events = service.get_service_events("production", "nonexistent-service")
+        assert events == []
+
+
+def test_get_service_events_no_events(ecs_client_with_service_events):
+    service = ECSService(ecs_client_with_service_events)
+    events = service.get_service_events("production", "web-service")
+
+    # Moto doesn't create events by default, so we expect an empty list
+    assert isinstance(events, list)

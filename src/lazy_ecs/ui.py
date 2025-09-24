@@ -97,6 +97,10 @@ class ECSNavigator(BaseUIComponent):
         """Handle force new deployment action."""
         return self._service_ui.handle_force_deployment(cluster_name, service_name)
 
+    def show_service_events(self, cluster_name: str, service_name: str) -> None:
+        """Display service events."""
+        return self._service_ui.display_service_events(cluster_name, service_name)
+
     def show_task_history(self, cluster_name: str, service_name: str) -> None:
         """Display task history with failure analysis."""
         self._task_ui.display_task_history(cluster_name, service_name)
