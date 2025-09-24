@@ -101,3 +101,45 @@ def test_create_service_event_missing_fields():
     assert event["created_at"] is None
     assert event["message"] == "task failed to start due to resource constraints"
     assert event["event_type"] == "failure"
+
+
+def test_service_events_sorted_by_time():
+    """Test that service events are sorted by creation time, most recent first."""
+    from datetime import datetime
+    from unittest.mock import Mock
+
+    from lazy_ecs.features.service.service import ServiceService
+
+    mock_client = Mock()
+    mock_client.describe_services.return_value = {
+        "services": [
+            {
+                "events": [
+                    {
+                        "id": "event-1",
+                        "createdAt": datetime(2024, 1, 15, 10, 0, 0),
+                        "message": "Older event",
+                    },
+                    {
+                        "id": "event-2",
+                        "createdAt": datetime(2024, 1, 15, 12, 0, 0),
+                        "message": "Newer event",
+                    },
+                    {
+                        "id": "event-3",
+                        "createdAt": datetime(2024, 1, 15, 11, 0, 0),
+                        "message": "Middle event",
+                    },
+                ]
+            }
+        ]
+    }
+
+    service = ServiceService(mock_client)
+    events = service.get_service_events("test-cluster", "test-service")
+
+    # Should be sorted newest first
+    assert len(events) == 3
+    assert events[0]["message"] == "Newer event"  # 12:00
+    assert events[1]["message"] == "Middle event"  # 11:00
+    assert events[2]["message"] == "Older event"  # 10:00

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from ...core.base import BaseAWSService
@@ -53,7 +54,10 @@ class ServiceService(BaseAWSService):
             return []
 
         events = services[0].get("events", [])
-        return [_create_service_event(dict(event)) for event in events]
+        service_events = [_create_service_event(dict(event)) for event in events]
+
+        # Sort by creation time, most recent first (handle None values)
+        return sorted(service_events, key=lambda x: x["created_at"] or datetime.min, reverse=True)
 
 
 def _create_service_info(service: ServiceTypeDef) -> ServiceInfo:
