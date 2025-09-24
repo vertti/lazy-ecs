@@ -61,7 +61,7 @@ def add_navigation_choices(choices: list[dict[str, str]], back_text: str) -> lis
     ]
 
 
-def add_navigation_choices_with_shortcuts(choices: list[dict[str, str]], back_text: str) -> list:
+def add_navigation_choices_with_shortcuts(choices: list[dict[str, str]], back_text: str | None) -> list:
     """Add navigation choices with shortcut keys to existing choices list."""
     nav_choices = []
 
@@ -69,8 +69,9 @@ def add_navigation_choices_with_shortcuts(choices: list[dict[str, str]], back_te
     for choice in choices:
         nav_choices.append(questionary.Choice(choice["name"], choice["value"]))
 
-    # Add back choice with 'b' shortcut (since 'esc' doesn't work)
-    nav_choices.append(questionary.Choice(f"⬅️ {back_text} (b)", "navigation:back", shortcut_key="b"))
+    # Add back choice with 'b' shortcut only if back_text is provided
+    if back_text:
+        nav_choices.append(questionary.Choice(f"⬅️ {back_text} (b)", "navigation:back", shortcut_key="b"))
 
     # Add exit choice with 'q' shortcut
     nav_choices.append(questionary.Choice("❌ Exit (q)", "navigation:exit", shortcut_key="q"))
@@ -78,7 +79,7 @@ def add_navigation_choices_with_shortcuts(choices: list[dict[str, str]], back_te
     return nav_choices
 
 
-def select_with_navigation(prompt: str, choices: list[dict[str, str]], back_text: str) -> str | None:
+def select_with_navigation(prompt: str, choices: list[dict[str, str]], back_text: str | None) -> str | None:
     """Standard selection with back/exit navigation and ESC key support."""
     # Use the shortcut version for 'b' and 'q' keys
     nav_choices = add_navigation_choices_with_shortcuts(choices, back_text)
