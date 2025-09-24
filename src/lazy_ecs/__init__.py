@@ -2,10 +2,12 @@ import argparse
 from typing import TYPE_CHECKING
 
 import boto3
+from botocore.config import Config
 from rich.console import Console
 
 if TYPE_CHECKING:
     from mypy_boto3_ecs import ECSClient
+    from mypy_boto3_logs.client import CloudWatchLogsClient
 
 from .aws_service import ECSService
 from .core.navigation import handle_navigation, parse_selection
@@ -26,7 +28,8 @@ def main() -> None:
 
     try:
         ecs_client = _create_aws_client(args.profile)
-        ecs_service = ECSService(ecs_client)
+        logs_client = _create_logs_client(args.profile)
+        ecs_service = ECSService(ecs_client, logs_client)
         navigator = ECSNavigator(ecs_service)
 
         _navigate_clusters(navigator, ecs_service)
@@ -37,11 +40,33 @@ def main() -> None:
 
 
 def _create_aws_client(profile_name: str | None) -> "ECSClient":
-    """Create AWS ECS client with optional profile support."""
+    """Create optimized AWS ECS client with connection pooling."""
+    # Optimized configuration for better performance
+    config = Config(
+        max_pool_connections=5,  # Increase from default 1, but keep reasonable for CLI
+        retries={
+            "max_attempts": 2,  # Reduce from default 3 for faster failure
+            "mode": "adaptive",
+        },
+    )
+
     if profile_name:
         session = boto3.Session(profile_name=profile_name)
-        return session.client("ecs")
-    return boto3.client("ecs")
+        return session.client("ecs", config=config)
+    return boto3.client("ecs", config=config)
+
+
+def _create_logs_client(profile_name: str | None) -> "CloudWatchLogsClient":
+    """Create optimized CloudWatch Logs client with connection pooling."""
+    config = Config(
+        max_pool_connections=5,  # Same config as ECS client
+        retries={"max_attempts": 2, "mode": "adaptive"},
+    )
+
+    if profile_name:
+        session = boto3.Session(profile_name=profile_name)
+        return session.client("logs", config=config)
+    return boto3.client("logs", config=config)
 
 
 def _navigate_clusters(navigator: ECSNavigator, ecs_service: ECSService) -> None:
