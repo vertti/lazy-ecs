@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-import questionary
 from rich.console import Console
 
 from .aws_service import ECSService
-from .core.navigation import add_navigation_choices, get_questionary_style
+from .core.base import BaseUIComponent
+from .core.navigation import add_navigation_choices
 from .core.types import TaskDetails
 from .features.cluster.cluster import ClusterService
 from .features.cluster.ui import ClusterUI
@@ -19,10 +19,11 @@ from .features.task.ui import TaskUI
 console = Console()
 
 
-class ECSNavigator:
+class ECSNavigator(BaseUIComponent):
     """Navigator for interactive ECS exploration."""
 
     def __init__(self, ecs_service: ECSService) -> None:
+        super().__init__()
         self.ecs_service = ecs_service
         # Initialize feature UI components
         cluster_service = ClusterService(ecs_service.ecs_client)
@@ -59,13 +60,8 @@ class ECSNavigator:
             return ""
 
         choices = [{"name": info["name"], "value": info["value"]} for info in task_info]
-        choices = add_navigation_choices(choices, "Back to service selection")
 
-        selected = questionary.select(
-            "Select a task:",
-            choices=choices,
-            style=get_questionary_style(),
-        ).ask()
+        selected = self.select_with_nav("Select a task:", choices, "Back to service selection")
 
         return selected or ""
 

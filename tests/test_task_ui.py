@@ -21,12 +21,12 @@ def task_ui(mock_ecs_client):
     return TaskUI(task_service)
 
 
-@patch("lazy_ecs.features.task.ui.questionary.select")
+@patch("lazy_ecs.core.base.select_with_navigation")
 def test_select_task_multiple_tasks(mock_select, task_ui):
     """Test task selection with multiple tasks available."""
     task_info = [{"name": "task-1", "value": "task-arn-1"}, {"name": "task-2", "value": "task-arn-2"}]
     task_ui.task_service.get_task_info = Mock(return_value=task_info)
-    mock_select.return_value.ask.return_value = "task-arn-1"
+    mock_select.return_value = "task-arn-1"
 
     selected = task_ui.select_task("test-cluster", "web-api", "desired-task-def-arn")
 
@@ -78,3 +78,42 @@ def test_display_task_details_none(task_ui):
     # This test mainly ensures no exceptions are thrown
     task_ui.display_task_details(None)
     # If we get here without exception, the test passes
+
+
+@patch("lazy_ecs.core.base.select_with_navigation")
+def test_select_task_feature_includes_show_task_details(mock_select, task_ui):
+    """Test that task feature selection includes show task details as first option."""
+    mock_select.return_value = "task_action:show_details"
+
+    task_details = {"containers": [{"name": "web-api"}]}
+
+    result = task_ui.select_task_feature(task_details)
+
+    # Verify the call was made and get the choices (second positional arg)
+    mock_select.assert_called_once()
+    call_args = mock_select.call_args
+    choices = call_args[0][1]  # Second positional argument
+
+    # Check that "Show task details" is the first option
+    assert len(choices) >= 2  # At least show_details, show_history
+    assert choices[0]["name"] == "Show task details"
+    assert choices[0]["value"] == "task_action:show_details"
+    assert result == "task_action:show_details"
+
+
+@patch("lazy_ecs.core.base.select_with_navigation")
+def test_select_task_feature_show_history_is_second(mock_select, task_ui):
+    """Test that show history is second option after show task details."""
+    mock_select.return_value = "task_action:show_history"
+
+    task_details = {"containers": [{"name": "web-api"}]}
+
+    task_ui.select_task_feature(task_details)
+
+    # Get the choices (second positional arg)
+    call_args = mock_select.call_args
+    choices = call_args[0][1]  # Second positional argument
+
+    # Check that "Show task history" is the second option
+    assert choices[1]["name"] == "Show task history and failures"
+    assert choices[1]["value"] == "task_action:show_history"

@@ -6,7 +6,6 @@ import questionary
 from rich.console import Console
 
 from ...core.base import BaseUIComponent
-from ...core.navigation import add_navigation_choices, get_questionary_style
 from ...core.types import TaskInfo
 from .actions import ServiceActions
 from .service import ServiceService
@@ -31,13 +30,8 @@ class ServiceUI(BaseUIComponent):
             return "navigation:back"
 
         choices = [{"name": info["name"], "value": f"service:{info['name'].split(' ')[1]}"} for info in service_info]
-        choices = add_navigation_choices(choices, "Back to cluster selection")
 
-        return questionary.select(
-            "Select a service:",
-            choices=choices,
-            style=get_questionary_style(),
-        ).ask()
+        return self.select_with_nav("Select a service:", choices, "Back to cluster selection")
 
     def select_service_action(self, service_name: str, task_info: list[TaskInfo]) -> str | None:
         """Present service action menu."""
@@ -48,13 +42,9 @@ class ServiceUI(BaseUIComponent):
 
         choices.append({"name": "🚀 Force new deployment", "value": "action:force_deployment"})
 
-        choices = add_navigation_choices(choices, "Back to cluster selection")
-
-        return questionary.select(
-            f"Select action for service '{service_name}':",
-            choices=choices,
-            style=get_questionary_style(),
-        ).ask()
+        return self.select_with_nav(
+            f"Select action for service '{service_name}':", choices, "Back to cluster selection"
+        )
 
     def handle_force_deployment(self, cluster_name: str, service_name: str) -> None:
         """Handle force deployment confirmation and execution."""

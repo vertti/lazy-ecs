@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import questionary
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.key_binding.key_processor import KeyPressEvent
+from prompt_toolkit.keys import Keys
 from rich.console import Console
 
 
@@ -58,7 +61,54 @@ def add_navigation_choices(choices: list[dict[str, str]], back_text: str) -> lis
     ]
 
 
+def add_navigation_choices_with_shortcuts(choices: list[dict[str, str]], back_text: str) -> list:
+    """Add navigation choices with shortcut keys to existing choices list."""
+    nav_choices = []
+
+    # Add original choices
+    for choice in choices:
+        nav_choices.append(questionary.Choice(choice["name"], choice["value"]))
+
+    # Add back choice with 'b' shortcut (since 'esc' doesn't work)
+    nav_choices.append(questionary.Choice(f"⬅️ {back_text} (b)", "navigation:back", shortcut_key="b"))
+
+    # Add exit choice with 'q' shortcut
+    nav_choices.append(questionary.Choice("❌ Exit (q)", "navigation:exit", shortcut_key="q"))
+
+    return nav_choices
+
+
 def select_with_navigation(prompt: str, choices: list[dict[str, str]], back_text: str) -> str | None:
-    """Standard selection with back/exit navigation."""
-    nav_choices = add_navigation_choices(choices, back_text)
-    return questionary.select(prompt, choices=nav_choices, style=get_questionary_style()).ask()
+    """Standard selection with back/exit navigation and ESC key support."""
+    # Use the shortcut version for 'b' and 'q' keys
+    nav_choices = add_navigation_choices_with_shortcuts(choices, back_text)
+
+    # Create a questionary select question
+    question = questionary.select(prompt, choices=nav_choices, style=get_questionary_style(), use_shortcuts=True)
+
+    # Add ESC key binding by accessing the underlying application
+    if hasattr(question, "application"):
+        # Add custom key binding for ESC key
+        custom_bindings = KeyBindings()
+
+        @custom_bindings.add(Keys.Escape)
+        def _(event: KeyPressEvent) -> None:
+            """Handle ESC key press by setting result to navigation:back."""
+            event.app.exit(result="navigation:back")
+
+        # Get the existing bindings and merge them
+        if hasattr(question.application, "key_bindings") and question.application.key_bindings:
+            # Create a new key bindings object that includes both
+            merged_bindings = KeyBindings()
+
+            # Add existing bindings
+            for binding in question.application.key_bindings.bindings:
+                merged_bindings.bindings.append(binding)
+
+            # Add our custom ESC binding
+            for binding in custom_bindings.bindings:
+                merged_bindings.bindings.append(binding)
+
+            question.application.key_bindings = merged_bindings
+
+    return question.ask()
