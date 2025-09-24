@@ -4,10 +4,11 @@ from unittest.mock import Mock, patch
 from lazy_ecs import _create_aws_client, main
 
 
+@patch("lazy_ecs._create_logs_client")
 @patch("lazy_ecs._create_aws_client")
 @patch("lazy_ecs.ECSNavigator")
 @patch("lazy_ecs.console")
-def test_main_successful_flow(mock_console, mock_navigator_class, mock_create_client) -> None:
+def test_main_successful_flow(mock_console, mock_navigator_class, mock_create_client, mock_create_logs_client) -> None:
     """Test main function with successful cluster selection."""
     mock_navigator = Mock()
     mock_navigator.select_cluster.return_value = "production"
@@ -17,15 +18,19 @@ def test_main_successful_flow(mock_console, mock_navigator_class, mock_create_cl
         main()
 
     mock_create_client.assert_called_once_with(None)
+    mock_create_logs_client.assert_called_once_with(None)
     mock_navigator.select_cluster.assert_called_once()
     mock_console.print.assert_any_call("🚀 Welcome to lazy-ecs!", style="bold cyan")
     mock_console.print.assert_any_call("\n✅ Selected cluster: production", style="green")
 
 
+@patch("lazy_ecs._create_logs_client")
 @patch("lazy_ecs._create_aws_client")
 @patch("lazy_ecs.ECSNavigator")
 @patch("lazy_ecs.console")
-def test_main_no_cluster_selected(mock_console, mock_navigator_class, _mock_create_client) -> None:
+def test_main_no_cluster_selected(
+    mock_console, mock_navigator_class, _mock_create_client, _mock_create_logs_client
+) -> None:
     """Test main function when no cluster is selected."""
     mock_navigator = Mock()
     mock_navigator.select_cluster.return_value = None
@@ -37,9 +42,10 @@ def test_main_no_cluster_selected(mock_console, mock_navigator_class, _mock_crea
     mock_console.print.assert_any_call("\n❌ No cluster selected. Goodbye!", style="yellow")
 
 
+@patch("lazy_ecs._create_logs_client")
 @patch("lazy_ecs._create_aws_client")
 @patch("lazy_ecs.console")
-def test_main_aws_error(mock_console, mock_create_client) -> None:
+def test_main_aws_error(mock_console, mock_create_client, _mock_create_logs_client) -> None:
     """Test main function with AWS connection error."""
     mock_create_client.side_effect = Exception("No credentials found")
 
@@ -50,10 +56,13 @@ def test_main_aws_error(mock_console, mock_create_client) -> None:
     mock_console.print.assert_any_call("Make sure your AWS credentials are configured.", style="dim")
 
 
+@patch("lazy_ecs._create_logs_client")
 @patch("lazy_ecs._create_aws_client")
 @patch("lazy_ecs.ECSNavigator")
 @patch("lazy_ecs.console")
-def test_main_with_profile_argument(_mock_console, mock_navigator_class, mock_create_client) -> None:
+def test_main_with_profile_argument(
+    _mock_console, mock_navigator_class, mock_create_client, mock_create_logs_client
+) -> None:
     """Test main function with --profile argument."""
     mock_navigator = Mock()
     mock_navigator.select_cluster.return_value = "production"
@@ -63,6 +72,7 @@ def test_main_with_profile_argument(_mock_console, mock_navigator_class, mock_cr
         main()
 
     mock_create_client.assert_called_once_with("my-profile")
+    mock_create_logs_client.assert_called_once_with("my-profile")
 
 
 def test_create_aws_client_without_profile():
