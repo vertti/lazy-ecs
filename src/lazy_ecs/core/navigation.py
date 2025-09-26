@@ -92,7 +92,7 @@ def select_with_navigation(prompt: str, choices: list[dict[str, str]], back_text
         # Add custom key binding for ESC key
         custom_bindings = KeyBindings()
 
-        @custom_bindings.add(Keys.Escape)
+        @custom_bindings.add(Keys.Escape, eager=True)
         def _(event: KeyPressEvent) -> None:
             """Handle ESC key press by setting result to navigation:back."""
             event.app.exit(result="navigation:back")
