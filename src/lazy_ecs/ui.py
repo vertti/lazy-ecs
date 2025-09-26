@@ -10,6 +10,7 @@ from .aws_service import ECSService
 from .core.base import BaseUIComponent
 from .core.navigation import add_navigation_choices
 from .core.types import TaskDetails
+from .core.utils import show_spinner
 from .features.cluster.cluster import ClusterService
 from .features.cluster.ui import ClusterUI
 from .features.container.ui import ContainerUI
@@ -48,12 +49,14 @@ class ECSNavigator(BaseUIComponent):
 
     def select_service_action(self, cluster_name: str, service_name: str) -> str | None:
         """Interactive selection combining tasks and service-level actions."""
-        task_info = self.ecs_service.get_task_info(cluster_name, service_name)
+        with show_spinner():
+            task_info = self.ecs_service.get_task_info(cluster_name, service_name)
         return self._service_ui.select_service_action(service_name, task_info)
 
     def select_task(self, cluster_name: str, service_name: str) -> str:
         """Interactive task selection - no auto-selection since users need to see service actions too."""
-        task_info = self.ecs_service.get_task_info(cluster_name, service_name)
+        with show_spinner():
+            task_info = self.ecs_service.get_task_info(cluster_name, service_name)
 
         if not task_info:
             console.print(f"❌ No tasks found for service '{service_name}'", style="red")
