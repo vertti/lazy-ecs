@@ -57,7 +57,8 @@ class ServiceUI(BaseUIComponent):
         ).ask()
 
         if confirm:
-            success = self.service_actions.force_new_deployment(cluster_name, service_name)
+            with show_spinner():
+                success = self.service_actions.force_new_deployment(cluster_name, service_name)
             if success:
                 console.print(f"✅ Successfully triggered deployment for '{service_name}'", style="green")
             else:
@@ -65,7 +66,8 @@ class ServiceUI(BaseUIComponent):
 
     def display_service_events(self, cluster_name: str, service_name: str) -> None:
         """Display service events in a Rich table."""
-        events = self.service_service.get_service_events(cluster_name, service_name)
+        with show_spinner():
+            events = self.service_service.get_service_events(cluster_name, service_name)
 
         if not events:
             console.print(f"No events found for service '{service_name}'", style="blue")
