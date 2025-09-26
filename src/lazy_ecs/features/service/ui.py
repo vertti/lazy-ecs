@@ -8,6 +8,7 @@ from rich.table import Table
 
 from ...core.base import BaseUIComponent
 from ...core.types import TaskInfo
+from ...core.utils import show_spinner
 from .actions import ServiceActions
 from .service import ServiceService
 
@@ -24,7 +25,8 @@ class ServiceUI(BaseUIComponent):
 
     def select_service(self, cluster_name: str) -> str | None:
         """Interactive service selection with status information and navigation."""
-        service_info = self.service_service.get_service_info(cluster_name)
+        with show_spinner():
+            service_info = self.service_service.get_service_info(cluster_name)
 
         if not service_info:
             console.print(f"❌ No services found in cluster '{cluster_name}'", style="red")
