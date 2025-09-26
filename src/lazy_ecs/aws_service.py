@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from typing import TYPE_CHECKING, Any
 
 from .core.types import LogConfig, ServiceEvent, ServiceInfo, TaskDetails, TaskInfo
@@ -15,20 +15,31 @@ from .features.task.task import TaskService
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
     from mypy_boto3_logs.client import CloudWatchLogsClient
-    from mypy_boto3_logs.type_defs import OutputLogEventTypeDef
+    from mypy_boto3_logs.type_defs import (
+        LiveTailSessionLogEventTypeDef,
+        OutputLogEventTypeDef,
+        StartLiveTailResponseStreamTypeDef,
+    )
+    from mypy_boto3_sts.client import STSClient
 
 
 class ECSService:
     """Service for interacting with AWS ECS."""
 
-    def __init__(self, ecs_client: ECSClient, logs_client: CloudWatchLogsClient | None = None) -> None:
+    def __init__(
+        self,
+        ecs_client: ECSClient,
+        sts_client: STSClient | None = None,
+        logs_client: CloudWatchLogsClient | None = None,
+    ) -> None:
         self.ecs_client = ecs_client
+        self.sts_client = sts_client
         # Initialize feature services
         self._cluster = ClusterService(ecs_client)
         self._service = ServiceService(ecs_client)
         self._service_actions = ServiceActions(ecs_client)
         self._task = TaskService(ecs_client)
-        self._container = ContainerService(ecs_client, self._task, logs_client)
+        self._container = ContainerService(ecs_client, self._task, sts_client, logs_client)
 
     def get_cluster_names(self) -> list[str]:
         """Get list of ECS cluster names from AWS."""
@@ -72,6 +83,12 @@ class ECSService:
     def get_container_logs(self, log_group: str, log_stream: str, lines: int = 50) -> list[OutputLogEventTypeDef]:
         """Get container logs from CloudWatch."""
         return self._container.get_container_logs(log_group, log_stream, lines)
+
+    def get_live_container_logs_tail(
+        self, log_group: str, log_stream: str, event_filter_pattern: str = ""
+    ) -> Generator[StartLiveTailResponseStreamTypeDef | LiveTailSessionLogEventTypeDef]:
+        """Tail container logs in real time from CloudWatch."""
+        return self._container.get_live_container_logs_tail(log_group, log_stream, event_filter_pattern)
 
     def list_log_groups(self, cluster_name: str, container_name: str) -> list[str]:
         """List available log groups for debugging."""

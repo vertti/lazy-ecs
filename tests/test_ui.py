@@ -8,7 +8,7 @@ from lazy_ecs.ui import ECSNavigator
 
 
 @pytest.fixture
-def mock_ecs_service():
+def mock_ecs_service() -> Mock:
     """Create a mock ECS service."""
     return Mock()
 
@@ -149,6 +149,7 @@ def test_container_methods_delegate_to_container_ui(mock_ecs_service) -> None:
 
     # Mock all ContainerUI methods
     navigator._container_ui.show_container_logs = Mock()
+    navigator._container_ui.show_logs_live_tail = Mock()
     navigator._container_ui.show_container_environment_variables = Mock()
     navigator._container_ui.show_container_secrets = Mock()
     navigator._container_ui.show_container_port_mappings = Mock()
@@ -156,6 +157,7 @@ def test_container_methods_delegate_to_container_ui(mock_ecs_service) -> None:
 
     # Test delegation
     navigator.show_container_logs("cluster", "task", "container", 100)
+    navigator.show_container_logs_live_tail("cluster", "task", "container")
     navigator.show_container_environment_variables("cluster", "task", "container")
     navigator.show_container_secrets("cluster", "task", "container")
     navigator.show_container_port_mappings("cluster", "task", "container")
@@ -163,6 +165,7 @@ def test_container_methods_delegate_to_container_ui(mock_ecs_service) -> None:
 
     # Verify delegation
     navigator._container_ui.show_container_logs.assert_called_once_with("cluster", "task", "container", 100)
+    navigator._container_ui.show_logs_live_tail.assert_called_once_with("cluster", "task", "container")
     navigator._container_ui.show_container_environment_variables.assert_called_once_with("cluster", "task", "container")
     navigator._container_ui.show_container_secrets.assert_called_once_with("cluster", "task", "container")
     navigator._container_ui.show_container_port_mappings.assert_called_once_with("cluster", "task", "container")
@@ -192,12 +195,14 @@ def test_build_task_feature_choices() -> None:
 
     # Check container actions are present
     assert "Show tail of logs for container: web" in choice_names
+    assert "Show logs live tail for container: web" in choice_names
     assert "Show environment variables for container: web" in choice_names
     assert "Show secrets for container: web" in choice_names
     assert "Show port mappings for container: web" in choice_names
     assert "Show volume mounts for container: web" in choice_names
 
     assert "Show tail of logs for container: sidecar" in choice_names
+    assert "Show logs live tail for container: sidecar" in choice_names
     assert "Show environment variables for container: sidecar" in choice_names
     assert "Show secrets for container: sidecar" in choice_names
     assert "Show port mappings for container: sidecar" in choice_names
@@ -213,5 +218,5 @@ def test_build_task_feature_choices() -> None:
     assert "navigation:back" in choice_values
     assert "navigation:exit" in choice_values
 
-    # Total: 5 actions x 2 containers + 2 navigation = 12
-    assert len(choices) == 12
+    # Total: 6 actions x 2 containers + 2 navigation = 14
+    assert len(choices) == 14
