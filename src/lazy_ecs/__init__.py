@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 from .aws_service import ECSService
 from .core.navigation import handle_navigation, parse_selection
 from .core.types import TaskDetails
+from .core.utils import show_spinner
 from .ui import ECSNavigator
 
 console = Console()
@@ -125,7 +126,8 @@ def _navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster
 
         selection_type, action_name, task_arn = parse_selection(selection)
         if selection_type == "task" and action_name == "show_details":
-            task_details = ecs_service.get_task_details(cluster_name, selected_service, task_arn)
+            with show_spinner():
+                task_details = ecs_service.get_task_details(cluster_name, selected_service, task_arn)
             if task_details:
                 navigator.display_task_details(task_details)
                 # Navigate to task features, handle back navigation
