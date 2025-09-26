@@ -1,6 +1,8 @@
 """Tests for core utility functions."""
 
-from lazy_ecs.core.utils import determine_service_status, extract_name_from_arn
+import time
+
+from lazy_ecs.core.utils import determine_service_status, extract_name_from_arn, show_spinner
 
 
 def test_extract_name_from_arn():
@@ -55,3 +57,9 @@ def test_determine_service_status_zero_counts():
     icon, status = determine_service_status(running_count=0, desired_count=0, pending_count=0)
     assert icon == "✅"
     assert status == "HEALTHY"
+
+
+def test_show_spinner():
+    """Test spinner context manager works without errors."""
+    with show_spinner():
+        time.sleep(0.01)  # Brief pause to simulate work
