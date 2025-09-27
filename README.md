@@ -78,6 +78,7 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 ### Container-Level Features 🚀
 
 - ✅ **Container log viewing** - Display recent logs with timestamps from CloudWatch
+- ✅ **Container log live tail viewing** - Display logs live tail with timestamps from CloudWatch
 - ✅ **Basic container details** - Show container name, image, CPU/memory configuration
 - ✅ **Show environment variables & secrets** - Display environment variables and secrets configuration (without exposing secret values)
 - ✅ **Show port mappings** - Display container port configurations and networking
@@ -124,7 +125,7 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 
 - ⬜ **Enhanced log features**:
   - ⬜ Search/filter logs by keywords or time range
-  - ⬜ Follow logs in real-time (tail -f style) - complex UI implementation
+  - ✅ Follow logs in real-time (tail -f style) - complex UI implementation
   - ⬜ Download logs to file
 - ⬜ **Monitoring integration**:
   - ⬜ Show CloudWatch metrics for containers/tasks
@@ -143,6 +144,26 @@ mise install
 ```
 
 ### Setup
+
+Setup and development commands can also be ran with [GNU Make](https://www.gnu.org/software/make/). You can also view available commands with Make using `make`.
+
+```
+Available commands:
+  install         --> Install dependencies
+  precminit       --> Install pre-commit hooks (runs ruff formatting/linting on commit)
+  run             --> Run 'lazy-ecs' CLI (use 'make run PROFILE=<profile-name>' to specify your desired AWS profile)
+  test            --> Run tests using 'pytest'
+  format          --> Format and lint code (with type annotation enforcement)
+  formatfix       --> Format, lint, and fix code (with type annotation enforcement)
+  pyrefly         --> Type checking with 'pyrefly'
+  reflyinf        --> Auto-add missing type annotations with 'pyrefly'
+  testcov         --> Run tests with coverage
+
+Targets that accept arguments:
+  test ARGS="..." --> Example: make test ARGS=tests/test_file.py
+```
+
+Using `uv`
 
 ```bash
 # Install dependencies

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import cast
 
 from rich.console import Console
 
@@ -52,6 +53,45 @@ class ContainerUI(BaseUIComponent):
             message = event["message"].rstrip()
             console.print(f"[{timestamp.strftime('%H:%M:%S')}] {message}")
 
+        console.print("=" * 80, style="dim")
+
+    def show_logs_live_tail(self, cluster_name: str, task_arn: str, container_name: str) -> None:
+        """Display logs in real time for a container."""
+        log_config = self.container_service.get_log_config(cluster_name, task_arn, container_name)
+        if not log_config:
+            print_error(f"Could not find log configuration for container '{container_name}'")
+            console.print("Available log groups:", style="dim")
+            log_groups = self.container_service.list_log_groups(cluster_name, container_name)
+            for group in log_groups:
+                console.print(f"  • {group}", style="cyan")
+            return
+
+        log_group_name = log_config.get("log_group")
+        log_stream_name = log_config.get("log_stream")
+        console.print(f"\n🚀 Tailing logs for container '{container_name}':", style="bold cyan")
+        console.print(f"log group: {log_group_name}", style="dim")
+        console.print(f"log stream: {log_stream_name}", style="dim")
+        console.print("Press Ctrl+C to stop.", style="dim")
+        console.print("=" * 80, style="dim")
+
+        seen_logs = set()
+        try:
+            for event in self.container_service.get_live_container_logs_tail(log_group_name, log_stream_name):
+                event_map = cast(dict, event)
+                event_id = event_map.get("eventId")
+                key = event_id or (event_map.get("timestamp"), event_map.get("message"))
+                if key in seen_logs:
+                    continue
+                seen_logs.add(key)
+                timestamp = event_map.get("timestamp")
+                message = str(event_map.get("message")).rstrip()
+                if timestamp:
+                    dt = datetime.fromtimestamp(int(timestamp) / 1000)
+                    console.print(f"[{dt.strftime('%H:%M:%S')}] {message}")
+                else:
+                    console.print(message)
+        except KeyboardInterrupt:
+            console.print("\n🛑 Stopped tailing logs.", style="yellow")
         console.print("=" * 80, style="dim")
 
     def show_container_environment_variables(self, cluster_name: str, task_arn: str, container_name: str) -> None:

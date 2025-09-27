@@ -1,6 +1,9 @@
 """Tests for ContainerUI class."""
 
-from unittest.mock import Mock
+from collections.abc import Generator
+from datetime import datetime
+from typing import Any, cast
+from unittest.mock import Mock, call, patch
 
 import pytest
 
@@ -39,6 +42,75 @@ def test_show_container_logs_success(container_ui):
 
     container_ui.container_service.get_log_config.assert_called_once_with("test-cluster", "task-arn", "web-container")
     container_ui.container_service.get_container_logs.assert_called_once_with("test-log-group", "test-stream", 50)
+
+
+def test_show_logs_live_tail_success(container_ui):
+    """Test displaying live tail container logs successfully."""
+    log_config = {"log_group": "test-log-group", "log_stream": "test-stream"}
+    events = [
+        {"eventId": "event1", "timestamp": 1234567890000, "message": "Live tail log message 1"},
+        {"eventId": "event2", "timestamp": 1234567891000, "message": "Live tail log message 2"},
+        {"eventId": "event3", "timestamp": 1234567892000, "message": "Live tail log message 3"},
+        {"eventId": "event4", "timestamp": 1234567893000, "message": "Live tail log message 4"},
+    ]
+
+    container_ui.container_service.get_log_config = Mock(return_value=log_config)
+    container_ui.container_service.get_live_container_logs_tail = Mock(return_value=iter(events))
+
+    with patch("rich.console.Console.print") as mock_console_print:
+        container_ui.show_logs_live_tail("test-cluster", "task-arn", "web-container")
+
+    container_ui.container_service.get_log_config.assert_called_once_with("test-cluster", "task-arn", "web-container")
+    container_ui.container_service.get_live_container_logs_tail.assert_called_once_with("test-log-group", "test-stream")
+
+    expected_calls = [
+        call("\n🚀 Tailing logs for container 'web-container':", style="bold cyan"),
+        call("log group: test-log-group", style="dim"),
+        call("log stream: test-stream", style="dim"),
+        call("Press Ctrl+C to stop.", style="dim"),
+        call("=" * 80, style="dim"),
+    ]
+
+    for event in events:
+        timestamp = cast(int, event["timestamp"])
+        dt = datetime.fromtimestamp(timestamp / 1000)
+        message = cast(str, event["message"]).rstrip()
+        expected_calls.append(call(f"[{dt.strftime('%H:%M:%S')}] {message}"))
+
+    expected_calls.append(call("=" * 80, style="dim"))
+    mock_console_print.assert_has_calls(expected_calls, any_order=False)
+
+
+def test_show_logs_live_tail_keyboard_interrupt(container_ui):
+    """Test handling keyboard interruptions with Ctrl+C during live logs tail."""
+    log_config = {"log_group": "test-log-group", "log_stream": "test-stream"}
+
+    def mock_generator() -> Generator[dict[str, Any], None, None]:
+        yield {"eventId": "event1", "timestamp": 1234567890000, "message": "Live tail log message 1"}
+        raise KeyboardInterrupt()
+
+    container_ui.container_service.get_log_config = Mock(return_value=log_config)
+    container_ui.container_service.get_live_container_logs_tail = Mock(return_value=mock_generator())
+
+    with patch("rich.console.Console.print") as mock_console_print:
+        container_ui.show_logs_live_tail("test-cluster", "task-arn", "web-container")
+
+    mock_console_print.assert_any_call("\n🛑 Stopped tailing logs.", style="yellow")
+
+
+def test_show_logs_live_tail_no_config(container_ui):
+    """Test displaying live tail container logs with no log configuration."""
+    container_ui.container_service.get_log_config = Mock(return_value=None)
+    container_ui.container_service.list_log_groups = Mock(return_value=["group1", "group2"])
+
+    with (
+        patch("lazy_ecs.features.container.ui.print_error") as mock_print_error,
+        patch("rich.console.Console.print") as mock_console_print,
+    ):
+        container_ui.show_logs_live_tail("test-cluster", "task-arn", "web-container")
+
+    mock_print_error.assert_called_once_with("Could not find log configuration for container 'web-container'")
+    mock_console_print.assert_any_call("Available log groups:", style="dim")
 
 
 def test_show_container_logs_no_config(container_ui):

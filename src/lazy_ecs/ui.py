@@ -77,6 +77,10 @@ class ECSNavigator(BaseUIComponent):
         """Display the last N lines of logs for a container."""
         return self._container_ui.show_container_logs(cluster_name, task_arn, container_name, lines)
 
+    def show_container_logs_live_tail(self, cluster_name: str, task_arn: str, container_name: str) -> None:
+        """Stream logs for a container."""
+        return self._container_ui.show_logs_live_tail(cluster_name, task_arn, container_name)
+
     def show_container_environment_variables(self, cluster_name: str, task_arn: str, container_name: str) -> None:
         """Display environment variables for a container."""
         return self._container_ui.show_container_environment_variables(cluster_name, task_arn, container_name)
@@ -110,6 +114,7 @@ def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[s
     """Build feature menu choices for containers plus navigation options."""
     actions = [
         ("Show tail of logs for container: {name}", "container_action", "show_logs"),
+        ("Show logs live tail for container: {name}", "container_action", "tail_logs"),
         ("Show environment variables for container: {name}", "container_action", "show_env"),
         ("Show secrets for container: {name}", "container_action", "show_secrets"),
         ("Show port mappings for container: {name}", "container_action", "show_ports"),

@@ -37,6 +37,9 @@ ecs = [
 logs = [
     { name = "mypy-boto3-logs" },
 ]
+sts = [
+    { name = "mypy-boto3-sts" },
+]
 
 [[package]]
 name = "botocore"
@@ -388,7 +391,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "boto3-stubs", extra = ["ecs", "logs"] },
+    { name = "boto3-stubs", extra = ["ecs", "logs", "sts"] },
     { name = "moto" },
     { name = "pre-commit" },
     { name = "pyrefly" },
@@ -407,7 +410,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "boto3-stubs", extras = ["ecs", "logs"], specifier = "==1.40.30" },
+    { name = "boto3-stubs", extras = ["ecs", "logs", "sts"], specifier = "==1.40.30" },
     { name = "moto", extras = ["ecs"], specifier = "==5.1.12" },
     { name = "pre-commit", specifier = "==4.3.0" },
     { name = "pyrefly", specifier = "==0.32.0" },
@@ -528,6 +531,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/41/39/04226e710cc4682987f6ca0537b0d41bd20ceca9926947bb3a26b3ae030f/mypy_boto3_logs-1.40.0.tar.gz", hash = "sha256:780648820c4fe8c2453a39a8044443435b4969f69ea39ce538ba5b2225cfd513", size = 46369, upload-time = "2025-07-31T19:45:33.794Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f8/12/c66f68dd01675ca76388b678b42c2d4a2aac0c483015614a43026339c63b/mypy_boto3_logs-1.40.0-py3-none-any.whl", hash = "sha256:70c8d13772cd9ea0924508b8e16db83f22b043e2897ff881e9a6d0b282664634", size = 52243, upload-time = "2025-07-31T19:45:31.47Z" },
+]
+
+[[package]]
+name = "mypy-boto3-sts"
+version = "1.40.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/39/32/8dce999ed05c797000ce70287f3e82025a98514781c303c7f8fe42f7b327/mypy_boto3_sts-1.40.0.tar.gz", hash = "sha256:eb55e50960ae6194d09488464c302196392df712a6a5f4308b6a0e24244cfd5c", size = 16577, upload-time = "2025-07-31T19:52:23.924Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/78/f8/38dae2983d72ea4fff75b235d42d3b1ecad407e0136f4951bfd9016ecaea/mypy_boto3_sts-1.40.0-py3-none-any.whl", hash = "sha256:fff731694cab2474bf7e7d3344b049b4ac0272d76b72fc4f7e4ae543ead8a5e6", size = 20192, upload-time = "2025-07-31T19:52:21.353Z" },
 ]
 
 [[package]]

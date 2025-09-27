@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
+from os import environ
 from typing import TYPE_CHECKING, Any
 
 from ...core.base import BaseAWSService
@@ -12,7 +14,12 @@ if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
     from mypy_boto3_ecs.type_defs import ContainerDefinitionOutputTypeDef, TaskDefinitionTypeDef
     from mypy_boto3_logs.client import CloudWatchLogsClient
-    from mypy_boto3_logs.type_defs import OutputLogEventTypeDef
+    from mypy_boto3_logs.type_defs import (
+        LiveTailSessionLogEventTypeDef,
+        OutputLogEventTypeDef,
+        StartLiveTailResponseStreamTypeDef,
+    )
+    from mypy_boto3_sts.client import STSClient
 
     from ..task.task import TaskService
 
@@ -21,10 +28,15 @@ class ContainerService(BaseAWSService):
     """Service for ECS container operations."""
 
     def __init__(
-        self, ecs_client: ECSClient, task_service: TaskService, logs_client: CloudWatchLogsClient | None = None
+        self,
+        ecs_client: ECSClient,
+        task_service: TaskService,
+        sts_client: STSClient | None = None,
+        logs_client: CloudWatchLogsClient | None = None,
     ) -> None:
         super().__init__(ecs_client)
         self.task_service = task_service
+        self.sts_client = sts_client
         self.logs_client = logs_client
 
     def get_container_context(self, cluster_name: str, task_arn: str, container_name: str) -> ContainerContext | None:
@@ -98,6 +110,36 @@ class ContainerService(BaseAWSService):
             logGroupName=log_group, logStreamName=log_stream, limit=lines, startFromHead=False
         )
         return response.get("events", [])
+
+    def get_live_container_logs_tail(
+        self, log_group: str, log_stream: str, event_filter_pattern: str = ""
+    ) -> Generator[StartLiveTailResponseStreamTypeDef | LiveTailSessionLogEventTypeDef]:
+        """Get container logs in real time from CloudWatch."""
+        if not self.logs_client:
+            return
+        region = self.ecs_client.meta.region_name
+        aws_account_id = (
+            (lambda: self.sts_client.get_caller_identity().get("Account"))()
+            if self.sts_client
+            else environ.get("AWS_ACCOUNT_ID")
+        )
+        if not region or not aws_account_id:
+            return
+        log_group_arn = f"arn:aws:logs:{region}:{aws_account_id}:log-group:{log_group}"
+        response = self.logs_client.start_live_tail(
+            logGroupIdentifiers=[log_group_arn],
+            logStreamNames=[log_stream],
+            logEventFilterPattern=event_filter_pattern,
+        )
+        response_stream = response.get("responseStream")
+        for event in response_stream:
+            if "sessionStart" in event:
+                continue
+            elif "sessionUpdate" in event:
+                log_events = event.get("sessionUpdate", {}).get("sessionResults", [])
+                yield from log_events
+            else:
+                yield event
 
     def list_log_groups(self, cluster_name: str, container_name: str) -> list[str]:
         """List available log groups for debugging."""
