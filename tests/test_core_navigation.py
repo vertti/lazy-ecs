@@ -9,6 +9,7 @@ from lazy_ecs.core.navigation import (
     handle_navigation,
     parse_selection,
     select_with_navigation,
+    select_with_pagination,
 )
 
 
@@ -138,3 +139,59 @@ def test_select_with_navigation_choices_expanded(mock_select):
     assert passed_choices[0].value == "opt1"
     assert passed_choices[1].value == "navigation:back"
     assert passed_choices[2].value == "navigation:exit"
+
+
+@patch("lazy_ecs.core.navigation.questionary.select")
+def test_select_with_pagination_single_page(mock_select):
+    mock_select.return_value.ask.return_value = "item-5"
+
+    choices = [{"name": f"Item {i}", "value": f"item-{i}"} for i in range(20)]
+    result = select_with_pagination("Select item:", choices, "Back", page_size=25)
+
+    assert result == "item-5"
+    mock_select.assert_called_once()
+    call_kwargs = mock_select.call_args[1]
+    assert call_kwargs["use_shortcuts"] is False
+
+
+@patch("lazy_ecs.core.navigation.questionary.select")
+def test_select_with_pagination_navigation_between_pages(mock_select):
+    mock_select.return_value.ask.side_effect = ["pagination:next", "item-35"]
+
+    choices = [{"name": f"Item {i}", "value": f"item-{i}"} for i in range(50)]
+    result = select_with_pagination("Select item:", choices, "Back", page_size=25)
+
+    assert result == "item-35"
+    assert mock_select.call_count == 2
+
+
+@patch("lazy_ecs.core.navigation.questionary.select")
+def test_select_with_pagination_back_from_second_page(mock_select):
+    mock_select.return_value.ask.side_effect = ["pagination:next", "navigation:back"]
+
+    choices = [{"name": f"Item {i}", "value": f"item-{i}"} for i in range(50)]
+    result = select_with_pagination("Select item:", choices, "Back", page_size=25)
+
+    assert result == "navigation:back"
+    assert mock_select.call_count == 2
+
+
+@patch("lazy_ecs.core.navigation.questionary.select")
+def test_select_with_pagination_previous_page(mock_select):
+    mock_select.return_value.ask.side_effect = ["pagination:next", "pagination:previous", "item-5"]
+
+    choices = [{"name": f"Item {i}", "value": f"item-{i}"} for i in range(50)]
+    result = select_with_pagination("Select item:", choices, "Back", page_size=25)
+
+    assert result == "item-5"
+    assert mock_select.call_count == 3
+
+
+@patch("lazy_ecs.core.navigation.questionary.select")
+def test_select_with_pagination_exit(mock_select):
+    mock_select.return_value.ask.return_value = "navigation:exit"
+
+    choices = [{"name": f"Item {i}", "value": f"item-{i}"} for i in range(50)]
+    result = select_with_pagination("Select item:", choices, "Back", page_size=25)
+
+    assert result == "navigation:exit"

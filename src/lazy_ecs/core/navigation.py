@@ -8,6 +8,8 @@ from prompt_toolkit.key_binding.key_processor import KeyPressEvent
 from prompt_toolkit.keys import Keys
 from rich.console import Console
 
+PAGINATION_THRESHOLD = 30
+
 
 def parse_selection(selected: str | None) -> tuple[str, str, str]:
     """Parse selection into (type, value, extra). Returns ('unknown', selected, '') if no colon."""
@@ -120,3 +122,62 @@ def select_with_navigation(prompt: str, choices: list[dict[str, str]], back_text
             question.application.key_bindings = merged_bindings
 
     return question.ask()
+
+
+def select_with_pagination(
+    prompt: str, choices: list[dict[str, str]], back_text: str | None, page_size: int = 25
+) -> str | None:
+    """Selection with pagination for large lists."""
+    total_items = len(choices)
+    total_pages = (total_items + page_size - 1) // page_size
+    current_page = 0
+
+    while True:
+        start_idx = current_page * page_size
+        end_idx = min(start_idx + page_size, total_items)
+        page_choices = choices[start_idx:end_idx]
+
+        page_prompt = f"{prompt} (Page {current_page + 1} of {total_pages})"
+
+        paginated_choices = []
+        for choice in page_choices:
+            paginated_choices.append(questionary.Choice(choice["name"], choice["value"]))
+
+        if current_page < total_pages - 1:
+            paginated_choices.append(
+                questionary.Choice(
+                    f"→ Next Page ({end_idx + 1}-{min(end_idx + page_size, total_items)})", "pagination:next"
+                )
+            )
+
+        if current_page > 0:
+            paginated_choices.append(
+                questionary.Choice(f"← Previous Page ({start_idx - page_size + 1}-{start_idx})", "pagination:previous")
+            )
+
+        if back_text:
+            paginated_choices.append(questionary.Choice(f"⬅️ {back_text}", "navigation:back"))
+
+        paginated_choices.append(questionary.Choice("❌ Exit", "navigation:exit"))
+
+        selected = questionary.select(
+            page_prompt, choices=paginated_choices, style=get_questionary_style(), use_shortcuts=False
+        ).ask()
+
+        if selected == "pagination:next":
+            current_page += 1
+        elif selected == "pagination:previous":
+            current_page -= 1
+        else:
+            return selected
+
+
+def select_with_auto_pagination(
+    prompt: str, choices: list[dict[str, str]], back_text: str | None, threshold: int = PAGINATION_THRESHOLD
+) -> str | None:
+    """Select with automatic pagination based on choice count.
+
+    Uses keyboard shortcuts for small lists (≤threshold), pagination for large lists (>threshold).
+    """
+    select_fn = select_with_pagination if len(choices) > threshold else select_with_navigation
+    return select_fn(prompt, choices, back_text)

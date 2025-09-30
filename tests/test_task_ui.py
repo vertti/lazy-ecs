@@ -21,7 +21,7 @@ def task_ui(mock_ecs_client):
     return TaskUI(task_service)
 
 
-@patch("lazy_ecs.core.base.select_with_navigation")
+@patch("lazy_ecs.features.task.ui.select_with_auto_pagination")
 def test_select_task_multiple_tasks(mock_select, task_ui):
     """Test task selection with multiple tasks available."""
     task_info = [{"name": "task-1", "value": "task-arn-1"}, {"name": "task-2", "value": "task-arn-2"}]
@@ -80,7 +80,7 @@ def test_display_task_details_none(task_ui):
     # If we get here without exception, the test passes
 
 
-@patch("lazy_ecs.core.base.select_with_navigation")
+@patch("lazy_ecs.features.task.ui.select_with_auto_pagination")
 def test_select_task_feature_includes_show_task_details(mock_select, task_ui):
     """Test that task feature selection includes show task details as first option."""
     mock_select.return_value = "task_action:show_details"
@@ -101,7 +101,7 @@ def test_select_task_feature_includes_show_task_details(mock_select, task_ui):
     assert result == "task_action:show_details"
 
 
-@patch("lazy_ecs.core.base.select_with_navigation")
+@patch("lazy_ecs.features.task.ui.select_with_auto_pagination")
 def test_select_task_feature_show_history_is_second(mock_select, task_ui):
     """Test that show history is second option after show task details."""
     mock_select.return_value = "task_action:show_history"
@@ -117,3 +117,35 @@ def test_select_task_feature_show_history_is_second(mock_select, task_ui):
     # Check that "Show task history" is the second option
     assert choices[1]["name"] == "Show task history and failures"
     assert choices[1]["value"] == "task_action:show_history"
+
+
+@patch("lazy_ecs.features.task.ui.select_with_auto_pagination")
+def test_select_task_with_many_tasks(mock_select, task_ui):
+    task_info = [{"name": f"task-{i}", "value": f"task-arn-{i}"} for i in range(100)]
+    task_ui.task_service.get_task_info = Mock(return_value=task_info)
+    mock_select.return_value = "task-arn-50"
+
+    selected = task_ui.select_task("test-cluster", "web-api", "desired-task-def-arn")
+
+    assert selected == "task-arn-50"
+    mock_select.assert_called_once()
+
+    call_args = mock_select.call_args
+    choices = call_args[0][1]
+    assert len(choices) == 100
+
+
+@patch("lazy_ecs.features.task.ui.select_with_auto_pagination")
+def test_select_task_feature_with_many_containers(mock_select, task_ui):
+    containers = [{"name": f"container-{i}"} for i in range(10)]
+    task_details = {"containers": containers}
+    mock_select.return_value = "container_action:show_logs:container-5"
+
+    result = task_ui.select_task_feature(task_details)
+
+    assert result == "container_action:show_logs:container-5"
+    mock_select.assert_called_once()
+
+    call_args = mock_select.call_args
+    choices = call_args[0][1]
+    assert len(choices) == 62

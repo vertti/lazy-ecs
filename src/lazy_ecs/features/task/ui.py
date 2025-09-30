@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from ...core.base import BaseUIComponent
-from ...core.navigation import add_navigation_choices
+from ...core.navigation import add_navigation_choices, select_with_auto_pagination
 from ...core.types import TaskDetails, TaskHistoryDetails
 from ...core.utils import print_warning, show_spinner
 from .task import TaskService
@@ -43,7 +43,7 @@ class TaskUI(BaseUIComponent):
 
         choices = [{"name": task["name"], "value": task["value"]} for task in available_tasks]
 
-        selected = self.select_with_nav("Select a task:", choices, "Back to service selection")
+        selected = select_with_auto_pagination("Select a task:", choices, "Back to service selection")
 
         if selected:
             console.print("Task selected successfully!", style="blue")
@@ -112,10 +112,8 @@ class TaskUI(BaseUIComponent):
         if not containers:
             return None
 
-        # Build choices but don't add navigation - select_with_nav will handle it
         choices = []
 
-        # Add task-level features first - show task details as first option
         choices.extend(
             [
                 {"name": "Show task details", "value": "task_action:show_details"},
@@ -154,7 +152,7 @@ class TaskUI(BaseUIComponent):
                 ]
             )
 
-        return self.select_with_nav("Select a feature for this task:", choices, "Back to service selection")
+        return select_with_auto_pagination("Select a feature for this task:", choices, "Back to service selection")
 
     def display_task_history(self, cluster_name: str, service_name: str) -> None:
         """Display task history with failure analysis."""

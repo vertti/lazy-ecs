@@ -209,12 +209,50 @@ def test_get_cluster_names_empty():
         assert clusters == []
 
 
+def test_get_cluster_names_pagination():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+
+        for i in range(150):
+            client.create_cluster(clusterName=f"cluster-{i:03d}")
+
+        service = ECSService(client)
+        clusters = service.get_cluster_names()
+
+        assert len(clusters) == 150
+        assert "cluster-000" in clusters
+        assert "cluster-149" in clusters
+
+
 def test_get_services(ecs_client_with_services) -> None:
     service = ECSService(ecs_client_with_services)
     services = service.get_services("production")
 
     expected = ["web-api", "worker-service"]
     assert sorted(services) == sorted(expected)
+
+
+def test_get_services_pagination():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="app-task",
+            containerDefinitions=[{"name": "app", "image": "nginx", "memory": 256}],
+        )
+
+        for i in range(200):
+            client.create_service(
+                cluster="production", serviceName=f"service-{i:03d}", taskDefinition="app-task", desiredCount=1
+            )
+
+        service = ECSService(client)
+        services = service.get_services("production")
+
+        assert len(services) == 200
+        assert "service-000" in services
+        assert "service-199" in services
 
 
 def test_get_service_info(ecs_client_with_services) -> None:
@@ -238,6 +276,22 @@ def test_get_tasks(ecs_client_with_tasks) -> None:
     for task_arn in tasks:
         assert isinstance(task_arn, str)
         assert task_arn.startswith("arn:aws:ecs:")
+
+
+def test_get_tasks_pagination(mock_paginated_client) -> None:
+    task_arns = [f"arn:aws:ecs:us-east-1:123456789012:task/production/task-{i}" for i in range(200)]
+    pages = [{"taskArns": task_arns[i : i + 100]} for i in range(0, 200, 100)]
+    mock_client = mock_paginated_client(pages)
+
+    service = ECSService(mock_client)
+    tasks = service.get_tasks("production", "web-api")
+
+    assert len(tasks) == 200
+    for task_arn in tasks:
+        assert isinstance(task_arn, str)
+        assert task_arn.startswith("arn:aws:ecs:")
+
+    mock_client.get_paginator.assert_called_once_with("list_tasks")
 
 
 def test_get_task_info(ecs_client_with_tasks) -> None:

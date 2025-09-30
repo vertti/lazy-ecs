@@ -2,7 +2,6 @@
 
 from datetime import datetime
 from typing import Any
-from unittest.mock import Mock
 
 import pytest
 
@@ -129,15 +128,18 @@ class TestTaskHistoryService:
     """Test task history service methods."""
 
     @pytest.fixture
-    def mock_ecs_client(self):
+    def mock_ecs_client(self, mock_paginated_client):
         """Mock ECS client for testing."""
-        client = Mock()
-        client.list_tasks.return_value = {
-            "taskArns": [
-                "arn:aws:ecs:us-east-1:123456789012:task/cluster/running-task",
-                "arn:aws:ecs:us-east-1:123456789012:task/cluster/stopped-task",
-            ]
-        }
+        pages = [
+            {
+                "taskArns": [
+                    "arn:aws:ecs:us-east-1:123456789012:task/cluster/running-task",
+                    "arn:aws:ecs:us-east-1:123456789012:task/cluster/stopped-task",
+                ]
+            }
+        ]
+        client = mock_paginated_client(pages)
+
         client.describe_tasks.return_value = {
             "tasks": [
                 {
@@ -160,10 +162,12 @@ class TestTaskHistoryService:
         assert len(result) > 0
         assert any(task["last_status"] == "STOPPED" for task in result)
 
-    def test_get_task_history_handles_no_stopped_tasks(self, mock_ecs_client):
+    def test_get_task_history_handles_no_stopped_tasks(self, mock_paginated_client):
         """Test getting task history when no stopped tasks exist."""
-        mock_ecs_client.list_tasks.return_value = {"taskArns": []}
-        _service = TaskService(mock_ecs_client)
+        pages = [{"taskArns": []}]
+        client = mock_paginated_client(pages)
+
+        _service = TaskService(client)
 
         result = _service.get_task_history("test-cluster", "web-service")
         assert result == []

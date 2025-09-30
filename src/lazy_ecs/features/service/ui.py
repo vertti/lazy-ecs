@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.table import Table
 
 from ...core.base import BaseUIComponent
+from ...core.navigation import select_with_auto_pagination
 from ...core.types import TaskInfo
 from ...core.utils import show_spinner
 from .actions import ServiceActions
@@ -34,7 +35,7 @@ class ServiceUI(BaseUIComponent):
 
         choices = [{"name": info["name"], "value": f"service:{info['name'].split(' ')[1]}"} for info in service_info]
 
-        return self.select_with_nav("Select a service:", choices, "Back to cluster selection")
+        return select_with_auto_pagination("Select a service:", choices, "Back to cluster selection")
 
     def select_service_action(self, service_name: str, task_info: list[TaskInfo]) -> str | None:
         choices = []
@@ -45,7 +46,7 @@ class ServiceUI(BaseUIComponent):
         choices.append({"name": "📋 Show service events", "value": "action:show_events"})
         choices.append({"name": "🚀 Force new deployment", "value": "action:force_deployment"})
 
-        return self.select_with_nav(
+        return select_with_auto_pagination(
             f"Select action for service '{service_name}':", choices, "Back to cluster selection"
         )
 
