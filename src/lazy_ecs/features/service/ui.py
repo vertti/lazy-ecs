@@ -7,12 +7,15 @@ from rich.console import Console
 from rich.table import Table
 
 from ...core.base import BaseUIComponent
+from ...core.navigation import select_with_navigation, select_with_pagination
 from ...core.types import TaskInfo
 from ...core.utils import show_spinner
 from .actions import ServiceActions
 from .service import ServiceService
 
 console = Console()
+
+PAGINATION_THRESHOLD = 30
 
 
 class ServiceUI(BaseUIComponent):
@@ -34,7 +37,8 @@ class ServiceUI(BaseUIComponent):
 
         choices = [{"name": info["name"], "value": f"service:{info['name'].split(' ')[1]}"} for info in service_info]
 
-        return self.select_with_nav("Select a service:", choices, "Back to cluster selection")
+        select_fn = select_with_pagination if len(choices) > PAGINATION_THRESHOLD else select_with_navigation
+        return select_fn("Select a service:", choices, "Back to cluster selection")
 
     def select_service_action(self, service_name: str, task_info: list[TaskInfo]) -> str | None:
         choices = []
