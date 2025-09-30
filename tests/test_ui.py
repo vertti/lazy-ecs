@@ -109,7 +109,7 @@ def test_display_task_details_delegates_to_task_ui(mock_ecs_service) -> None:
     navigator._task_ui.display_task_details.assert_called_once_with(task_details)
 
 
-@patch("lazy_ecs.core.base.select_with_navigation")
+@patch("lazy_ecs.features.task.ui.select_with_navigation")
 def test_select_task_feature_with_containers(mock_select, mock_ecs_service) -> None:
     """Test task feature selection with containers."""
     from lazy_ecs.core.types import TaskDetails

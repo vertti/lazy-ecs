@@ -278,6 +278,30 @@ def test_get_tasks(ecs_client_with_tasks) -> None:
         assert task_arn.startswith("arn:aws:ecs:")
 
 
+def test_get_tasks_pagination() -> None:
+    from unittest.mock import Mock
+
+    mock_client = Mock()
+
+    task_arns = [f"arn:aws:ecs:us-east-1:123456789012:task/production/task-{i}" for i in range(200)]
+
+    mock_paginator = Mock()
+    mock_paginator.paginate.return_value = [{"taskArns": task_arns[i : i + 100]} for i in range(0, 200, 100)]
+
+    mock_client.get_paginator.return_value = mock_paginator
+
+    service = ECSService(mock_client)
+    tasks = service.get_tasks("production", "web-api")
+
+    assert len(tasks) == 200
+    for task_arn in tasks:
+        assert isinstance(task_arn, str)
+        assert task_arn.startswith("arn:aws:ecs:")
+
+    mock_client.get_paginator.assert_called_once_with("list_tasks")
+    mock_paginator.paginate.assert_called_once_with(cluster="production", serviceName="web-api")
+
+
 def test_get_task_info(ecs_client_with_tasks) -> None:
     service = ECSService(ecs_client_with_tasks)
     task_info = service.get_task_info("production", "web-api")

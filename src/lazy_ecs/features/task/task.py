@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from ...core.base import BaseAWSService
 from ...core.types import TaskDetails, TaskHistoryDetails, TaskInfo
+from ...core.utils import paginate_aws_list
 
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
@@ -19,8 +20,9 @@ class TaskService(BaseAWSService):
         super().__init__(ecs_client)
 
     def get_tasks(self, cluster_name: str, service_name: str) -> list[str]:
-        response = self.ecs_client.list_tasks(cluster=cluster_name, serviceName=service_name)
-        return response.get("taskArns", [])
+        return paginate_aws_list(
+            self.ecs_client, "list_tasks", "taskArns", cluster=cluster_name, serviceName=service_name
+        )
 
     def get_task_info(self, cluster_name: str, service_name: str, desired_task_def_arn: str | None) -> list[TaskInfo]:
         task_arns = self.get_tasks(cluster_name, service_name)
@@ -63,21 +65,35 @@ class TaskService(BaseAWSService):
 
         # Get running tasks
         if service_name:
-            running_response = self.ecs_client.list_tasks(
-                cluster=cluster_name, serviceName=service_name, desiredStatus="RUNNING"
+            running_arns = paginate_aws_list(
+                self.ecs_client,
+                "list_tasks",
+                "taskArns",
+                cluster=cluster_name,
+                serviceName=service_name,
+                desiredStatus="RUNNING",
             )
         else:
-            running_response = self.ecs_client.list_tasks(cluster=cluster_name, desiredStatus="RUNNING")
-        task_arns.extend(running_response.get("taskArns", []))
+            running_arns = paginate_aws_list(
+                self.ecs_client, "list_tasks", "taskArns", cluster=cluster_name, desiredStatus="RUNNING"
+            )
+        task_arns.extend(running_arns)
 
         # Get stopped tasks
         if service_name:
-            stopped_response = self.ecs_client.list_tasks(
-                cluster=cluster_name, serviceName=service_name, desiredStatus="STOPPED"
+            stopped_arns = paginate_aws_list(
+                self.ecs_client,
+                "list_tasks",
+                "taskArns",
+                cluster=cluster_name,
+                serviceName=service_name,
+                desiredStatus="STOPPED",
             )
         else:
-            stopped_response = self.ecs_client.list_tasks(cluster=cluster_name, desiredStatus="STOPPED")
-        task_arns.extend(stopped_response.get("taskArns", []))
+            stopped_arns = paginate_aws_list(
+                self.ecs_client, "list_tasks", "taskArns", cluster=cluster_name, desiredStatus="STOPPED"
+            )
+        task_arns.extend(stopped_arns)
 
         if not task_arns:
             return []

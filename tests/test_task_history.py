@@ -132,12 +132,18 @@ class TestTaskHistoryService:
     def mock_ecs_client(self):
         """Mock ECS client for testing."""
         client = Mock()
-        client.list_tasks.return_value = {
-            "taskArns": [
-                "arn:aws:ecs:us-east-1:123456789012:task/cluster/running-task",
-                "arn:aws:ecs:us-east-1:123456789012:task/cluster/stopped-task",
-            ]
-        }
+
+        mock_paginator = Mock()
+        mock_paginator.paginate.return_value = [
+            {
+                "taskArns": [
+                    "arn:aws:ecs:us-east-1:123456789012:task/cluster/running-task",
+                    "arn:aws:ecs:us-east-1:123456789012:task/cluster/stopped-task",
+                ]
+            }
+        ]
+        client.get_paginator.return_value = mock_paginator
+
         client.describe_tasks.return_value = {
             "tasks": [
                 {
@@ -162,7 +168,10 @@ class TestTaskHistoryService:
 
     def test_get_task_history_handles_no_stopped_tasks(self, mock_ecs_client):
         """Test getting task history when no stopped tasks exist."""
-        mock_ecs_client.list_tasks.return_value = {"taskArns": []}
+        mock_paginator = Mock()
+        mock_paginator.paginate.return_value = [{"taskArns": []}]
+        mock_ecs_client.get_paginator.return_value = mock_paginator
+
         _service = TaskService(mock_ecs_client)
 
         result = _service.get_task_history("test-cluster", "web-service")
