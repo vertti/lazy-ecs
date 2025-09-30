@@ -209,6 +209,21 @@ def test_get_cluster_names_empty():
         assert clusters == []
 
 
+def test_get_cluster_names_pagination():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+
+        for i in range(150):
+            client.create_cluster(clusterName=f"cluster-{i:03d}")
+
+        service = ECSService(client)
+        clusters = service.get_cluster_names()
+
+        assert len(clusters) == 150
+        assert "cluster-000" in clusters
+        assert "cluster-149" in clusters
+
+
 def test_get_services(ecs_client_with_services) -> None:
     service = ECSService(ecs_client_with_services)
     services = service.get_services("production")

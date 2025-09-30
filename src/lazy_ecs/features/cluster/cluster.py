@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ...core.base import BaseAWSService
-from ...core.utils import extract_name_from_arn
+from ...core.utils import extract_name_from_arn, paginate_aws_list
 
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
@@ -18,6 +18,5 @@ class ClusterService(BaseAWSService):
         super().__init__(ecs_client)
 
     def get_cluster_names(self) -> list[str]:
-        response = self.ecs_client.list_clusters()
-        cluster_arns = response.get("clusterArns", [])
+        cluster_arns = paginate_aws_list(self.ecs_client, "list_clusters", "clusterArns")
         return [extract_name_from_arn(arn) for arn in cluster_arns]
