@@ -6,6 +6,7 @@ from rich.console import Console
 
 from ...core.base import BaseUIComponent
 from ...core.navigation import handle_navigation, select_with_navigation
+from ...core.utils import show_spinner
 from .cluster import ClusterService
 
 console = Console()
@@ -20,7 +21,8 @@ class ClusterUI(BaseUIComponent):
 
     def select_cluster(self) -> str:
         """Interactive cluster selection."""
-        cluster_names = self.cluster_service.get_cluster_names()
+        with show_spinner():
+            cluster_names = self.cluster_service.get_cluster_names()
 
         if not cluster_names:
             console.print("❌ No ECS clusters found", style="red")

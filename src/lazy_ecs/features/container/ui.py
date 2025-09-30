@@ -8,7 +8,7 @@ from typing import cast
 from rich.console import Console
 
 from ...core.base import BaseUIComponent
-from ...core.utils import print_error
+from ...core.utils import print_error, show_spinner
 from .container import ContainerService
 
 console = Console()
@@ -23,7 +23,8 @@ class ContainerUI(BaseUIComponent):
 
     def show_container_logs(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
         """Display the last N lines of logs for a container."""
-        log_config = self.container_service.get_log_config(cluster_name, task_arn, container_name)
+        with show_spinner():
+            log_config = self.container_service.get_log_config(cluster_name, task_arn, container_name)
         if not log_config:
             print_error(f"Could not find log configuration for container '{container_name}'")
             console.print("Available log groups:", style="dim")
@@ -96,7 +97,8 @@ class ContainerUI(BaseUIComponent):
 
     def show_container_environment_variables(self, cluster_name: str, task_arn: str, container_name: str) -> None:
         """Display environment variables for a container."""
-        context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        with show_spinner():
+            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
         if not context:
             print_error(f"Could not find container '{container_name}'")
             return
@@ -121,7 +123,8 @@ class ContainerUI(BaseUIComponent):
 
     def show_container_secrets(self, cluster_name: str, task_arn: str, container_name: str) -> None:
         """Display secrets configuration for a container."""
-        context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        with show_spinner():
+            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
         if not context:
             print_error(f"Could not find container '{container_name}'")
             return
@@ -161,7 +164,8 @@ class ContainerUI(BaseUIComponent):
 
     def show_container_port_mappings(self, cluster_name: str, task_arn: str, container_name: str) -> None:
         """Display port mappings for a container."""
-        context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        with show_spinner():
+            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
         if not context:
             print_error(f"Could not find container '{container_name}'")
             return
@@ -186,7 +190,8 @@ class ContainerUI(BaseUIComponent):
 
     def show_container_volume_mounts(self, cluster_name: str, task_arn: str, container_name: str) -> None:
         """Display volume mounts for a container."""
-        context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        with show_spinner():
+            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
         if not context:
             print_error(f"Could not find container '{container_name}'")
             return

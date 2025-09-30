@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+
 from rich.console import Console
+from rich.spinner import Spinner
 
 console = Console()
 
@@ -37,3 +41,11 @@ def print_warning(message: str) -> None:
 
 def print_info(message: str) -> None:
     console.print(message, style="blue")
+
+
+@contextmanager
+def show_spinner() -> Iterator[None]:
+    """Context manager that shows a spinner while running operations."""
+    spinner = Spinner("dots", style="cyan")
+    with console.status(spinner):
+        yield
