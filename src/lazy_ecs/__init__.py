@@ -8,6 +8,7 @@ from rich.console import Console
 if TYPE_CHECKING:
     from mypy_boto3_ecs import ECSClient
     from mypy_boto3_logs.client import CloudWatchLogsClient
+    from mypy_boto3_sts.client import STSClient
 
 from .aws_service import ECSService
 from .core.navigation import handle_navigation, parse_selection
@@ -29,7 +30,8 @@ def main() -> None:
     try:
         ecs_client = _create_aws_client(args.profile)
         logs_client = _create_logs_client(args.profile)
-        ecs_service = ECSService(ecs_client, logs_client)
+        sts_client = _create_sts_client(args.profile)
+        ecs_service = ECSService(ecs_client, sts_client, logs_client)
         navigator = ECSNavigator(ecs_service)
 
         _navigate_clusters(navigator, ecs_service)
@@ -67,6 +69,19 @@ def _create_logs_client(profile_name: str | None) -> "CloudWatchLogsClient":
         session = boto3.Session(profile_name=profile_name)
         return session.client("logs", config=config)
     return boto3.client("logs", config=config)
+
+
+def _create_sts_client(profile_name: str | None) -> "STSClient":
+    """Create optimized STS client with connection pooling."""
+    config = Config(
+        max_pool_connections=5,  # Same config as ECS client
+        retries={"max_attempts": 2, "mode": "adaptive"},
+    )
+
+    if profile_name:
+        session = boto3.Session(profile_name=profile_name)
+        return session.client("sts", config=config)
+    return boto3.client("sts", config=config)
 
 
 def _navigate_clusters(navigator: ECSNavigator, ecs_service: ECSService) -> None:
@@ -145,6 +160,7 @@ def _handle_task_features(
             # Map action names to methods
             action_methods = {
                 "show_logs": navigator.show_container_logs,
+                "tail_logs": navigator.show_container_logs_live_tail,
                 "show_env": navigator.show_container_environment_variables,
                 "show_secrets": navigator.show_container_secrets,
                 "show_ports": navigator.show_container_port_mappings,
