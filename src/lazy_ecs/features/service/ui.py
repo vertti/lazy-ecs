@@ -8,6 +8,7 @@ from rich.table import Table
 
 from ...core.base import BaseUIComponent
 from ...core.types import TaskInfo
+from ...core.utils import show_spinner
 from .actions import ServiceActions
 from .service import ServiceService
 
@@ -24,7 +25,8 @@ class ServiceUI(BaseUIComponent):
 
     def select_service(self, cluster_name: str) -> str | None:
         """Interactive service selection with status information and navigation."""
-        service_info = self.service_service.get_service_info(cluster_name)
+        with show_spinner():
+            service_info = self.service_service.get_service_info(cluster_name)
 
         if not service_info:
             console.print(f"❌ No services found in cluster '{cluster_name}'", style="red")
@@ -35,7 +37,6 @@ class ServiceUI(BaseUIComponent):
         return self.select_with_nav("Select a service:", choices, "Back to cluster selection")
 
     def select_service_action(self, service_name: str, task_info: list[TaskInfo]) -> str | None:
-        """Present service action menu."""
         choices = []
 
         for task in task_info:
@@ -55,7 +56,8 @@ class ServiceUI(BaseUIComponent):
         ).ask()
 
         if confirm:
-            success = self.service_actions.force_new_deployment(cluster_name, service_name)
+            with show_spinner():
+                success = self.service_actions.force_new_deployment(cluster_name, service_name)
             if success:
                 console.print(f"✅ Successfully triggered deployment for '{service_name}'", style="green")
             else:
@@ -63,7 +65,8 @@ class ServiceUI(BaseUIComponent):
 
     def display_service_events(self, cluster_name: str, service_name: str) -> None:
         """Display service events in a Rich table."""
-        events = self.service_service.get_service_events(cluster_name, service_name)
+        with show_spinner():
+            events = self.service_service.get_service_events(cluster_name, service_name)
 
         if not events:
             console.print(f"No events found for service '{service_name}'", style="blue")
@@ -107,7 +110,6 @@ class ServiceUI(BaseUIComponent):
 
 
 def _get_event_type_style(event_type: str) -> str:
-    """Get Rich style for event type."""
     event_styles = {
         "deployment": "blue",
         "scaling": "yellow",

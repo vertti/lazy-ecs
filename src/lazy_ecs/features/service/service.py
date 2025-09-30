@@ -23,13 +23,11 @@ class ServiceService(BaseAWSService):
         super().__init__(ecs_client)
 
     def get_services(self, cluster_name: str) -> list[str]:
-        """Get list of service names in a cluster."""
         response = self.ecs_client.list_services(cluster=cluster_name)
         service_arns = response.get("serviceArns", [])
         return [extract_name_from_arn(arn) for arn in service_arns]
 
     def get_service_info(self, cluster_name: str) -> list[ServiceInfo]:
-        """Get detailed service information with status."""
         service_names = self.get_services(cluster_name)
         if not service_names:
             return []
@@ -39,7 +37,6 @@ class ServiceService(BaseAWSService):
         return [_create_service_info(service) for service in services]
 
     def get_desired_task_definition_arn(self, cluster_name: str, service_name: str) -> str | None:
-        """Get the desired task definition ARN for a service."""
         response = self.ecs_client.describe_services(cluster=cluster_name, services=[service_name])
         services = response.get("services", [])
         if services:
@@ -47,7 +44,6 @@ class ServiceService(BaseAWSService):
         return None
 
     def get_service_events(self, cluster_name: str, service_name: str) -> list[ServiceEvent]:
-        """Get recent events for a service."""
         response = self.ecs_client.describe_services(cluster=cluster_name, services=[service_name])
         services = response.get("services", [])
         if not services:

@@ -64,14 +64,12 @@ class ContainerService(BaseAWSService):
     def get_container_definition(
         self, task_definition: TaskDefinitionTypeDef, container_name: str
     ) -> ContainerDefinitionOutputTypeDef | None:
-        """Get container definition from task definition."""
         for container_def in task_definition["containerDefinitions"]:
             if container_def["name"] == container_name:
                 return container_def
         return None
 
     def get_log_config(self, cluster_name: str, task_arn: str, container_name: str) -> LogConfig | None:
-        """Get log configuration for a container."""
         context = self.get_container_context(cluster_name, task_arn, container_name)
         if not context:
             return None
@@ -93,17 +91,14 @@ class ContainerService(BaseAWSService):
         return {"log_group": log_group, "log_stream": log_stream}
 
     def get_environment_variables(self, context: ContainerContext) -> dict[str, str]:
-        """Get environment variables for a container."""
         environment = context.container_definition.get("environment", [])
         return {env_var["name"]: env_var["value"] for env_var in environment}
 
     def get_secrets(self, context: ContainerContext) -> dict[str, str]:
-        """Get secrets configuration for a container."""
         secrets = context.container_definition.get("secrets", [])
         return {secret["name"]: secret["valueFrom"] for secret in secrets}
 
     def get_container_logs(self, log_group: str, log_stream: str, lines: int = 50) -> list[OutputLogEventTypeDef]:
-        """Get container logs from CloudWatch."""
         if not self.logs_client:
             return []
         response = self.logs_client.get_log_events(
@@ -142,7 +137,6 @@ class ContainerService(BaseAWSService):
                 yield event
 
     def list_log_groups(self, cluster_name: str, container_name: str) -> list[str]:
-        """List available log groups for debugging."""
         if not self.logs_client:
             return []
 
@@ -158,12 +152,10 @@ class ContainerService(BaseAWSService):
         return relevant_groups
 
     def get_port_mappings(self, context: ContainerContext) -> list[dict[str, Any]]:
-        """Get port mappings for a container."""
         port_mappings = context.container_definition.get("portMappings", [])
         return [dict(mapping) for mapping in port_mappings]
 
     def get_volume_mounts(self, context: ContainerContext) -> list[dict[str, Any]]:
-        """Get volume mounts for a container."""
         mount_points = context.container_definition.get("mountPoints", [])
         if not mount_points:
             return []

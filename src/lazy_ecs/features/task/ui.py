@@ -11,7 +11,7 @@ from rich.table import Table
 from ...core.base import BaseUIComponent
 from ...core.navigation import add_navigation_choices
 from ...core.types import TaskDetails, TaskHistoryDetails
-from ...core.utils import print_warning
+from ...core.utils import print_warning, show_spinner
 from .task import TaskService
 
 console = Console()
@@ -161,7 +161,8 @@ class TaskUI(BaseUIComponent):
         console.print(f"\nTask History for service '{service_name}'", style="bold cyan")
         console.print("=" * SEPARATOR_WIDTH, style="dim")
 
-        task_history = self.task_service.get_task_history(cluster_name, service_name)
+        with show_spinner():
+            task_history = self.task_service.get_task_history(cluster_name, service_name)
 
         if not task_history:
             print_warning("No task history found for this service")
@@ -254,7 +255,6 @@ class TaskUI(BaseUIComponent):
 
 
 def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[str, str]]:
-    """Build feature choices for containers."""
     choices = []
 
     # Add task-level features first - show task details as first option

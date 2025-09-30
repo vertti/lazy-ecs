@@ -10,6 +10,7 @@ from .aws_service import ECSService
 from .core.base import BaseUIComponent
 from .core.navigation import add_navigation_choices
 from .core.types import TaskDetails
+from .core.utils import show_spinner
 from .features.cluster.cluster import ClusterService
 from .features.cluster.ui import ClusterUI
 from .features.container.ui import ContainerUI
@@ -48,12 +49,14 @@ class ECSNavigator(BaseUIComponent):
 
     def select_service_action(self, cluster_name: str, service_name: str) -> str | None:
         """Interactive selection combining tasks and service-level actions."""
-        task_info = self.ecs_service.get_task_info(cluster_name, service_name)
+        with show_spinner():
+            task_info = self.ecs_service.get_task_info(cluster_name, service_name)
         return self._service_ui.select_service_action(service_name, task_info)
 
     def select_task(self, cluster_name: str, service_name: str) -> str:
         """Interactive task selection - no auto-selection since users need to see service actions too."""
-        task_info = self.ecs_service.get_task_info(cluster_name, service_name)
+        with show_spinner():
+            task_info = self.ecs_service.get_task_info(cluster_name, service_name)
 
         if not task_info:
             console.print(f"❌ No tasks found for service '{service_name}'", style="red")
@@ -66,15 +69,12 @@ class ECSNavigator(BaseUIComponent):
         return selected or ""
 
     def display_task_details(self, task_details: TaskDetails | None) -> None:
-        """Display comprehensive task information."""
         return self._task_ui.display_task_details(task_details)
 
     def select_task_feature(self, task_details: TaskDetails | None) -> str | None:
-        """Present feature menu for the selected task."""
         return self._task_ui.select_task_feature(task_details)
 
     def show_container_logs(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
-        """Display the last N lines of logs for a container."""
         return self._container_ui.show_container_logs(cluster_name, task_arn, container_name, lines)
 
     def show_container_logs_live_tail(self, cluster_name: str, task_arn: str, container_name: str) -> None:
@@ -82,31 +82,24 @@ class ECSNavigator(BaseUIComponent):
         return self._container_ui.show_logs_live_tail(cluster_name, task_arn, container_name)
 
     def show_container_environment_variables(self, cluster_name: str, task_arn: str, container_name: str) -> None:
-        """Display environment variables for a container."""
         return self._container_ui.show_container_environment_variables(cluster_name, task_arn, container_name)
 
     def show_container_secrets(self, cluster_name: str, task_arn: str, container_name: str) -> None:
-        """Display secrets configuration for a container."""
         return self._container_ui.show_container_secrets(cluster_name, task_arn, container_name)
 
     def show_container_port_mappings(self, cluster_name: str, task_arn: str, container_name: str) -> None:
-        """Display port mappings for a container."""
         return self._container_ui.show_container_port_mappings(cluster_name, task_arn, container_name)
 
     def show_container_volume_mounts(self, cluster_name: str, task_arn: str, container_name: str) -> None:
-        """Display volume mounts for a container."""
         return self._container_ui.show_container_volume_mounts(cluster_name, task_arn, container_name)
 
     def handle_force_deployment(self, cluster_name: str, service_name: str) -> None:
-        """Handle force new deployment action."""
         return self._service_ui.handle_force_deployment(cluster_name, service_name)
 
     def show_service_events(self, cluster_name: str, service_name: str) -> None:
-        """Display service events."""
         return self._service_ui.display_service_events(cluster_name, service_name)
 
     def show_task_history(self, cluster_name: str, service_name: str) -> None:
-        """Display task history with failure analysis."""
         self._task_ui.display_task_history(cluster_name, service_name)
 
 

@@ -19,12 +19,10 @@ class TaskService(BaseAWSService):
         super().__init__(ecs_client)
 
     def get_tasks(self, cluster_name: str, service_name: str) -> list[str]:
-        """Get list of task ARNs for a service."""
         response = self.ecs_client.list_tasks(cluster=cluster_name, serviceName=service_name)
         return response.get("taskArns", [])
 
     def get_task_info(self, cluster_name: str, service_name: str, desired_task_def_arn: str | None) -> list[TaskInfo]:
-        """Get detailed task information with human-readable names."""
         task_arns = self.get_tasks(cluster_name, service_name)
         if not task_arns:
             return []
@@ -36,7 +34,6 @@ class TaskService(BaseAWSService):
     def get_task_details(
         self, cluster_name: str, task_arn: str, desired_task_def_arn: str | None
     ) -> TaskDetails | None:
-        """Get comprehensive task details."""
         result = self.get_task_and_definition(cluster_name, task_arn)
         if not result:
             return None
@@ -48,7 +45,6 @@ class TaskService(BaseAWSService):
     def get_task_and_definition(
         self, cluster_name: str, task_arn: str
     ) -> tuple[TaskTypeDef, TaskDefinitionTypeDef] | None:
-        """Get task and its task definition from ECS."""
         task_response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=[task_arn])
         tasks = task_response.get("tasks", [])
         if not tasks:

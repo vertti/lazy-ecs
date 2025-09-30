@@ -92,10 +92,17 @@ def select_with_navigation(prompt: str, choices: list[dict[str, str]], back_text
         # Add custom key binding for ESC key
         custom_bindings = KeyBindings()
 
-        @custom_bindings.add(Keys.Escape)
+        @custom_bindings.add(Keys.Escape, eager=True)
         def _(event: KeyPressEvent) -> None:
-            """Handle ESC key press by setting result to navigation:back."""
-            event.app.exit(result="navigation:back")
+            """Handle ESC key press by simulating 'b' + Enter key sequence."""
+            # Feed 'b' and Enter to the key processor without calling process_keys
+            from prompt_toolkit.key_binding.key_processor import KeyPress
+
+            # Feed both 'b' and Enter keys to the input queue
+            b_key = KeyPress("b", "")
+            enter_key = KeyPress(Keys.ControlM, "")  # Enter key
+            event.app.key_processor.feed(b_key)
+            event.app.key_processor.feed(enter_key)
 
         # Get the existing bindings and merge them
         if hasattr(question.application, "key_bindings") and question.application.key_bindings:
