@@ -42,19 +42,15 @@ class ECSService:
         self._container = ContainerService(ecs_client, self._task, sts_client, logs_client)
 
     def get_cluster_names(self) -> list[str]:
-        """Get list of ECS cluster names from AWS."""
         return self._cluster.get_cluster_names()
 
     def get_services(self, cluster_name: str) -> list[str]:
-        """Get list of service names in a cluster."""
         return self._service.get_services(cluster_name)
 
     def get_service_info(self, cluster_name: str) -> list[ServiceInfo]:
-        """Get detailed service information with status."""
         return self._service.get_service_info(cluster_name)
 
     def get_tasks(self, cluster_name: str, service_name: str) -> list[str]:
-        """Get list of task ARNs for a service."""
         return self._task.get_tasks(cluster_name, service_name)
 
     def _with_desired_task_definition(

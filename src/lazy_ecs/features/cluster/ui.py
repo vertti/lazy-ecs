@@ -20,7 +20,6 @@ class ClusterUI(BaseUIComponent):
         self.cluster_service = cluster_service
 
     def select_cluster(self) -> str:
-        """Interactive cluster selection."""
         with show_spinner():
             cluster_names = self.cluster_service.get_cluster_names()
 

@@ -255,7 +255,6 @@ class TaskUI(BaseUIComponent):
 
 
 def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[str, str]]:
-    """Build feature choices for containers."""
     choices = []
 
     # Add task-level features first - show task details as first option

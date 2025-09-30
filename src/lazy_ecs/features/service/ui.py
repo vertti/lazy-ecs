@@ -37,7 +37,6 @@ class ServiceUI(BaseUIComponent):
         return self.select_with_nav("Select a service:", choices, "Back to cluster selection")
 
     def select_service_action(self, service_name: str, task_info: list[TaskInfo]) -> str | None:
-        """Present service action menu."""
         choices = []
 
         for task in task_info:
@@ -111,7 +110,6 @@ class ServiceUI(BaseUIComponent):
 
 
 def _get_event_type_style(event_type: str) -> str:
-    """Get Rich style for event type."""
     event_styles = {
         "deployment": "blue",
         "scaling": "yellow",
