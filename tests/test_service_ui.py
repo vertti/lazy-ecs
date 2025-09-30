@@ -24,7 +24,7 @@ def service_ui(mock_ecs_client):
     return ServiceUI(service_service, service_actions)
 
 
-@patch("lazy_ecs.features.service.ui.select_with_navigation")
+@patch("lazy_ecs.features.service.ui.select_with_auto_pagination")
 def test_select_service_with_services(mock_select, service_ui):
     service_ui.service_service.get_service_info = Mock(
         return_value=[
@@ -45,8 +45,8 @@ def test_select_service_with_services(mock_select, service_ui):
     mock_select.assert_called_once()
 
 
-@patch("lazy_ecs.features.service.ui.select_with_pagination")
-def test_select_service_with_many_services(mock_select_pagination, service_ui):
+@patch("lazy_ecs.features.service.ui.select_with_auto_pagination")
+def test_select_service_with_many_services(mock_select, service_ui):
     service_info = []
     for i in range(100):
         service_info.append(
@@ -59,14 +59,14 @@ def test_select_service_with_many_services(mock_select_pagination, service_ui):
             }
         )
     service_ui.service_service.get_service_info = Mock(return_value=service_info)
-    mock_select_pagination.return_value = "service:service-50"
+    mock_select.return_value = "service:service-50"
 
     selected = service_ui.select_service("production")
 
     assert selected == "service:service-50"
-    mock_select_pagination.assert_called_once()
+    mock_select.assert_called_once()
 
-    call_args = mock_select_pagination.call_args
+    call_args = mock_select.call_args
     choices = call_args[0][1]
     assert len(choices) == 100
 
@@ -102,7 +102,7 @@ def test_select_service_navigation_back(mock_select, service_ui):
     mock_select.assert_called_once()
 
 
-@patch("lazy_ecs.features.service.ui.select_with_navigation")
+@patch("lazy_ecs.features.service.ui.select_with_auto_pagination")
 def test_select_service_action_with_tasks(mock_select, service_ui):
     task_info = [{"name": "task-1", "value": "task-arn-1"}]
     mock_select.return_value = "task:show_details:task-arn-1"
@@ -113,22 +113,22 @@ def test_select_service_action_with_tasks(mock_select, service_ui):
     mock_select.assert_called_once()
 
 
-@patch("lazy_ecs.features.service.ui.select_with_pagination")
-def test_select_service_action_with_many_tasks(mock_select_pagination, service_ui):
+@patch("lazy_ecs.features.service.ui.select_with_auto_pagination")
+def test_select_service_action_with_many_tasks(mock_select, service_ui):
     task_info = [{"name": f"task-{i}", "value": f"task-arn-{i}"} for i in range(100)]
-    mock_select_pagination.return_value = "task:show_details:task-arn-50"
+    mock_select.return_value = "task:show_details:task-arn-50"
 
     selected = service_ui.select_service_action("web-api", task_info)
 
     assert selected == "task:show_details:task-arn-50"
-    mock_select_pagination.assert_called_once()
+    mock_select.assert_called_once()
 
-    call_args = mock_select_pagination.call_args
+    call_args = mock_select.call_args
     choices = call_args[0][1]
     assert len(choices) == 102
 
 
-@patch("lazy_ecs.features.service.ui.select_with_navigation")
+@patch("lazy_ecs.features.service.ui.select_with_auto_pagination")
 def test_select_service_action_show_events(mock_select, service_ui):
     """Test service action selection for show events."""
     task_info = [{"name": "task-1", "value": "task-arn-1"}]

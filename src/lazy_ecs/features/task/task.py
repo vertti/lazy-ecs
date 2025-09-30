@@ -59,40 +59,21 @@ class TaskService(BaseAWSService):
 
         return task, task_definition
 
+    def _list_tasks_paginated(self, cluster_name: str, service_name: str | None, desired_status: str) -> list[str]:
+        """List tasks with optional service name filtering."""
+        kwargs = {"cluster": cluster_name, "desiredStatus": desired_status}
+        if service_name:
+            kwargs["serviceName"] = service_name
+        return paginate_aws_list(self.ecs_client, "list_tasks", "taskArns", **kwargs)
+
     def get_task_history(self, cluster_name: str, service_name: str | None = None) -> list[TaskHistoryDetails]:
         """Get task history including stopped tasks with failure information."""
         task_arns = []
 
-        # Get running tasks
-        if service_name:
-            running_arns = paginate_aws_list(
-                self.ecs_client,
-                "list_tasks",
-                "taskArns",
-                cluster=cluster_name,
-                serviceName=service_name,
-                desiredStatus="RUNNING",
-            )
-        else:
-            running_arns = paginate_aws_list(
-                self.ecs_client, "list_tasks", "taskArns", cluster=cluster_name, desiredStatus="RUNNING"
-            )
+        running_arns = self._list_tasks_paginated(cluster_name, service_name, "RUNNING")
         task_arns.extend(running_arns)
 
-        # Get stopped tasks
-        if service_name:
-            stopped_arns = paginate_aws_list(
-                self.ecs_client,
-                "list_tasks",
-                "taskArns",
-                cluster=cluster_name,
-                serviceName=service_name,
-                desiredStatus="STOPPED",
-            )
-        else:
-            stopped_arns = paginate_aws_list(
-                self.ecs_client, "list_tasks", "taskArns", cluster=cluster_name, desiredStatus="STOPPED"
-            )
+        stopped_arns = self._list_tasks_paginated(cluster_name, service_name, "STOPPED")
         task_arns.extend(stopped_arns)
 
         if not task_arns:

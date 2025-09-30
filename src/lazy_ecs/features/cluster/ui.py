@@ -5,13 +5,11 @@ from __future__ import annotations
 from rich.console import Console
 
 from ...core.base import BaseUIComponent
-from ...core.navigation import handle_navigation, select_with_navigation, select_with_pagination
+from ...core.navigation import handle_navigation, select_with_auto_pagination
 from ...core.utils import show_spinner
 from .cluster import ClusterService
 
 console = Console()
-
-PAGINATION_THRESHOLD = 30
 
 
 class ClusterUI(BaseUIComponent):
@@ -31,8 +29,7 @@ class ClusterUI(BaseUIComponent):
 
         choices = [{"name": name, "value": name} for name in cluster_names]
 
-        select_fn = select_with_pagination if len(choices) > PAGINATION_THRESHOLD else select_with_navigation
-        selected = select_fn("Select an ECS cluster:", choices, None)
+        selected = select_with_auto_pagination("Select an ECS cluster:", choices, None)
 
         should_continue, _should_exit = handle_navigation(selected)
         if not should_continue:

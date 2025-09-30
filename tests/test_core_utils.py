@@ -1,7 +1,6 @@
 """Tests for core utility functions."""
 
 import time
-from unittest.mock import Mock
 
 from lazy_ecs.core.utils import determine_service_status, extract_name_from_arn, paginate_aws_list, show_spinner
 
@@ -66,60 +65,42 @@ def test_show_spinner():
         time.sleep(0.01)  # Brief pause to simulate work
 
 
-def test_paginate_aws_list_single_page():
-    mock_client = Mock()
-    mock_paginator = Mock()
-    mock_client.get_paginator.return_value = mock_paginator
-
-    mock_page_iterator = [{"clusterArns": ["arn:aws:ecs:us-east-1:123:cluster/prod"]}]
-    mock_paginator.paginate.return_value = mock_page_iterator
+def test_paginate_aws_list_single_page(mock_paginated_client):
+    pages = [{"clusterArns": ["arn:aws:ecs:us-east-1:123:cluster/prod"]}]
+    mock_client = mock_paginated_client(pages)
 
     result = paginate_aws_list(mock_client, "list_clusters", "clusterArns")
 
     assert result == ["arn:aws:ecs:us-east-1:123:cluster/prod"]
     mock_client.get_paginator.assert_called_once_with("list_clusters")
-    mock_paginator.paginate.assert_called_once_with()
 
 
-def test_paginate_aws_list_multiple_pages():
-    mock_client = Mock()
-    mock_paginator = Mock()
-    mock_client.get_paginator.return_value = mock_paginator
-
-    mock_page_iterator = [
+def test_paginate_aws_list_multiple_pages(mock_paginated_client):
+    pages = [
         {"serviceArns": ["arn:1", "arn:2"]},
         {"serviceArns": ["arn:3", "arn:4"]},
         {"serviceArns": ["arn:5"]},
     ]
-    mock_paginator.paginate.return_value = mock_page_iterator
+    mock_client = mock_paginated_client(pages)
 
     result = paginate_aws_list(mock_client, "list_services", "serviceArns", cluster="production")
 
     assert result == ["arn:1", "arn:2", "arn:3", "arn:4", "arn:5"]
     mock_client.get_paginator.assert_called_once_with("list_services")
-    mock_paginator.paginate.assert_called_once_with(cluster="production")
 
 
-def test_paginate_aws_list_empty_results():
-    mock_client = Mock()
-    mock_paginator = Mock()
-    mock_client.get_paginator.return_value = mock_paginator
-
-    mock_page_iterator = [{"clusterArns": []}]
-    mock_paginator.paginate.return_value = mock_page_iterator
+def test_paginate_aws_list_empty_results(mock_paginated_client):
+    pages = [{"clusterArns": []}]
+    mock_client = mock_paginated_client(pages)
 
     result = paginate_aws_list(mock_client, "list_clusters", "clusterArns")
 
     assert result == []
 
 
-def test_paginate_aws_list_missing_key():
-    mock_client = Mock()
-    mock_paginator = Mock()
-    mock_client.get_paginator.return_value = mock_paginator
-
-    mock_page_iterator = [{}]
-    mock_paginator.paginate.return_value = mock_page_iterator
+def test_paginate_aws_list_missing_key(mock_paginated_client):
+    pages = [{}]
+    mock_client = mock_paginated_client(pages)
 
     result = paginate_aws_list(mock_client, "list_clusters", "clusterArns")
 

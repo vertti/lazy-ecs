@@ -8,6 +8,8 @@ from prompt_toolkit.key_binding.key_processor import KeyPressEvent
 from prompt_toolkit.keys import Keys
 from rich.console import Console
 
+PAGINATION_THRESHOLD = 30
+
 
 def parse_selection(selected: str | None) -> tuple[str, str, str]:
     """Parse selection into (type, value, extra). Returns ('unknown', selected, '') if no colon."""
@@ -168,3 +170,14 @@ def select_with_pagination(
             current_page -= 1
         else:
             return selected
+
+
+def select_with_auto_pagination(
+    prompt: str, choices: list[dict[str, str]], back_text: str | None, threshold: int = PAGINATION_THRESHOLD
+) -> str | None:
+    """Select with automatic pagination based on choice count.
+
+    Uses keyboard shortcuts for small lists (≤threshold), pagination for large lists (>threshold).
+    """
+    select_fn = select_with_pagination if len(choices) > threshold else select_with_navigation
+    return select_fn(prompt, choices, back_text)

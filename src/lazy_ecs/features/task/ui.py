@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from ...core.base import BaseUIComponent
-from ...core.navigation import add_navigation_choices, select_with_navigation, select_with_pagination
+from ...core.navigation import add_navigation_choices, select_with_auto_pagination
 from ...core.types import TaskDetails, TaskHistoryDetails
 from ...core.utils import print_warning, show_spinner
 from .task import TaskService
@@ -20,7 +20,6 @@ console = Console()
 MAX_RECENT_TASKS = 10
 MAX_STATUS_DETAILS_LENGTH = 50
 SEPARATOR_WIDTH = 80
-PAGINATION_THRESHOLD = 30
 
 
 class TaskUI(BaseUIComponent):
@@ -44,8 +43,7 @@ class TaskUI(BaseUIComponent):
 
         choices = [{"name": task["name"], "value": task["value"]} for task in available_tasks]
 
-        select_fn = select_with_pagination if len(choices) > PAGINATION_THRESHOLD else select_with_navigation
-        selected = select_fn("Select a task:", choices, "Back to service selection")
+        selected = select_with_auto_pagination("Select a task:", choices, "Back to service selection")
 
         if selected:
             console.print("Task selected successfully!", style="blue")
@@ -154,8 +152,7 @@ class TaskUI(BaseUIComponent):
                 ]
             )
 
-        select_fn = select_with_pagination if len(choices) > PAGINATION_THRESHOLD else select_with_navigation
-        return select_fn("Select a feature for this task:", choices, "Back to service selection")
+        return select_with_auto_pagination("Select a feature for this task:", choices, "Back to service selection")
 
     def display_task_history(self, cluster_name: str, service_name: str) -> None:
         """Display task history with failure analysis."""
