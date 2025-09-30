@@ -49,9 +49,8 @@ class ServiceUI(BaseUIComponent):
         choices.append({"name": "📋 Show service events", "value": "action:show_events"})
         choices.append({"name": "🚀 Force new deployment", "value": "action:force_deployment"})
 
-        return self.select_with_nav(
-            f"Select action for service '{service_name}':", choices, "Back to cluster selection"
-        )
+        select_fn = select_with_pagination if len(choices) > PAGINATION_THRESHOLD else select_with_navigation
+        return select_fn(f"Select action for service '{service_name}':", choices, "Back to cluster selection")
 
     def handle_force_deployment(self, cluster_name: str, service_name: str) -> None:
         """Handle force deployment confirmation and execution."""
