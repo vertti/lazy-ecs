@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
   "questionary==2.1.1",
-  "boto3==1.40.36",
+  "boto3==1.40.41",
   "rich==14.1.0",
 ]
 
