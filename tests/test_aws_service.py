@@ -232,6 +232,29 @@ def test_get_services(ecs_client_with_services) -> None:
     assert sorted(services) == sorted(expected)
 
 
+def test_get_services_pagination():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="app-task",
+            containerDefinitions=[{"name": "app", "image": "nginx", "memory": 256}],
+        )
+
+        for i in range(200):
+            client.create_service(
+                cluster="production", serviceName=f"service-{i:03d}", taskDefinition="app-task", desiredCount=1
+            )
+
+        service = ECSService(client)
+        services = service.get_services("production")
+
+        assert len(services) == 200
+        assert "service-000" in services
+        assert "service-199" in services
+
+
 def test_get_service_info(ecs_client_with_services) -> None:
     service = ECSService(ecs_client_with_services)
     service_info = service.get_service_info("production")

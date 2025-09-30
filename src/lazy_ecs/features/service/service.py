@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from ...core.base import BaseAWSService
 from ...core.types import ServiceEvent, ServiceInfo
-from ...core.utils import determine_service_status, extract_name_from_arn
+from ...core.utils import determine_service_status, extract_name_from_arn, paginate_aws_list
 
 if TYPE_CHECKING:
     from typing import Any
@@ -23,8 +23,7 @@ class ServiceService(BaseAWSService):
         super().__init__(ecs_client)
 
     def get_services(self, cluster_name: str) -> list[str]:
-        response = self.ecs_client.list_services(cluster=cluster_name)
-        service_arns = response.get("serviceArns", [])
+        service_arns = paginate_aws_list(self.ecs_client, "list_services", "serviceArns", cluster=cluster_name)
         return [extract_name_from_arn(arn) for arn in service_arns]
 
     def get_service_info(self, cluster_name: str) -> list[ServiceInfo]:
