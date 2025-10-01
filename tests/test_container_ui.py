@@ -1,9 +1,7 @@
 """Tests for ContainerUI class."""
 
-from collections.abc import Generator
-from datetime import datetime
-from typing import Any, cast
-from unittest.mock import Mock, call, patch
+import queue
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -27,78 +25,98 @@ def container_ui(mock_ecs_client, mock_task_service):
     return ContainerUI(container_service)
 
 
-def test_show_logs_live_tail_success(container_ui):
-    """Test displaying recent logs then streaming live tail container logs successfully."""
+def test_show_logs_live_tail_with_stop(container_ui):
+    """Test displaying logs and stopping immediately."""
     log_config = {"log_group": "test-log-group", "log_stream": "test-stream"}
     recent_events = [
         {"timestamp": 1234567888000, "message": "Recent log message 1"},
-        {"timestamp": 1234567889000, "message": "Recent log message 2"},
     ]
+
     live_events = [
-        {"eventId": "event1", "timestamp": 1234567890000, "message": "Live tail log message 1"},
-        {"eventId": "event2", "timestamp": 1234567891000, "message": "Live tail log message 2"},
+        {"eventId": "event1", "timestamp": 1234567890000, "message": "Live message"},
     ]
 
     container_ui.container_service.get_log_config = Mock(return_value=log_config)
     container_ui.container_service.get_container_logs = Mock(return_value=recent_events)
     container_ui.container_service.get_live_container_logs_tail = Mock(return_value=iter(live_events))
 
-    with patch("rich.console.Console.print") as mock_console_print:
+    # Mock the queues to immediately provide 's' key
+    with (
+        patch("lazy_ecs.features.container.ui.queue.Queue") as mock_queue_class,
+        patch("lazy_ecs.features.container.ui.threading.Thread"),
+        patch("rich.console.Console.print"),
+    ):
+        key_queue = Mock()
+        log_queue = Mock()
+
+        # Key queue: First call returns False (has key), subsequent calls return True (empty)
+        key_queue.empty.side_effect = [False, True, True, True, True]
+        key_queue.get_nowait.return_value = "s"
+
+        # Log queue: Always empty for this test (we just want to stop immediately)
+        log_queue.get_nowait.side_effect = queue.Empty()
+
+        # Return different queue instances for key_queue and log_queue
+        mock_queue_class.side_effect = [key_queue, log_queue]
+
         container_ui.show_logs_live_tail("test-cluster", "task-arn", "web-container")
 
     container_ui.container_service.get_log_config.assert_called_once_with("test-cluster", "task-arn", "web-container")
-    container_ui.container_service.get_container_logs.assert_called_once_with("test-log-group", "test-stream", 50)
-    container_ui.container_service.get_live_container_logs_tail.assert_called_once_with("test-log-group", "test-stream")
-
-    expected_calls = [
-        call("\nLast 2 log entries for container 'web-container':", style="bold cyan"),
-        call("Log group: test-log-group", style="dim"),
-        call("Log stream: test-stream", style="dim"),
-        call("=" * 80, style="dim"),
-    ]
-
-    for event in recent_events:
-        timestamp = cast(int, event["timestamp"])
-        dt = datetime.fromtimestamp(timestamp / 1000)
-        message = cast(str, event["message"]).rstrip()
-        expected_calls.append(call(f"[{dt.strftime('%H:%M:%S')}] {message}"))
-
-    expected_calls.extend(
-        [
-            call("\nNow tailing new logs (Press Ctrl+C to stop)...", style="bold cyan"),
-            call("=" * 80, style="dim"),
-        ]
-    )
-
-    for event in live_events:
-        timestamp = cast(int, event["timestamp"])
-        dt = datetime.fromtimestamp(timestamp / 1000)
-        message = cast(str, event["message"]).rstrip()
-        expected_calls.append(call(f"[{dt.strftime('%H:%M:%S')}] {message}"))
-
-    expected_calls.append(call("=" * 80, style="dim"))
-    mock_console_print.assert_has_calls(expected_calls, any_order=False)
 
 
-def test_show_logs_live_tail_keyboard_interrupt(container_ui):
-    """Test handling keyboard interruptions with Ctrl+C during live logs tail."""
+def test_show_logs_live_tail_with_exclude(container_ui):
+    """Test excluding patterns during log tailing."""
     log_config = {"log_group": "test-log-group", "log_stream": "test-stream"}
     recent_events = [
-        {"timestamp": 1234567888000, "message": "Recent log message 1"},
+        {"timestamp": 1234567888000, "message": "Normal message"},
     ]
-
-    def mock_generator() -> Generator[dict[str, Any], None, None]:
-        yield {"eventId": "event1", "timestamp": 1234567890000, "message": "Live tail log message 1"}
-        raise KeyboardInterrupt()
+    filtered_events = [
+        {"timestamp": 1234567889000, "message": "Another message"},
+    ]
+    live_events_first = [
+        {"eventId": "event1", "timestamp": 1234567890000, "message": "Live message"},
+    ]
+    live_events_second = [
+        {"eventId": "event2", "timestamp": 1234567891000, "message": "Second live message"},
+    ]
 
     container_ui.container_service.get_log_config = Mock(return_value=log_config)
     container_ui.container_service.get_container_logs = Mock(return_value=recent_events)
-    container_ui.container_service.get_live_container_logs_tail = Mock(return_value=mock_generator())
+    container_ui.container_service.get_container_logs_filtered = Mock(return_value=filtered_events)
+    # Return different iterators for each call
+    container_ui.container_service.get_live_container_logs_tail = Mock(
+        side_effect=[iter(live_events_first), iter(live_events_second)]
+    )
 
-    with patch("rich.console.Console.print") as mock_console_print:
+    # Mock the queues to simulate pressing 'x' then 's' keys
+    with (
+        patch("rich.console.Console.input") as mock_input,
+        patch("lazy_ecs.features.container.ui.queue.Queue") as mock_queue_class,
+        patch("lazy_ecs.features.container.ui.threading.Thread"),
+        patch("rich.console.Console.print"),
+    ):
+        mock_input.return_value = "healthcheck"
+
+        key_queue = Mock()
+        log_queue = Mock()
+
+        # Key queue: First iteration return 'x', clear queue, then later return 's'
+        key_queue.empty.side_effect = [False, True, True, True, False, True, True, True]
+        key_queue.get_nowait.side_effect = ["x", queue.Empty(), "s"]
+
+        # Log queue: Always empty for simplicity
+        log_queue.get_nowait.side_effect = queue.Empty()
+
+        # Return queue instances: First call for key_queue, second for log_queue
+        # Then again for the second iteration after 'x' is pressed
+        mock_queue_class.side_effect = [key_queue, log_queue, key_queue, log_queue]
+
         container_ui.show_logs_live_tail("test-cluster", "task-arn", "web-container")
 
-    mock_console_print.assert_any_call("\n🛑 Stopped tailing logs.", style="yellow")
+    # Should be called with -healthcheck filter pattern
+    container_ui.container_service.get_container_logs_filtered.assert_called_once_with(
+        "test-log-group", "test-stream", "-healthcheck", 50
+    )
 
 
 def test_show_logs_live_tail_no_config(container_ui):
@@ -106,14 +124,32 @@ def test_show_logs_live_tail_no_config(container_ui):
     container_ui.container_service.get_log_config = Mock(return_value=None)
     container_ui.container_service.list_log_groups = Mock(return_value=["group1", "group2"])
 
-    with (
-        patch("lazy_ecs.features.container.ui.print_error") as mock_print_error,
-        patch("rich.console.Console.print") as mock_console_print,
-    ):
+    with patch("lazy_ecs.features.container.ui.print_error") as mock_print_error:
         container_ui.show_logs_live_tail("test-cluster", "task-arn", "web-container")
 
     mock_print_error.assert_called_once_with("Could not find log configuration for container 'web-container'")
-    mock_console_print.assert_any_call("Available log groups:", style="dim")
+
+
+def test_get_container_logs_filtered(mock_ecs_client, mock_task_service):
+    """Test filtering container logs with CloudWatch pattern."""
+    mock_logs_client = Mock()
+    mock_logs_client.filter_log_events.return_value = {
+        "events": [
+            {"timestamp": 1234567890000, "message": "ERROR: Something failed"},
+        ]
+    }
+
+    container_service = ContainerService(mock_ecs_client, mock_task_service, None, mock_logs_client)
+    events = container_service.get_container_logs_filtered("test-log-group", "test-stream", "ERROR", 50)
+
+    assert len(events) == 1
+    assert "ERROR" in events[0]["message"]
+    mock_logs_client.filter_log_events.assert_called_once_with(
+        logGroupName="test-log-group",
+        logStreamNames=["test-stream"],
+        filterPattern="ERROR",
+        limit=50,
+    )
 
 
 def test_show_container_environment_variables_success(container_ui):

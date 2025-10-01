@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import queue
+import threading
+import time
 from datetime import datetime
-from typing import cast
+from typing import Any, cast
 
 from rich.console import Console
 
 from ...core.base import BaseUIComponent
-from ...core.utils import print_error, show_spinner
+from ...core.utils import print_error, show_spinner, wait_for_keypress
 from .container import ContainerService
 
 console = Console()
@@ -22,7 +25,7 @@ class ContainerUI(BaseUIComponent):
         self.container_service = container_service
 
     def show_logs_live_tail(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
-        """Display recent logs then continue streaming in real time for a container."""
+        """Display recent logs then continue streaming in real time for a container with interactive filtering."""
         log_config = self.container_service.get_log_config(cluster_name, task_arn, container_name)
         if not log_config:
             print_error(f"Could not find log configuration for container '{container_name}'")
@@ -35,8 +38,61 @@ class ContainerUI(BaseUIComponent):
         log_group_name = log_config.get("log_group")
         log_stream_name = log_config.get("log_stream")
 
-        # First, fetch and display recent logs
-        events = self.container_service.get_container_logs(log_group_name, log_stream_name, lines)
+        filter_pattern = ""
+        while True:
+            action = self._display_logs_with_tail(
+                container_name, log_group_name, log_stream_name, filter_pattern, lines
+            )
+
+            if action == "s":
+                console.print("\nStopped tailing logs.", style="yellow")
+                break
+            if action == "f":
+                console.print("\n" + "=" * 80, style="dim")
+                console.print("🔍 FILTER MODE - Enter CloudWatch filter pattern", style="bold cyan")
+                console.print("Examples:", style="dim")
+                console.print("  ERROR               - Include only ERROR", style="dim")
+                console.print("  -healthcheck        - Exclude healthcheck", style="dim")
+                console.print("  ERROR -healthcheck  - Include ERROR, exclude healthcheck", style="dim")
+                new_filter = console.input("Filter pattern → ").strip()
+                if new_filter:
+                    filter_pattern = new_filter
+                    console.print(f"✓ Filter applied: {filter_pattern}", style="green")
+            elif action == "x":
+                console.print("\n" + "=" * 80, style="dim")
+                console.print("📝 EXCLUDE MODE - Type the text you want to filter out", style="bold yellow")
+                console.print("Examples: 'healthcheck', 'session', 'INFO'", style="dim")
+                exclude_text = console.input("Exclude pattern → ").strip()
+                if exclude_text:
+                    filter_pattern = f"-{exclude_text}"
+                    console.print(f"✓ Excluding: {exclude_text}", style="green")
+            elif action == "c":
+                filter_pattern = ""
+                console.print("\n✓ Filter cleared", style="green")
+
+    def _display_logs_with_tail(
+        self,
+        container_name: str,
+        log_group_name: str,
+        log_stream_name: str,
+        filter_pattern: str,
+        lines: int,
+    ) -> str:
+        """Display historical logs then tail new logs with optional filtering.
+
+        Returns the action key pressed by the user (s=stop, f=filter, x=exclude, c=clear).
+        """
+        # Show filter status
+        if filter_pattern:
+            console.print(f"\n🔍 Active filter: {filter_pattern}", style="yellow")
+
+        # Fetch and display recent logs
+        if filter_pattern:
+            events = self.container_service.get_container_logs_filtered(
+                log_group_name, log_stream_name, filter_pattern, lines
+            )
+        else:
+            events = self.container_service.get_container_logs(log_group_name, log_stream_name, lines)
 
         console.print(f"\nLast {len(events)} log entries for container '{container_name}':", style="bold cyan")
         console.print(f"Log group: {log_group_name}", style="dim")
@@ -49,33 +105,104 @@ class ContainerUI(BaseUIComponent):
             message = event["message"].rstrip()
             dt = datetime.fromtimestamp(timestamp / 1000)
             console.print(f"[{dt.strftime('%H:%M:%S')}] {message}")
-            # Track these to avoid duplicates when tailing
             event_id = event.get("eventId")
             key = event_id or (timestamp, message)
             seen_logs.add(key)
 
-        # Then continue with live tail
-        console.print("\nNow tailing new logs (Press Ctrl+C to stop)...", style="bold cyan")
+        # Tail new logs with keyboard commands
+        console.print("\nTailing logs... Press: (s)top  (f)ilter  e(x)clude  (c)lear filter", style="bold cyan")
         console.print("=" * 80, style="dim")
 
+        stop_event = threading.Event()
+        key_queue: queue.Queue[str | None] = queue.Queue()
+        log_queue: queue.Queue[dict[str, Any] | None] = queue.Queue()
+
+        def keyboard_listener() -> None:
+            while not stop_event.is_set():
+                try:
+                    key = wait_for_keypress(stop_event)
+                    if key:
+                        key_queue.put(key)
+                except KeyboardInterrupt:
+                    key_queue.put(None)  # Signal interrupt
+                    raise
+
+        def log_reader() -> None:
+            """Read logs in separate thread to avoid blocking."""
+            try:
+                for event in self.container_service.get_live_container_logs_tail(
+                    log_group_name, log_stream_name, filter_pattern
+                ):
+                    if stop_event.is_set():
+                        break
+                    log_queue.put(cast(dict[str, Any], event))
+            except Exception:
+                pass  # Iterator exhausted or error
+            finally:
+                log_queue.put(None)  # Signal end of logs
+
+        keyboard_thread = threading.Thread(target=keyboard_listener, daemon=True)
+        keyboard_thread.start()
+
+        log_thread = threading.Thread(target=log_reader, daemon=True)
+        log_thread.start()
+
+        action_key = ""
+
         try:
-            for event in self.container_service.get_live_container_logs_tail(log_group_name, log_stream_name):
-                event_map = cast(dict, event)
-                event_id = event_map.get("eventId")
-                key = event_id or (event_map.get("timestamp"), event_map.get("message"))
-                if key in seen_logs:
-                    continue
-                seen_logs.add(key)
-                timestamp = event_map.get("timestamp")
-                message = str(event_map.get("message")).rstrip()
-                if timestamp:
-                    dt = datetime.fromtimestamp(int(timestamp) / 1000)
-                    console.print(f"[{dt.strftime('%H:%M:%S')}] {message}")
-                else:
-                    console.print(message)
+            while True:
+                # Check for keyboard input first (more responsive)
+                try:
+                    key = key_queue.get_nowait()
+                    if key in ("s", "f", "x", "c"):
+                        action_key = key
+                        stop_event.set()
+                        # Clear any extra keys that were pressed
+                        while not key_queue.empty():
+                            try:
+                                key_queue.get_nowait()
+                            except queue.Empty:
+                                break
+                        # Give immediate feedback
+                        if action_key == "f":
+                            console.print("\n[Entering filter mode...]", style="cyan")
+                        elif action_key == "x":
+                            console.print("\n[Entering exclude mode...]", style="yellow")
+                        elif action_key == "c":
+                            console.print("\n[Clearing filter...]", style="green")
+                        break
+                except queue.Empty:
+                    pass
+
+                # Check for new log events (non-blocking)
+                try:
+                    event = log_queue.get_nowait()
+                    if event is None:
+                        # End of logs signal
+                        pass
+                    else:
+                        event_map = event
+                        event_id = event_map.get("eventId")
+                        key_tuple = event_id or (event_map.get("timestamp"), event_map.get("message"))
+                        if key_tuple not in seen_logs:
+                            seen_logs.add(key_tuple)
+                            timestamp = event_map.get("timestamp")
+                            message = str(event_map.get("message")).rstrip()
+                            if timestamp:
+                                dt = datetime.fromtimestamp(int(timestamp) / 1000)
+                                console.print(f"[{dt.strftime('%H:%M:%S')}] {message}")
+                            else:
+                                console.print(message)
+                except queue.Empty:
+                    # No new logs, just wait a bit
+                    time.sleep(0.01)  # Very small delay to avoid busy-waiting
         except KeyboardInterrupt:
-            console.print("\n🛑 Stopped tailing logs.", style="yellow")
-        console.print("=" * 80, style="dim")
+            console.print("\n🛑 Interrupted.", style="yellow")
+            action_key = "s"
+        finally:
+            stop_event.set()
+
+        return action_key
 
     def show_container_environment_variables(self, cluster_name: str, task_arn: str, container_name: str) -> None:
         with show_spinner():

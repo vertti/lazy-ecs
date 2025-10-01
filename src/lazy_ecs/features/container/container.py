@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from mypy_boto3_ecs.type_defs import ContainerDefinitionOutputTypeDef, TaskDefinitionTypeDef
     from mypy_boto3_logs.client import CloudWatchLogsClient
     from mypy_boto3_logs.type_defs import (
+        FilteredLogEventTypeDef,
         LiveTailSessionLogEventTypeDef,
         OutputLogEventTypeDef,
         StartLiveTailResponseStreamTypeDef,
@@ -103,6 +104,20 @@ class ContainerService(BaseAWSService):
             return []
         response = self.logs_client.get_log_events(
             logGroupName=log_group, logStreamName=log_stream, limit=lines, startFromHead=False
+        )
+        return response.get("events", [])
+
+    def get_container_logs_filtered(
+        self, log_group: str, log_stream: str, filter_pattern: str, lines: int = 50
+    ) -> list[FilteredLogEventTypeDef]:
+        """Get container logs with CloudWatch filter pattern applied."""
+        if not self.logs_client:
+            return []
+        response = self.logs_client.filter_log_events(
+            logGroupName=log_group,
+            logStreamNames=[log_stream],
+            filterPattern=filter_pattern,
+            limit=lines,
         )
         return response.get("events", [])
 
