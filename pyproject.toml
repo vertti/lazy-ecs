@@ -7,11 +7,33 @@ authors = [
   { name = "Janne Sinivirta", email = "janne.sinivirta@gmail.com" },
 ]
 requires-python = ">=3.11"
+keywords = ["aws", "ecs", "cli", "terminal", "tui", "devops", "container", "fargate", "docker", "interactive"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: System :: Systems Administration",
+  "Topic :: Utilities",
+]
 dependencies = [
   "questionary==2.1.1",
   "boto3==1.40.41",
   "rich==14.1.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/vertti/lazy-ecs"
+Repository = "https://github.com/vertti/lazy-ecs"
+Issues = "https://github.com/vertti/lazy-ecs/issues"
+Documentation = "https://github.com/vertti/lazy-ecs#readme"
 
 [project.scripts]
 lazy-ecs = "lazy_ecs:main"
