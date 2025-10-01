@@ -32,6 +32,14 @@ class ContainerUI(BaseUIComponent):
         super().__init__()
         self.container_service = container_service
 
+    @staticmethod
+    def _format_log_entry(timestamp: int | None, message: str) -> str:
+        """Format a log entry with timestamp."""
+        if timestamp:
+            dt = datetime.fromtimestamp(timestamp / 1000)
+            return f"[{dt.strftime('%H:%M:%S')}] {message}"
+        return message
+
     def show_logs_live_tail(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
         """Display recent logs then continue streaming in real time for a container with interactive filtering."""
         log_config = self.container_service.get_log_config(cluster_name, task_arn, container_name)
@@ -104,8 +112,7 @@ class ContainerUI(BaseUIComponent):
         for event in events:
             timestamp = event["timestamp"]
             message = event["message"].rstrip()
-            dt = datetime.fromtimestamp(timestamp / 1000)
-            console.print(f"[{dt.strftime('%H:%M:%S')}] {message}")
+            console.print(self._format_log_entry(timestamp, message))
             event_id = event.get("eventId")
             key = event_id or (timestamp, message)
             seen_logs.add(key)
@@ -187,11 +194,7 @@ class ContainerUI(BaseUIComponent):
                             seen_logs.add(key_tuple)
                             timestamp = event_map.get("timestamp")
                             message = str(event_map.get("message")).rstrip()
-                            if timestamp:
-                                dt = datetime.fromtimestamp(int(timestamp) / 1000)
-                                console.print(f"[{dt.strftime('%H:%M:%S')}] {message}")
-                            else:
-                                console.print(message)
+                            console.print(self._format_log_entry(timestamp, message))
                 except queue.Empty:
                     # No new logs, just wait a bit
                     time.sleep(LOG_POLL_INTERVAL)  # Small delay to avoid busy-waiting
