@@ -114,7 +114,7 @@ def test_select_task_feature_with_containers(mock_select, mock_ecs_service) -> N
     """Test task feature selection with containers."""
     from lazy_ecs.core.types import TaskDetails
 
-    mock_select.return_value = "container_action:show_logs:web"
+    mock_select.return_value = "container_action:tail_logs:web"
 
     navigator = ECSNavigator(mock_ecs_service)
     task_details: TaskDetails = {
@@ -130,7 +130,7 @@ def test_select_task_feature_with_containers(mock_select, mock_ecs_service) -> N
 
     selected = navigator.select_task_feature(task_details)
 
-    assert selected == "container_action:show_logs:web"
+    assert selected == "container_action:tail_logs:web"
     mock_select.assert_called_once()
 
 
@@ -148,7 +148,6 @@ def test_container_methods_delegate_to_container_ui(mock_ecs_service) -> None:
     navigator = ECSNavigator(mock_ecs_service)
 
     # Mock all ContainerUI methods
-    navigator._container_ui.show_container_logs = Mock()
     navigator._container_ui.show_logs_live_tail = Mock()
     navigator._container_ui.show_container_environment_variables = Mock()
     navigator._container_ui.show_container_secrets = Mock()
@@ -156,7 +155,6 @@ def test_container_methods_delegate_to_container_ui(mock_ecs_service) -> None:
     navigator._container_ui.show_container_volume_mounts = Mock()
 
     # Test delegation
-    navigator.show_container_logs("cluster", "task", "container", 100)
     navigator.show_container_logs_live_tail("cluster", "task", "container")
     navigator.show_container_environment_variables("cluster", "task", "container")
     navigator.show_container_secrets("cluster", "task", "container")
@@ -164,7 +162,6 @@ def test_container_methods_delegate_to_container_ui(mock_ecs_service) -> None:
     navigator.show_container_volume_mounts("cluster", "task", "container")
 
     # Verify delegation
-    navigator._container_ui.show_container_logs.assert_called_once_with("cluster", "task", "container", 100)
     navigator._container_ui.show_logs_live_tail.assert_called_once_with("cluster", "task", "container")
     navigator._container_ui.show_container_environment_variables.assert_called_once_with("cluster", "task", "container")
     navigator._container_ui.show_container_secrets.assert_called_once_with("cluster", "task", "container")
@@ -194,15 +191,13 @@ def test_build_task_feature_choices() -> None:
     choice_values = [choice["value"] for choice in choices]
 
     # Check container actions are present
-    assert "Show tail of logs for container: web" in choice_names
-    assert "Show logs live tail for container: web" in choice_names
+    assert "Show logs (tail) for container: web" in choice_names
     assert "Show environment variables for container: web" in choice_names
     assert "Show secrets for container: web" in choice_names
     assert "Show port mappings for container: web" in choice_names
     assert "Show volume mounts for container: web" in choice_names
 
-    assert "Show tail of logs for container: sidecar" in choice_names
-    assert "Show logs live tail for container: sidecar" in choice_names
+    assert "Show logs (tail) for container: sidecar" in choice_names
     assert "Show environment variables for container: sidecar" in choice_names
     assert "Show secrets for container: sidecar" in choice_names
     assert "Show port mappings for container: sidecar" in choice_names
@@ -213,10 +208,10 @@ def test_build_task_feature_choices() -> None:
     assert "❌ Exit" in choice_names
 
     # Check values
-    assert "container_action:show_logs:web" in choice_values
+    assert "container_action:tail_logs:web" in choice_values
     assert "container_action:show_env:web" in choice_values
     assert "navigation:back" in choice_values
     assert "navigation:exit" in choice_values
 
-    # Total: 6 actions x 2 containers + 2 navigation = 14
-    assert len(choices) == 14
+    # Total: 5 actions x 2 containers + 2 navigation = 12
+    assert len(choices) == 12

@@ -126,11 +126,7 @@ class TaskUI(BaseUIComponent):
             choices.extend(
                 [
                     {
-                        "name": f"Show logs for '{container_name}'",
-                        "value": f"container_action:show_logs:{container_name}",
-                    },
-                    {
-                        "name": f"Show logs live tail for container '{container_name}'",
+                        "name": f"Show logs (tail) for container '{container_name}'",
                         "value": f"container_action:tail_logs:{container_name}",
                     },
                     {
@@ -276,8 +272,8 @@ def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[s
         choices.extend(
             [
                 {
-                    "name": f"Show logs for '{container_name}'",
-                    "value": f"container_action:show_logs:{container_name}",
+                    "name": f"Show logs (tail) for container '{container_name}'",
+                    "value": f"container_action:tail_logs:{container_name}",
                 },
                 {
                     "name": f"Show environment variables for '{container_name}'",

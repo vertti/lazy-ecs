@@ -139,13 +139,13 @@ def test_select_task_with_many_tasks(mock_select, task_ui):
 def test_select_task_feature_with_many_containers(mock_select, task_ui):
     containers = [{"name": f"container-{i}"} for i in range(10)]
     task_details = {"containers": containers}
-    mock_select.return_value = "container_action:show_logs:container-5"
+    mock_select.return_value = "container_action:tail_logs:container-5"
 
     result = task_ui.select_task_feature(task_details)
 
-    assert result == "container_action:show_logs:container-5"
+    assert result == "container_action:tail_logs:container-5"
     mock_select.assert_called_once()
 
     call_args = mock_select.call_args
     choices = call_args[0][1]
-    assert len(choices) == 62
+    assert len(choices) == 52

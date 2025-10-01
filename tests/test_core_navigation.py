@@ -15,8 +15,8 @@ from lazy_ecs.core.navigation import (
 
 def test_parse_selection_with_container_action():
     """Test parsing container action selection with three parts."""
-    result = parse_selection("container_action:show_logs:web")
-    assert result == ("container_action", "show_logs", "web")
+    result = parse_selection("container_action:tail_logs:web")
+    assert result == ("container_action", "tail_logs", "web")
 
 
 def test_parse_selection_with_two_parts():
