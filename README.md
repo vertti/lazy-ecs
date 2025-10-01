@@ -19,6 +19,19 @@ The AWS ECS web console is confusing to navigate, with multiple clicks through d
 
 ## Installation
 
+### Homebrew
+
+```bash
+# Add the tap
+brew tap vertti/lazy-ecs
+
+# Install lazy-ecs
+brew install lazy-ecs
+
+# Run it
+lazy-ecs
+```
+
 ### pipx
 
 [pipx](https://pipx.pypa.io/) installs Python CLI tools in isolated environments:
@@ -35,17 +48,36 @@ pipx install lazy-ecs
 lazy-ecs
 ```
 
-### Homebrew
+### Docker
+
+Run lazy-ecs using Docker without installing Python:
 
 ```bash
-# Add the tap
-brew tap vertti/lazy-ecs
+# With aws-vault (temporary credentials)
+aws-vault exec your-profile -- docker run -it --rm \
+  -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e AWS_REGION \
+  vertti/lazy-ecs
 
-# Install lazy-ecs
-brew install lazy-ecs
+# With IAM credentials (long-lived)
+docker run -it --rm \
+  -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_REGION \
+  vertti/lazy-ecs
 
-# Run it
-lazy-ecs
+# With AWS credentials file
+docker run -it --rm -v ~/.aws:/home/lazyecs/.aws:ro vertti/lazy-ecs
+
+# With specific profile
+docker run -it --rm -v ~/.aws:/home/lazyecs/.aws:ro -e AWS_PROFILE=your-profile vertti/lazy-ecs
+```
+
+**Pro tip:** Create an alias for easier usage:
+
+```bash
+# Add to your ~/.bashrc or ~/.zshrc
+alias lazy-ecs-docker='docker run -it --rm -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e AWS_REGION vertti/lazy-ecs'
+
+# Then use with aws-vault
+aws-vault exec your-profile -- lazy-ecs-docker
 ```
 
 ### From Source
