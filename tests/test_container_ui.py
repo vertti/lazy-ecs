@@ -27,51 +27,50 @@ def container_ui(mock_ecs_client, mock_task_service):
     return ContainerUI(container_service)
 
 
-def test_show_container_logs_success(container_ui):
-    """Test displaying container logs successfully."""
-    log_config = {"log_group": "test-log-group", "log_stream": "test-stream"}
-    events = [
-        {"timestamp": 1234567890000, "message": "Test log message 1"},
-        {"timestamp": 1234567891000, "message": "Test log message 2"},
-    ]
-
-    container_ui.container_service.get_log_config = Mock(return_value=log_config)
-    container_ui.container_service.get_container_logs = Mock(return_value=events)
-
-    container_ui.show_container_logs("test-cluster", "task-arn", "web-container", 50)
-
-    container_ui.container_service.get_log_config.assert_called_once_with("test-cluster", "task-arn", "web-container")
-    container_ui.container_service.get_container_logs.assert_called_once_with("test-log-group", "test-stream", 50)
-
-
 def test_show_logs_live_tail_success(container_ui):
-    """Test displaying live tail container logs successfully."""
+    """Test displaying recent logs then streaming live tail container logs successfully."""
     log_config = {"log_group": "test-log-group", "log_stream": "test-stream"}
-    events = [
+    recent_events = [
+        {"timestamp": 1234567888000, "message": "Recent log message 1"},
+        {"timestamp": 1234567889000, "message": "Recent log message 2"},
+    ]
+    live_events = [
         {"eventId": "event1", "timestamp": 1234567890000, "message": "Live tail log message 1"},
         {"eventId": "event2", "timestamp": 1234567891000, "message": "Live tail log message 2"},
-        {"eventId": "event3", "timestamp": 1234567892000, "message": "Live tail log message 3"},
-        {"eventId": "event4", "timestamp": 1234567893000, "message": "Live tail log message 4"},
     ]
 
     container_ui.container_service.get_log_config = Mock(return_value=log_config)
-    container_ui.container_service.get_live_container_logs_tail = Mock(return_value=iter(events))
+    container_ui.container_service.get_container_logs = Mock(return_value=recent_events)
+    container_ui.container_service.get_live_container_logs_tail = Mock(return_value=iter(live_events))
 
     with patch("rich.console.Console.print") as mock_console_print:
         container_ui.show_logs_live_tail("test-cluster", "task-arn", "web-container")
 
     container_ui.container_service.get_log_config.assert_called_once_with("test-cluster", "task-arn", "web-container")
+    container_ui.container_service.get_container_logs.assert_called_once_with("test-log-group", "test-stream", 50)
     container_ui.container_service.get_live_container_logs_tail.assert_called_once_with("test-log-group", "test-stream")
 
     expected_calls = [
-        call("\n🚀 Tailing logs for container 'web-container':", style="bold cyan"),
-        call("log group: test-log-group", style="dim"),
-        call("log stream: test-stream", style="dim"),
-        call("Press Ctrl+C to stop.", style="dim"),
+        call("\nLast 2 log entries for container 'web-container':", style="bold cyan"),
+        call("Log group: test-log-group", style="dim"),
+        call("Log stream: test-stream", style="dim"),
         call("=" * 80, style="dim"),
     ]
 
-    for event in events:
+    for event in recent_events:
+        timestamp = cast(int, event["timestamp"])
+        dt = datetime.fromtimestamp(timestamp / 1000)
+        message = cast(str, event["message"]).rstrip()
+        expected_calls.append(call(f"[{dt.strftime('%H:%M:%S')}] {message}"))
+
+    expected_calls.extend(
+        [
+            call("\nNow tailing new logs (Press Ctrl+C to stop)...", style="bold cyan"),
+            call("=" * 80, style="dim"),
+        ]
+    )
+
+    for event in live_events:
         timestamp = cast(int, event["timestamp"])
         dt = datetime.fromtimestamp(timestamp / 1000)
         message = cast(str, event["message"]).rstrip()
@@ -84,12 +83,16 @@ def test_show_logs_live_tail_success(container_ui):
 def test_show_logs_live_tail_keyboard_interrupt(container_ui):
     """Test handling keyboard interruptions with Ctrl+C during live logs tail."""
     log_config = {"log_group": "test-log-group", "log_stream": "test-stream"}
+    recent_events = [
+        {"timestamp": 1234567888000, "message": "Recent log message 1"},
+    ]
 
     def mock_generator() -> Generator[dict[str, Any], None, None]:
         yield {"eventId": "event1", "timestamp": 1234567890000, "message": "Live tail log message 1"}
         raise KeyboardInterrupt()
 
     container_ui.container_service.get_log_config = Mock(return_value=log_config)
+    container_ui.container_service.get_container_logs = Mock(return_value=recent_events)
     container_ui.container_service.get_live_container_logs_tail = Mock(return_value=mock_generator())
 
     with patch("rich.console.Console.print") as mock_console_print:
@@ -111,30 +114,6 @@ def test_show_logs_live_tail_no_config(container_ui):
 
     mock_print_error.assert_called_once_with("Could not find log configuration for container 'web-container'")
     mock_console_print.assert_any_call("Available log groups:", style="dim")
-
-
-def test_show_container_logs_no_config(container_ui):
-    """Test displaying container logs with no log configuration."""
-    container_ui.container_service.get_log_config = Mock(return_value=None)
-    container_ui.container_service.list_log_groups = Mock(return_value=["group1", "group2"])
-
-    container_ui.show_container_logs("test-cluster", "task-arn", "web-container", 50)
-
-    container_ui.container_service.get_log_config.assert_called_once_with("test-cluster", "task-arn", "web-container")
-    container_ui.container_service.list_log_groups.assert_called_once_with("test-cluster", "web-container")
-
-
-def test_show_container_logs_no_events(container_ui):
-    """Test displaying container logs with no events."""
-    log_config = {"log_group": "test-log-group", "log_stream": "test-stream"}
-
-    container_ui.container_service.get_log_config = Mock(return_value=log_config)
-    container_ui.container_service.get_container_logs = Mock(return_value=[])
-
-    container_ui.show_container_logs("test-cluster", "task-arn", "web-container", 50)
-
-    container_ui.container_service.get_log_config.assert_called_once_with("test-cluster", "task-arn", "web-container")
-    container_ui.container_service.get_container_logs.assert_called_once_with("test-log-group", "test-stream", 50)
 
 
 def test_show_container_environment_variables_success(container_ui):

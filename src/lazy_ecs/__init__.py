@@ -161,7 +161,6 @@ def _handle_task_features(
         if selection_type == "container_action":
             # Map action names to methods
             action_methods = {
-                "show_logs": navigator.show_container_logs,
                 "tail_logs": navigator.show_container_logs_live_tail,
                 "show_env": navigator.show_container_environment_variables,
                 "show_secrets": navigator.show_container_secrets,

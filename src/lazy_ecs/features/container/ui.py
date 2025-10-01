@@ -21,42 +21,8 @@ class ContainerUI(BaseUIComponent):
         super().__init__()
         self.container_service = container_service
 
-    def show_container_logs(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
-        with show_spinner():
-            log_config = self.container_service.get_log_config(cluster_name, task_arn, container_name)
-        if not log_config:
-            print_error(f"Could not find log configuration for container '{container_name}'")
-            console.print("Available log groups:", style="dim")
-            log_groups = self.container_service.list_log_groups(cluster_name, container_name)
-            for group in log_groups:
-                console.print(f"  • {group}", style="cyan")
-            return
-
-        log_group_name = log_config["log_group"]
-        log_stream_name = log_config["log_stream"]
-
-        events = self.container_service.get_container_logs(log_group_name, log_stream_name, lines)
-
-        if not events:
-            console.print(
-                f"📝 No logs found for container '{container_name}' in stream '{log_stream_name}'", style="yellow"
-            )
-            return
-
-        console.print(f"\n📋 Last {len(events)} log entries for container '{container_name}':", style="bold cyan")
-        console.print(f"Log group: {log_group_name}", style="dim")
-        console.print(f"Log stream: {log_stream_name}", style="dim")
-        console.print("=" * 80, style="dim")
-
-        for event in events:
-            timestamp = datetime.fromtimestamp(event["timestamp"] / 1000)
-            message = event["message"].rstrip()
-            console.print(f"[{timestamp.strftime('%H:%M:%S')}] {message}")
-
-        console.print("=" * 80, style="dim")
-
-    def show_logs_live_tail(self, cluster_name: str, task_arn: str, container_name: str) -> None:
-        """Display logs in real time for a container."""
+    def show_logs_live_tail(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
+        """Display recent logs then continue streaming in real time for a container."""
         log_config = self.container_service.get_log_config(cluster_name, task_arn, container_name)
         if not log_config:
             print_error(f"Could not find log configuration for container '{container_name}'")
@@ -68,13 +34,30 @@ class ContainerUI(BaseUIComponent):
 
         log_group_name = log_config.get("log_group")
         log_stream_name = log_config.get("log_stream")
-        console.print(f"\n🚀 Tailing logs for container '{container_name}':", style="bold cyan")
-        console.print(f"log group: {log_group_name}", style="dim")
-        console.print(f"log stream: {log_stream_name}", style="dim")
-        console.print("Press Ctrl+C to stop.", style="dim")
+
+        # First, fetch and display recent logs
+        events = self.container_service.get_container_logs(log_group_name, log_stream_name, lines)
+
+        console.print(f"\nLast {len(events)} log entries for container '{container_name}':", style="bold cyan")
+        console.print(f"Log group: {log_group_name}", style="dim")
+        console.print(f"Log stream: {log_stream_name}", style="dim")
         console.print("=" * 80, style="dim")
 
         seen_logs = set()
+        for event in events:
+            timestamp = event["timestamp"]
+            message = event["message"].rstrip()
+            dt = datetime.fromtimestamp(timestamp / 1000)
+            console.print(f"[{dt.strftime('%H:%M:%S')}] {message}")
+            # Track these to avoid duplicates when tailing
+            event_id = event.get("eventId")
+            key = event_id or (timestamp, message)
+            seen_logs.add(key)
+
+        # Then continue with live tail
+        console.print("\nNow tailing new logs (Press Ctrl+C to stop)...", style="bold cyan")
+        console.print("=" * 80, style="dim")
+
         try:
             for event in self.container_service.get_live_container_logs_tail(log_group_name, log_stream_name):
                 event_map = cast(dict, event)
