@@ -5,6 +5,7 @@ from __future__ import annotations
 import queue
 import threading
 import time
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, cast
 
@@ -25,20 +26,33 @@ KEY_CLEAR = "c"
 VALID_ACTION_KEYS = (KEY_STOP, KEY_FILTER, KEY_CLEAR)
 
 
+@dataclass
+class LogEvent:
+    """Represents a log event from CloudWatch."""
+
+    timestamp: int | None
+    message: str
+    event_id: str | None = None
+
+    @property
+    def key(self) -> tuple[Any, ...] | str:
+        """Get unique key for deduplication."""
+        return self.event_id if self.event_id else (self.timestamp, self.message)
+
+    def format(self) -> str:
+        """Format the log event for display."""
+        if self.timestamp:
+            dt = datetime.fromtimestamp(self.timestamp / 1000)
+            return f"[{dt.strftime('%H:%M:%S')}] {self.message}"
+        return self.message
+
+
 class ContainerUI(BaseUIComponent):
     """UI component for container display."""
 
     def __init__(self, container_service: ContainerService) -> None:
         super().__init__()
         self.container_service = container_service
-
-    @staticmethod
-    def _format_log_entry(timestamp: int | None, message: str) -> str:
-        """Format a log entry with timestamp."""
-        if timestamp:
-            dt = datetime.fromtimestamp(timestamp / 1000)
-            return f"[{dt.strftime('%H:%M:%S')}] {message}"
-        return message
 
     @staticmethod
     def _drain_queue(q: queue.Queue[Any]) -> None:
@@ -119,12 +133,14 @@ class ContainerUI(BaseUIComponent):
 
         seen_logs = set()
         for event in events:
-            timestamp = event["timestamp"]
-            message = event["message"].rstrip()
-            console.print(self._format_log_entry(timestamp, message))
             event_id = event.get("eventId")
-            key = event_id or (timestamp, message)
-            seen_logs.add(key)
+            log_event = LogEvent(
+                timestamp=event["timestamp"],
+                message=event["message"].rstrip(),
+                event_id=event_id if isinstance(event_id, str) else None,
+            )
+            console.print(log_event.format())
+            seen_logs.add(log_event.key)
 
         # Tail new logs with keyboard commands
         console.print("\nTailing logs... Press: (s)top  (f)ilter  (c)lear filter", style="bold cyan")
@@ -191,14 +207,15 @@ class ContainerUI(BaseUIComponent):
                         # End of logs signal
                         pass
                     else:
-                        event_map = event
-                        event_id = event_map.get("eventId")
-                        key_tuple = event_id or (event_map.get("timestamp"), event_map.get("message"))
-                        if key_tuple not in seen_logs:
-                            seen_logs.add(key_tuple)
-                            timestamp = event_map.get("timestamp")
-                            message = str(event_map.get("message")).rstrip()
-                            console.print(self._format_log_entry(timestamp, message))
+                        event_id = event.get("eventId")
+                        log_event = LogEvent(
+                            timestamp=event.get("timestamp"),
+                            message=str(event.get("message", "")).rstrip(),
+                            event_id=event_id if isinstance(event_id, str) else None,
+                        )
+                        if log_event.key not in seen_logs:
+                            seen_logs.add(log_event.key)
+                            console.print(log_event.format())
                 except queue.Empty:
                     # No new logs, just wait a bit
                     time.sleep(LOG_POLL_INTERVAL)  # Small delay to avoid busy-waiting
