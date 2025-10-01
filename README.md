@@ -78,7 +78,8 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 ### Container-Level Features 🚀
 
 - ✅ **Container log viewing** - Display recent logs with timestamps from CloudWatch
-- ✅ **Container log live tail viewing** - Display logs live tail with timestamps from CloudWatch
+- ✅ **Container log live tail viewing** - Real-time log streaming with instant keyboard shortcuts
+- ✅ **Log filtering** - CloudWatch filter patterns (include/exclude) during live tail
 - ✅ **Basic container details** - Show container name, image, CPU/memory configuration
 - ✅ **Show environment variables & secrets** - Display environment variables and secrets configuration (without exposing secret values)
 - ✅ **Show port mappings** - Display container port configurations and networking
@@ -124,8 +125,8 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 ### Advanced Features 🎯
 
 - ⬜ **Enhanced log features**:
-  - ⬜ Search/filter logs by keywords or time range
-  - ✅ Follow logs in real-time (tail -f style) - complex UI implementation
+  - ✅ Search/filter logs by keywords (CloudWatch patterns with include/exclude)
+  - ✅ Follow logs in real-time (tail -f style) with responsive keyboard shortcuts
   - ⬜ Download logs to file
 - ⬜ **Monitoring integration**:
   - ⬜ Show CloudWatch metrics for containers/tasks

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator
+from contextlib import suppress
 from os import environ
 from typing import TYPE_CHECKING, Any
 
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
     from mypy_boto3_ecs.type_defs import ContainerDefinitionOutputTypeDef, TaskDefinitionTypeDef
     from mypy_boto3_logs.client import CloudWatchLogsClient
     from mypy_boto3_logs.type_defs import (
+        FilteredLogEventTypeDef,
         LiveTailSessionLogEventTypeDef,
         OutputLogEventTypeDef,
         StartLiveTailResponseStreamTypeDef,
@@ -106,6 +108,20 @@ class ContainerService(BaseAWSService):
         )
         return response.get("events", [])
 
+    def get_container_logs_filtered(
+        self, log_group: str, log_stream: str, filter_pattern: str, lines: int = 50
+    ) -> list[FilteredLogEventTypeDef]:
+        """Get container logs with CloudWatch filter pattern applied."""
+        if not self.logs_client:
+            return []
+        response = self.logs_client.filter_log_events(
+            logGroupName=log_group,
+            logStreamNames=[log_stream],
+            filterPattern=filter_pattern,
+            limit=lines,
+        )
+        return response.get("events", [])
+
     def get_live_container_logs_tail(
         self, log_group: str, log_stream: str, event_filter_pattern: str = ""
     ) -> Generator[StartLiveTailResponseStreamTypeDef | LiveTailSessionLogEventTypeDef]:
@@ -127,14 +143,20 @@ class ContainerService(BaseAWSService):
             logEventFilterPattern=event_filter_pattern,
         )
         response_stream = response.get("responseStream")
-        for event in response_stream:
-            if "sessionStart" in event:
-                continue
-            elif "sessionUpdate" in event:
-                log_events = event.get("sessionUpdate", {}).get("sessionResults", [])
-                yield from log_events
-            else:
-                yield event
+        try:
+            for event in response_stream:
+                if "sessionStart" in event:
+                    continue
+                elif "sessionUpdate" in event:
+                    log_events = event.get("sessionUpdate", {}).get("sessionResults", [])
+                    yield from log_events
+                else:
+                    yield event
+        finally:
+            # Properly close the response stream
+            if hasattr(response_stream, "close"):
+                with suppress(Exception):
+                    response_stream.close()
 
     def list_log_groups(self, cluster_name: str, container_name: str) -> list[str]:
         if not self.logs_client:

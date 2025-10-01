@@ -2,16 +2,23 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import cast
+import queue
+import threading
+import time
+from contextlib import suppress
+from typing import Any, cast
 
 from rich.console import Console
 
 from ...core.base import BaseUIComponent
-from ...core.utils import print_error, show_spinner
+from ...core.utils import print_error, show_spinner, wait_for_keypress
 from .container import ContainerService
+from .models import Action, LogEvent
 
 console = Console()
+
+SEPARATOR_WIDTH = 80
+LOG_POLL_INTERVAL = 0.01  # seconds
 
 
 class ContainerUI(BaseUIComponent):
@@ -21,8 +28,17 @@ class ContainerUI(BaseUIComponent):
         super().__init__()
         self.container_service = container_service
 
+    @staticmethod
+    def _drain_queue(q: queue.Queue[Any]) -> None:
+        """Drain all items from a queue without blocking."""
+        while not q.empty():
+            try:
+                q.get_nowait()
+            except queue.Empty:
+                break
+
     def show_logs_live_tail(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
-        """Display recent logs then continue streaming in real time for a container."""
+        """Display recent logs then continue streaming in real time for a container with interactive filtering."""
         log_config = self.container_service.get_log_config(cluster_name, task_arn, container_name)
         if not log_config:
             print_error(f"Could not find log configuration for container '{container_name}'")
@@ -35,47 +51,162 @@ class ContainerUI(BaseUIComponent):
         log_group_name = log_config.get("log_group")
         log_stream_name = log_config.get("log_stream")
 
-        # First, fetch and display recent logs
-        events = self.container_service.get_container_logs(log_group_name, log_stream_name, lines)
+        filter_pattern = ""
+        while True:
+            action = self._display_logs_with_tail(
+                container_name, log_group_name, log_stream_name, filter_pattern, lines
+            )
+
+            if action == Action.STOP:
+                console.print("\nStopped tailing logs.", style="yellow")
+                break
+            if action == Action.FILTER:
+                console.print("\n" + "=" * SEPARATOR_WIDTH, style="dim")
+                console.print("🔍 FILTER MODE - Enter CloudWatch filter pattern", style="bold cyan")
+                console.print("Examples:", style="dim")
+                console.print("  ERROR               - Include only ERROR messages", style="dim")
+                console.print("  -healthcheck        - Exclude healthcheck messages", style="dim")
+                console.print("  -session -determine - Exclude both session and determine", style="dim")
+                console.print("  ERROR -healthcheck  - Include ERROR, exclude healthcheck", style="dim")
+                new_filter = console.input("Filter pattern → ").strip()
+                if new_filter:
+                    filter_pattern = new_filter
+                    console.print(f"✓ Filter applied: {filter_pattern}", style="green")
+            elif action == Action.CLEAR:
+                filter_pattern = ""
+                console.print("\n✓ Filter cleared", style="green")
+
+    def _display_logs_with_tail(
+        self,
+        container_name: str,
+        log_group_name: str,
+        log_stream_name: str,
+        filter_pattern: str,
+        lines: int,
+    ) -> Action | None:
+        """Display historical logs then tail new logs with optional filtering.
+
+        Returns the action taken by the user.
+        """
+        # Show filter status
+        if filter_pattern:
+            console.print(f"\n🔍 Active filter: {filter_pattern}", style="yellow")
+
+        # Fetch and display recent logs
+        if filter_pattern:
+            events = self.container_service.get_container_logs_filtered(
+                log_group_name, log_stream_name, filter_pattern, lines
+            )
+        else:
+            events = self.container_service.get_container_logs(log_group_name, log_stream_name, lines)
 
         console.print(f"\nLast {len(events)} log entries for container '{container_name}':", style="bold cyan")
         console.print(f"Log group: {log_group_name}", style="dim")
         console.print(f"Log stream: {log_stream_name}", style="dim")
-        console.print("=" * 80, style="dim")
+        console.print("=" * SEPARATOR_WIDTH, style="dim")
 
         seen_logs = set()
         for event in events:
-            timestamp = event["timestamp"]
-            message = event["message"].rstrip()
-            dt = datetime.fromtimestamp(timestamp / 1000)
-            console.print(f"[{dt.strftime('%H:%M:%S')}] {message}")
-            # Track these to avoid duplicates when tailing
             event_id = event.get("eventId")
-            key = event_id or (timestamp, message)
-            seen_logs.add(key)
+            log_event = LogEvent(
+                timestamp=event["timestamp"],
+                message=event["message"].rstrip(),
+                event_id=event_id if isinstance(event_id, str) else None,
+            )
+            console.print(log_event.format())
+            seen_logs.add(log_event.key)
 
-        # Then continue with live tail
-        console.print("\nNow tailing new logs (Press Ctrl+C to stop)...", style="bold cyan")
-        console.print("=" * 80, style="dim")
+        # Tail new logs with keyboard commands
+        console.print("\nTailing logs... Press: (s)top  (f)ilter  (c)lear filter", style="bold cyan")
+        console.print("=" * SEPARATOR_WIDTH, style="dim")
+
+        stop_event = threading.Event()
+        key_queue: queue.Queue[str | None] = queue.Queue()
+        log_queue: queue.Queue[dict[str, Any] | None] = queue.Queue()
+
+        def keyboard_listener() -> None:
+            while not stop_event.is_set():
+                try:
+                    key = wait_for_keypress(stop_event)
+                    if key:
+                        key_queue.put(key)
+                except KeyboardInterrupt:
+                    key_queue.put(None)  # Signal interrupt
+                    raise
+
+        def log_reader() -> None:
+            """Read logs in separate thread to avoid blocking."""
+            log_generator = None
+            try:
+                log_generator = self.container_service.get_live_container_logs_tail(
+                    log_group_name, log_stream_name, filter_pattern
+                )
+                for event in log_generator:
+                    if stop_event.is_set():
+                        break
+                    log_queue.put(cast(dict[str, Any], event))
+            except Exception:
+                pass  # Iterator exhausted or error
+            finally:
+                # Ensure generator is properly closed
+                if log_generator and hasattr(log_generator, "close"):
+                    with suppress(Exception):
+                        log_generator.close()
+                log_queue.put(None)  # Signal end of logs
+
+        keyboard_thread = threading.Thread(target=keyboard_listener, daemon=True)
+        keyboard_thread.start()
+
+        log_thread = threading.Thread(target=log_reader, daemon=True)
+        log_thread.start()
+
+        action = None
 
         try:
-            for event in self.container_service.get_live_container_logs_tail(log_group_name, log_stream_name):
-                event_map = cast(dict, event)
-                event_id = event_map.get("eventId")
-                key = event_id or (event_map.get("timestamp"), event_map.get("message"))
-                if key in seen_logs:
-                    continue
-                seen_logs.add(key)
-                timestamp = event_map.get("timestamp")
-                message = str(event_map.get("message")).rstrip()
-                if timestamp:
-                    dt = datetime.fromtimestamp(int(timestamp) / 1000)
-                    console.print(f"[{dt.strftime('%H:%M:%S')}] {message}")
-                else:
-                    console.print(message)
+            while True:
+                # Check for keyboard input first (more responsive)
+                try:
+                    key = key_queue.get_nowait()
+                    if key:
+                        action = Action.from_key(key)
+                        if action:
+                            stop_event.set()
+                            self._drain_queue(key_queue)
+                            # Give immediate feedback
+                            if action == Action.FILTER:
+                                console.print("\n[Entering filter mode...]", style="cyan")
+                            elif action == Action.CLEAR:
+                                console.print("\n[Clearing filter...]", style="green")
+                            break
+                except queue.Empty:
+                    pass
+
+                # Check for new log events (non-blocking)
+                try:
+                    event = log_queue.get_nowait()
+                    if event is None:
+                        # End of logs signal
+                        pass
+                    else:
+                        event_id = event.get("eventId")
+                        log_event = LogEvent(
+                            timestamp=event.get("timestamp"),
+                            message=str(event.get("message", "")).rstrip(),
+                            event_id=event_id if isinstance(event_id, str) else None,
+                        )
+                        if log_event.key not in seen_logs:
+                            seen_logs.add(log_event.key)
+                            console.print(log_event.format())
+                except queue.Empty:
+                    # No new logs, just wait a bit
+                    time.sleep(LOG_POLL_INTERVAL)  # Small delay to avoid busy-waiting
         except KeyboardInterrupt:
-            console.print("\n🛑 Stopped tailing logs.", style="yellow")
-        console.print("=" * 80, style="dim")
+            console.print("\n🛑 Interrupted.", style="yellow")
+            action = Action.STOP
+        finally:
+            stop_event.set()
+
+        return action
 
     def show_container_environment_variables(self, cluster_name: str, task_arn: str, container_name: str) -> None:
         with show_spinner():
