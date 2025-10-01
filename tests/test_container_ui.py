@@ -51,7 +51,7 @@ def test_show_logs_live_tail_with_stop(container_ui):
 
         # Key queue: First call returns False (has key), subsequent calls return True (empty)
         key_queue.empty.side_effect = [False, True, True, True, True]
-        key_queue.get_nowait.return_value = "s"
+        key_queue.get_nowait.return_value = "s"  # KEY_STOP
 
         # Log queue: Always empty for this test (we just want to stop immediately)
         log_queue.get_nowait.side_effect = queue.Empty()
@@ -102,7 +102,7 @@ def test_show_logs_live_tail_with_filter_exclude(container_ui):
 
         # Key queue: First iteration return 'f', clear queue, then later return 's'
         key_queue.empty.side_effect = [False, True, True, True, False, True, True, True]
-        key_queue.get_nowait.side_effect = ["f", queue.Empty(), "s"]
+        key_queue.get_nowait.side_effect = ["f", queue.Empty(), "s"]  # KEY_FILTER then KEY_STOP
 
         # Log queue: Always empty for simplicity
         log_queue.get_nowait.side_effect = queue.Empty()

@@ -16,6 +16,14 @@ from .container import ContainerService
 
 console = Console()
 
+# Constants
+SEPARATOR_WIDTH = 80
+LOG_POLL_INTERVAL = 0.01  # seconds
+KEY_STOP = "s"
+KEY_FILTER = "f"
+KEY_CLEAR = "c"
+VALID_ACTION_KEYS = (KEY_STOP, KEY_FILTER, KEY_CLEAR)
+
 
 class ContainerUI(BaseUIComponent):
     """UI component for container display."""
@@ -44,11 +52,11 @@ class ContainerUI(BaseUIComponent):
                 container_name, log_group_name, log_stream_name, filter_pattern, lines
             )
 
-            if action == "s":
+            if action == KEY_STOP:
                 console.print("\nStopped tailing logs.", style="yellow")
                 break
-            if action == "f":
-                console.print("\n" + "=" * 80, style="dim")
+            if action == KEY_FILTER:
+                console.print("\n" + "=" * SEPARATOR_WIDTH, style="dim")
                 console.print("🔍 FILTER MODE - Enter CloudWatch filter pattern", style="bold cyan")
                 console.print("Examples:", style="dim")
                 console.print("  ERROR               - Include only ERROR messages", style="dim")
@@ -59,7 +67,7 @@ class ContainerUI(BaseUIComponent):
                 if new_filter:
                     filter_pattern = new_filter
                     console.print(f"✓ Filter applied: {filter_pattern}", style="green")
-            elif action == "c":
+            elif action == KEY_CLEAR:
                 filter_pattern = ""
                 console.print("\n✓ Filter cleared", style="green")
 
@@ -73,7 +81,7 @@ class ContainerUI(BaseUIComponent):
     ) -> str:
         """Display historical logs then tail new logs with optional filtering.
 
-        Returns the action key pressed by the user (s=stop, f=filter, x=exclude, c=clear).
+        Returns the action key pressed by the user (s=stop, f=filter, c=clear).
         """
         # Show filter status
         if filter_pattern:
@@ -90,7 +98,7 @@ class ContainerUI(BaseUIComponent):
         console.print(f"\nLast {len(events)} log entries for container '{container_name}':", style="bold cyan")
         console.print(f"Log group: {log_group_name}", style="dim")
         console.print(f"Log stream: {log_stream_name}", style="dim")
-        console.print("=" * 80, style="dim")
+        console.print("=" * SEPARATOR_WIDTH, style="dim")
 
         seen_logs = set()
         for event in events:
@@ -104,7 +112,7 @@ class ContainerUI(BaseUIComponent):
 
         # Tail new logs with keyboard commands
         console.print("\nTailing logs... Press: (s)top  (f)ilter  (c)lear filter", style="bold cyan")
-        console.print("=" * 80, style="dim")
+        console.print("=" * SEPARATOR_WIDTH, style="dim")
 
         stop_event = threading.Event()
         key_queue: queue.Queue[str | None] = queue.Queue()
@@ -147,7 +155,7 @@ class ContainerUI(BaseUIComponent):
                 # Check for keyboard input first (more responsive)
                 try:
                     key = key_queue.get_nowait()
-                    if key in ("s", "f", "c"):
+                    if key in VALID_ACTION_KEYS:
                         action_key = key
                         stop_event.set()
                         # Clear any extra keys that were pressed
@@ -157,9 +165,9 @@ class ContainerUI(BaseUIComponent):
                             except queue.Empty:
                                 break
                         # Give immediate feedback
-                        if action_key == "f":
+                        if action_key == KEY_FILTER:
                             console.print("\n[Entering filter mode...]", style="cyan")
-                        elif action_key == "c":
+                        elif action_key == KEY_CLEAR:
                             console.print("\n[Clearing filter...]", style="green")
                         break
                 except queue.Empty:
@@ -186,14 +194,14 @@ class ContainerUI(BaseUIComponent):
                                 console.print(message)
                 except queue.Empty:
                     # No new logs, just wait a bit
-                    time.sleep(0.01)  # Very small delay to avoid busy-waiting
+                    time.sleep(LOG_POLL_INTERVAL)  # Small delay to avoid busy-waiting
         except KeyboardInterrupt:
             console.print("\n🛑 Interrupted.", style="yellow")
-            action_key = "s"
+            action_key = KEY_STOP
         finally:
             stop_event.set()
 
-        return action_key
+        return action_key  # pyrefly: ignore[bad-return] - always assigned
 
     def show_container_environment_variables(self, cluster_name: str, task_arn: str, container_name: str) -> None:
         with show_spinner():
