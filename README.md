@@ -19,6 +19,19 @@ The AWS ECS web console is confusing to navigate, with multiple clicks through d
 
 ## Installation
 
+### Homebrew
+
+```bash
+# Add the tap
+brew tap vertti/lazy-ecs
+
+# Install lazy-ecs
+brew install lazy-ecs
+
+# Run it
+lazy-ecs
+```
+
 ### pipx
 
 [pipx](https://pipx.pypa.io/) installs Python CLI tools in isolated environments:
@@ -35,17 +48,33 @@ pipx install lazy-ecs
 lazy-ecs
 ```
 
-### Homebrew
+### Docker
+
+Run lazy-ecs using Docker without installing Python:
 
 ```bash
-# Add the tap
-brew tap vertti/lazy-ecs
+# Run with AWS credentials from your environment
+docker run -it --rm \
+  -v ~/.aws:/home/lazyecs/.aws:ro \
+  -e AWS_PROFILE \
+  -e AWS_DEFAULT_REGION \
+  vertti/lazy-ecs
 
-# Install lazy-ecs
-brew install lazy-ecs
+# Or with specific AWS environment variables
+docker run -it --rm \
+  -e AWS_ACCESS_KEY_ID \
+  -e AWS_SECRET_ACCESS_KEY \
+  -e AWS_SESSION_TOKEN \
+  -e AWS_DEFAULT_REGION \
+  vertti/lazy-ecs
 
-# Run it
-lazy-ecs
+# With aws-vault
+aws-vault exec your-profile -- docker run -it --rm \
+  -e AWS_ACCESS_KEY_ID \
+  -e AWS_SECRET_ACCESS_KEY \
+  -e AWS_SESSION_TOKEN \
+  -e AWS_DEFAULT_REGION \
+  vertti/lazy-ecs
 ```
 
 ### From Source
