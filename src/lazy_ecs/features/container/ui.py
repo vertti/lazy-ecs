@@ -40,6 +40,15 @@ class ContainerUI(BaseUIComponent):
             return f"[{dt.strftime('%H:%M:%S')}] {message}"
         return message
 
+    @staticmethod
+    def _drain_queue(q: queue.Queue[Any]) -> None:
+        """Drain all items from a queue without blocking."""
+        while not q.empty():
+            try:
+                q.get_nowait()
+            except queue.Empty:
+                break
+
     def show_logs_live_tail(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
         """Display recent logs then continue streaming in real time for a container with interactive filtering."""
         log_config = self.container_service.get_log_config(cluster_name, task_arn, container_name)
@@ -165,12 +174,7 @@ class ContainerUI(BaseUIComponent):
                     if key in VALID_ACTION_KEYS:
                         action_key = key
                         stop_event.set()
-                        # Clear any extra keys that were pressed
-                        while not key_queue.empty():
-                            try:
-                                key_queue.get_nowait()
-                            except queue.Empty:
-                                break
+                        self._drain_queue(key_queue)
                         # Give immediate feedback
                         if action_key == KEY_FILTER:
                             console.print("\n[Entering filter mode...]", style="cyan")
