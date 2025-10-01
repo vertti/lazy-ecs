@@ -64,8 +64,8 @@ def test_show_logs_live_tail_with_stop(container_ui):
     container_ui.container_service.get_log_config.assert_called_once_with("test-cluster", "task-arn", "web-container")
 
 
-def test_show_logs_live_tail_with_exclude(container_ui):
-    """Test excluding patterns during log tailing."""
+def test_show_logs_live_tail_with_filter_exclude(container_ui):
+    """Test filter with exclude patterns during log tailing."""
     log_config = {"log_group": "test-log-group", "log_stream": "test-stream"}
     recent_events = [
         {"timestamp": 1234567888000, "message": "Normal message"},
@@ -88,27 +88,27 @@ def test_show_logs_live_tail_with_exclude(container_ui):
         side_effect=[iter(live_events_first), iter(live_events_second)]
     )
 
-    # Mock the queues to simulate pressing 'x' then 's' keys
+    # Mock the queues to simulate pressing 'f' for filter then 's' to stop
     with (
         patch("rich.console.Console.input") as mock_input,
         patch("lazy_ecs.features.container.ui.queue.Queue") as mock_queue_class,
         patch("lazy_ecs.features.container.ui.threading.Thread"),
         patch("rich.console.Console.print"),
     ):
-        mock_input.return_value = "healthcheck"
+        mock_input.return_value = "-healthcheck"  # Exclude pattern
 
         key_queue = Mock()
         log_queue = Mock()
 
-        # Key queue: First iteration return 'x', clear queue, then later return 's'
+        # Key queue: First iteration return 'f', clear queue, then later return 's'
         key_queue.empty.side_effect = [False, True, True, True, False, True, True, True]
-        key_queue.get_nowait.side_effect = ["x", queue.Empty(), "s"]
+        key_queue.get_nowait.side_effect = ["f", queue.Empty(), "s"]
 
         # Log queue: Always empty for simplicity
         log_queue.get_nowait.side_effect = queue.Empty()
 
         # Return queue instances: First call for key_queue, second for log_queue
-        # Then again for the second iteration after 'x' is pressed
+        # Then again for the second iteration after 'f' is pressed
         mock_queue_class.side_effect = [key_queue, log_queue, key_queue, log_queue]
 
         container_ui.show_logs_live_tail("test-cluster", "task-arn", "web-container")

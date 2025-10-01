@@ -51,21 +51,14 @@ class ContainerUI(BaseUIComponent):
                 console.print("\n" + "=" * 80, style="dim")
                 console.print("🔍 FILTER MODE - Enter CloudWatch filter pattern", style="bold cyan")
                 console.print("Examples:", style="dim")
-                console.print("  ERROR               - Include only ERROR", style="dim")
-                console.print("  -healthcheck        - Exclude healthcheck", style="dim")
+                console.print("  ERROR               - Include only ERROR messages", style="dim")
+                console.print("  -healthcheck        - Exclude healthcheck messages", style="dim")
+                console.print("  -session -determine - Exclude both session and determine", style="dim")
                 console.print("  ERROR -healthcheck  - Include ERROR, exclude healthcheck", style="dim")
                 new_filter = console.input("Filter pattern → ").strip()
                 if new_filter:
                     filter_pattern = new_filter
                     console.print(f"✓ Filter applied: {filter_pattern}", style="green")
-            elif action == "x":
-                console.print("\n" + "=" * 80, style="dim")
-                console.print("📝 EXCLUDE MODE - Type the text you want to filter out", style="bold yellow")
-                console.print("Examples: 'healthcheck', 'session', 'INFO'", style="dim")
-                exclude_text = console.input("Exclude pattern → ").strip()
-                if exclude_text:
-                    filter_pattern = f"-{exclude_text}"
-                    console.print(f"✓ Excluding: {exclude_text}", style="green")
             elif action == "c":
                 filter_pattern = ""
                 console.print("\n✓ Filter cleared", style="green")
@@ -110,7 +103,7 @@ class ContainerUI(BaseUIComponent):
             seen_logs.add(key)
 
         # Tail new logs with keyboard commands
-        console.print("\nTailing logs... Press: (s)top  (f)ilter  e(x)clude  (c)lear filter", style="bold cyan")
+        console.print("\nTailing logs... Press: (s)top  (f)ilter  (c)lear filter", style="bold cyan")
         console.print("=" * 80, style="dim")
 
         stop_event = threading.Event()
@@ -154,7 +147,7 @@ class ContainerUI(BaseUIComponent):
                 # Check for keyboard input first (more responsive)
                 try:
                     key = key_queue.get_nowait()
-                    if key in ("s", "f", "x", "c"):
+                    if key in ("s", "f", "c"):
                         action_key = key
                         stop_event.set()
                         # Clear any extra keys that were pressed
@@ -166,8 +159,6 @@ class ContainerUI(BaseUIComponent):
                         # Give immediate feedback
                         if action_key == "f":
                             console.print("\n[Entering filter mode...]", style="cyan")
-                        elif action_key == "x":
-                            console.print("\n[Entering exclude mode...]", style="yellow")
                         elif action_key == "c":
                             console.print("\n[Clearing filter...]", style="green")
                         break
