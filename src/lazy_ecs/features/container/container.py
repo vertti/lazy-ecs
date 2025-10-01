@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator
+from contextlib import suppress
 from os import environ
 from typing import TYPE_CHECKING, Any
 
@@ -142,14 +143,20 @@ class ContainerService(BaseAWSService):
             logEventFilterPattern=event_filter_pattern,
         )
         response_stream = response.get("responseStream")
-        for event in response_stream:
-            if "sessionStart" in event:
-                continue
-            elif "sessionUpdate" in event:
-                log_events = event.get("sessionUpdate", {}).get("sessionResults", [])
-                yield from log_events
-            else:
-                yield event
+        try:
+            for event in response_stream:
+                if "sessionStart" in event:
+                    continue
+                elif "sessionUpdate" in event:
+                    log_events = event.get("sessionUpdate", {}).get("sessionResults", [])
+                    yield from log_events
+                else:
+                    yield event
+        finally:
+            # Properly close the response stream
+            if hasattr(response_stream, "close"):
+                with suppress(Exception):
+                    response_stream.close()
 
     def list_log_groups(self, cluster_name: str, container_name: str) -> list[str]:
         if not self.logs_client:

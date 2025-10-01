@@ -5,6 +5,7 @@ from __future__ import annotations
 import queue
 import threading
 import time
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -174,16 +175,22 @@ class ContainerUI(BaseUIComponent):
 
         def log_reader() -> None:
             """Read logs in separate thread to avoid blocking."""
+            log_generator = None
             try:
-                for event in self.container_service.get_live_container_logs_tail(
+                log_generator = self.container_service.get_live_container_logs_tail(
                     log_group_name, log_stream_name, filter_pattern
-                ):
+                )
+                for event in log_generator:
                     if stop_event.is_set():
                         break
                     log_queue.put(cast(dict[str, Any], event))
             except Exception:
                 pass  # Iterator exhausted or error
             finally:
+                # Ensure generator is properly closed
+                if log_generator and hasattr(log_generator, "close"):
+                    with suppress(Exception):
+                        log_generator.close()
                 log_queue.put(None)  # Signal end of logs
 
         keyboard_thread = threading.Thread(target=keyboard_listener, daemon=True)
