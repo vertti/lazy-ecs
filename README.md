@@ -19,7 +19,23 @@ The AWS ECS web console is confusing to navigate, with multiple clicks through d
 
 ## Installation
 
-### Homebrew (Recommended)
+### pipx
+
+[pipx](https://pipx.pypa.io/) installs Python CLI tools in isolated environments:
+
+```bash
+# Install pipx if you haven't already
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+
+# Install lazy-ecs
+pipx install lazy-ecs
+
+# Run it
+lazy-ecs
+```
+
+### Homebrew
 
 ```bash
 # Add the tap
