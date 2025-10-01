@@ -53,28 +53,31 @@ lazy-ecs
 Run lazy-ecs using Docker without installing Python:
 
 ```bash
-# Run with AWS credentials from your environment
-docker run -it --rm \
-  -v ~/.aws:/home/lazyecs/.aws:ro \
-  -e AWS_PROFILE \
-  -e AWS_DEFAULT_REGION \
-  vertti/lazy-ecs
-
-# Or with specific AWS environment variables
-docker run -it --rm \
-  -e AWS_ACCESS_KEY_ID \
-  -e AWS_SECRET_ACCESS_KEY \
-  -e AWS_SESSION_TOKEN \
-  -e AWS_DEFAULT_REGION \
-  vertti/lazy-ecs
-
-# With aws-vault
+# With aws-vault (temporary credentials)
 aws-vault exec your-profile -- docker run -it --rm \
-  -e AWS_ACCESS_KEY_ID \
-  -e AWS_SECRET_ACCESS_KEY \
-  -e AWS_SESSION_TOKEN \
-  -e AWS_DEFAULT_REGION \
+  -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e AWS_REGION \
   vertti/lazy-ecs
+
+# With IAM credentials (long-lived)
+docker run -it --rm \
+  -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_REGION \
+  vertti/lazy-ecs
+
+# With AWS credentials file
+docker run -it --rm -v ~/.aws:/home/lazyecs/.aws:ro vertti/lazy-ecs
+
+# With specific profile
+docker run -it --rm -v ~/.aws:/home/lazyecs/.aws:ro -e AWS_PROFILE=your-profile vertti/lazy-ecs
+```
+
+**Pro tip:** Create an alias for easier usage:
+
+```bash
+# Add to your ~/.bashrc or ~/.zshrc
+alias lazy-ecs-docker='docker run -it --rm -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e AWS_REGION vertti/lazy-ecs'
+
+# Then use with aws-vault
+aws-vault exec your-profile -- lazy-ecs-docker
 ```
 
 ### From Source
