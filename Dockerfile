@@ -39,9 +39,12 @@ COPY --from=builder /app/dist/*.whl /tmp/
 # Install the package
 RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Switch to non-root user
 USER lazyecs
 
 # Set entrypoint
-ENTRYPOINT ["lazy-ecs"]
-CMD ["--help"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
