@@ -6,9 +6,6 @@ import queue
 import threading
 import time
 from contextlib import suppress
-from dataclasses import dataclass
-from datetime import datetime
-from enum import Enum
 from typing import Any, cast
 
 from rich.console import Console
@@ -16,48 +13,12 @@ from rich.console import Console
 from ...core.base import BaseUIComponent
 from ...core.utils import print_error, show_spinner, wait_for_keypress
 from .container import ContainerService
+from .models import Action, LogEvent
 
 console = Console()
 
 SEPARATOR_WIDTH = 80
 LOG_POLL_INTERVAL = 0.01  # seconds
-
-
-class Action(Enum):
-    """Actions for log tailing interaction."""
-
-    STOP = "s"
-    FILTER = "f"
-    CLEAR = "c"
-
-    @classmethod
-    def from_key(cls, key: str) -> Action | None:
-        """Convert keyboard key to action."""
-        for action in cls:
-            if action.value == key:
-                return action
-        return None
-
-
-@dataclass
-class LogEvent:
-    """Represents a log event from CloudWatch."""
-
-    timestamp: int | None
-    message: str
-    event_id: str | None = None
-
-    @property
-    def key(self) -> tuple[Any, ...] | str:
-        """Get unique key for deduplication."""
-        return self.event_id if self.event_id else (self.timestamp, self.message)
-
-    def format(self) -> str:
-        """Format the log event for display."""
-        if self.timestamp:
-            dt = datetime.fromtimestamp(self.timestamp / 1000)
-            return f"[{dt.strftime('%H:%M:%S')}] {self.message}"
-        return self.message
 
 
 class ContainerUI(BaseUIComponent):
