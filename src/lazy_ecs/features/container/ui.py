@@ -7,6 +7,7 @@ import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
 from typing import Any, cast
 
 from rich.console import Console
@@ -17,13 +18,24 @@ from .container import ContainerService
 
 console = Console()
 
-# Constants
 SEPARATOR_WIDTH = 80
 LOG_POLL_INTERVAL = 0.01  # seconds
-KEY_STOP = "s"
-KEY_FILTER = "f"
-KEY_CLEAR = "c"
-VALID_ACTION_KEYS = (KEY_STOP, KEY_FILTER, KEY_CLEAR)
+
+
+class Action(Enum):
+    """Actions for log tailing interaction."""
+
+    STOP = "s"
+    FILTER = "f"
+    CLEAR = "c"
+
+    @classmethod
+    def from_key(cls, key: str) -> Action | None:
+        """Convert keyboard key to action."""
+        for action in cls:
+            if action.value == key:
+                return action
+        return None
 
 
 @dataclass
@@ -83,10 +95,10 @@ class ContainerUI(BaseUIComponent):
                 container_name, log_group_name, log_stream_name, filter_pattern, lines
             )
 
-            if action == KEY_STOP:
+            if action == Action.STOP:
                 console.print("\nStopped tailing logs.", style="yellow")
                 break
-            if action == KEY_FILTER:
+            if action == Action.FILTER:
                 console.print("\n" + "=" * SEPARATOR_WIDTH, style="dim")
                 console.print("🔍 FILTER MODE - Enter CloudWatch filter pattern", style="bold cyan")
                 console.print("Examples:", style="dim")
@@ -98,7 +110,7 @@ class ContainerUI(BaseUIComponent):
                 if new_filter:
                     filter_pattern = new_filter
                     console.print(f"✓ Filter applied: {filter_pattern}", style="green")
-            elif action == KEY_CLEAR:
+            elif action == Action.CLEAR:
                 filter_pattern = ""
                 console.print("\n✓ Filter cleared", style="green")
 
@@ -109,10 +121,10 @@ class ContainerUI(BaseUIComponent):
         log_stream_name: str,
         filter_pattern: str,
         lines: int,
-    ) -> str:
+    ) -> Action | None:
         """Display historical logs then tail new logs with optional filtering.
 
-        Returns the action key pressed by the user (s=stop, f=filter, c=clear).
+        Returns the action taken by the user.
         """
         # Show filter status
         if filter_pattern:
@@ -180,23 +192,24 @@ class ContainerUI(BaseUIComponent):
         log_thread = threading.Thread(target=log_reader, daemon=True)
         log_thread.start()
 
-        action_key = ""
+        action = None
 
         try:
             while True:
                 # Check for keyboard input first (more responsive)
                 try:
                     key = key_queue.get_nowait()
-                    if key in VALID_ACTION_KEYS:
-                        action_key = key
-                        stop_event.set()
-                        self._drain_queue(key_queue)
-                        # Give immediate feedback
-                        if action_key == KEY_FILTER:
-                            console.print("\n[Entering filter mode...]", style="cyan")
-                        elif action_key == KEY_CLEAR:
-                            console.print("\n[Clearing filter...]", style="green")
-                        break
+                    if key:
+                        action = Action.from_key(key)
+                        if action:
+                            stop_event.set()
+                            self._drain_queue(key_queue)
+                            # Give immediate feedback
+                            if action == Action.FILTER:
+                                console.print("\n[Entering filter mode...]", style="cyan")
+                            elif action == Action.CLEAR:
+                                console.print("\n[Clearing filter...]", style="green")
+                            break
                 except queue.Empty:
                     pass
 
@@ -221,11 +234,11 @@ class ContainerUI(BaseUIComponent):
                     time.sleep(LOG_POLL_INTERVAL)  # Small delay to avoid busy-waiting
         except KeyboardInterrupt:
             console.print("\n🛑 Interrupted.", style="yellow")
-            action_key = KEY_STOP
+            action = Action.STOP
         finally:
             stop_event.set()
 
-        return action_key  # pyrefly: ignore[bad-return] - always assigned
+        return action
 
     def show_container_environment_variables(self, cluster_name: str, task_arn: str, container_name: str) -> None:
         with show_spinner():
