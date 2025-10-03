@@ -184,7 +184,7 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 
 ### Quality of Life Features
 
-- ⬜ **Open resource in AWS console** - One-key shortcut to open current cluster/service/task in browser
+- ✅ **Open resource in AWS console** - One-key shortcut to open current cluster/service/task in browser
 
 ## Development
 
