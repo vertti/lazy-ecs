@@ -31,6 +31,9 @@ wheels = [
 ]
 
 [package.optional-dependencies]
+cloudwatch = [
+    { name = "mypy-boto3-cloudwatch" },
+]
 ecs = [
     { name = "mypy-boto3-ecs" },
 ]
@@ -391,7 +394,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "boto3-stubs", extra = ["ecs", "logs", "sts"] },
+    { name = "boto3-stubs", extra = ["cloudwatch", "ecs", "logs", "sts"] },
     { name = "moto" },
     { name = "pre-commit" },
     { name = "pyrefly" },
@@ -410,7 +413,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "boto3-stubs", extras = ["ecs", "logs", "sts"], specifier = "==1.40.30" },
+    { name = "boto3-stubs", extras = ["ecs", "logs", "sts", "cloudwatch"], specifier = "==1.40.30" },
     { name = "moto", extras = ["ecs"], specifier = "==5.1.12" },
     { name = "pre-commit", specifier = "==4.3.0" },
     { name = "pyrefly", specifier = "==0.32.0" },
@@ -507,6 +510,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/fe/71/805c0a0b30e362cd759206d4723bad800bc8c6c83a7edd05e55747d03959/moto-5.1.12.tar.gz", hash = "sha256:6eca3a020cb89c188b763610c27c969c32b832205712d3bdcb1a6031a4005187", size = 7185928, upload-time = "2025-09-07T19:38:37.412Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/89/92/cfb9a8be3d6070bef53afb92e03a5a7eb6da0127b29a8438fe00b12f5ed2/moto-5.1.12-py3-none-any.whl", hash = "sha256:c9f1119ab57819ce4b88f793f51c6ca0361b6932a90c59865fd71022acfc5582", size = 5313196, upload-time = "2025-09-07T19:38:34.78Z" },
+]
+
+[[package]]
+name = "mypy-boto3-cloudwatch"
+version = "1.40.38"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ea/5b/c642bc0563258db65ba7ca48bc610245e580a3bc32514edde60331115564/mypy_boto3_cloudwatch-1.40.38.tar.gz", hash = "sha256:2422937f2784bd8b30f1bd8438625587e63a960a7330579c8f6cb7e68dcaf4ca", size = 33062, upload-time = "2025-09-24T19:26:33.541Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1e/65/4507d7714ad5c102996d09d73d72985a2d5beb7a211094ebb94facdedd55/mypy_boto3_cloudwatch-1.40.38-py3-none-any.whl", hash = "sha256:6a4da37709c16bb19931c296ec745a6a2304018ee940bcf5ae8c0f0a3d6bf24c", size = 44639, upload-time = "2025-09-24T19:26:29.659Z" },
 ]
 
 [[package]]

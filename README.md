@@ -177,8 +177,8 @@ lazy-ecs will automatically use the standard AWS credentials chain:
   - ✅ Follow logs in real-time (tail -f style) with responsive keyboard shortcuts
   - ⬜ Download logs to file
 - ⬜ **Monitoring integration**:
-  - ⬜ Show CloudWatch metrics (CPU/Memory utilization) for services and tasks
-  - ⬜ Display resource usage trends to identify spikes, leaks, and throttling
+  - ⬜ Show CloudWatch metrics (CPU/Memory utilization) - Display current values, averages, and peaks
+  - ⬜ Add sparkline visualization - Inline Unicode trend indicators for quick visual assessment
 - ⬜ **Port forwarding to container** - Direct local connection to container ports for debugging
 - ⬜ **Multi-region support** - Work with ECS across different AWS regions
 
