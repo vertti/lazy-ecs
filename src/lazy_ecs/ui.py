@@ -124,6 +124,17 @@ class ECSNavigator(BaseUIComponent):
         console.print(f"\n🌐 Opening service in AWS console: {url}", style="cyan")
         webbrowser.open(url)
 
+    def open_task_in_console(self, cluster_name: str, task_arn: str) -> None:
+        """Open the task in AWS console."""
+        import webbrowser
+
+        from .core.aws_console import build_task_url
+
+        region = self.ecs_service.get_region()
+        url = build_task_url(region, cluster_name, task_arn)
+        console.print(f"\n🌐 Opening task in AWS console: {url}", style="cyan")
+        webbrowser.open(url)
+
 
 def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[str, str]]:
     """Build feature menu choices for containers plus navigation options."""
