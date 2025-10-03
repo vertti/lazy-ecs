@@ -123,7 +123,7 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 
 ## Features
 
-### Container-Level Features 🚀
+### Container-Level Features
 
 - ✅ **Container log viewing** - Display recent logs with timestamps from CloudWatch
 - ✅ **Container log live tail viewing** - Real-time log streaming with instant keyboard shortcuts
@@ -138,7 +138,7 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - ⬜ **Export container environment** - Save environment variables to .env file for local development
 - ⬜ **Copy container command** - Get exact docker run command for local debugging
 
-### Task-Level Features 📋
+### Task-Level Features
 
 - ✅ **Task selection with auto-selection** - Automatically select single tasks, interactive selection for multiple
 - ✅ **Comprehensive task details** - Display task definition, status, containers, creation time
@@ -151,7 +151,7 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - ⬜ **Stop/Restart single task** - Force restart of a wedged task without redeploying entire service (ECS auto-restarts stopped tasks)
 - ⬜ **Quick task failure reason** - Show failure reason inline without navigation
 
-### Service-Level Features 🔧
+### Service-Level Features
 
 - ✅ **Service browsing with status** - Display services with health indicators (healthy/scaling/over-scaled)
 - ✅ **Service status indicators** - Show running/desired/pending counts with visual status
@@ -163,14 +163,14 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - ⬜ **Service update (image tag)** - Deploy new image version without leaving CLI
 - ⬜ **Service update (environment)** - Update environment variables for service
 
-### Cluster-Level Features 🏗️
+### Cluster-Level Features
 
 - ✅ **Interactive cluster selection** - Arrow key navigation through available ECS clusters
 - ✅ **Log group discovery** - Automatically find relevant log groups for debugging
 - ⬜ **Multi-cluster support** - Compare resources across clusters
 - ⬜ **Bulk operations across clusters** - Perform operations on multiple clusters
 
-### Advanced Features 🎯
+### Advanced Features
 
 - ⬜ **Enhanced log features**:
   - ✅ Search/filter logs by keywords (CloudWatch patterns with include/exclude)
@@ -182,7 +182,7 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - ⬜ **Port forwarding to container** - Direct local connection to container ports for debugging
 - ⬜ **Multi-region support** - Work with ECS across different AWS regions
 
-### Quality of Life Features 💡
+### Quality of Life Features
 
 - ⬜ **Open resource in AWS console** - One-key shortcut to open current cluster/service/task in browser
 
