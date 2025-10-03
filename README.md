@@ -133,7 +133,7 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - ✅ **Show port mappings** - Display container port configurations and networking
 - ✅ **Show volume mounts** - Display file system mounts and storage configuration
 - ⬜ **Show resource limits vs usage** - Compare allocated CPU/memory with actual consumption to right-size containers
-- ⬜ **Show health check configuration** - Display health check settings and current status
+- ✅ **Show health check configuration** - Display health check settings and current status
 - ⬜ **Connect to running container** - Execute shell commands inside running containers (skip - against immutable philosophy)
 - ⬜ **Export container environment** - Save environment variables to .env file for local development
 - ⬜ **Copy container command** - Get exact docker run command for local debugging
