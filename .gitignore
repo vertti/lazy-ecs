@@ -1,4 +1,5 @@
 test-output/
+lazy-ecs.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

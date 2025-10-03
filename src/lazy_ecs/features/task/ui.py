@@ -146,6 +146,18 @@ class TaskUI(BaseUIComponent):
                         "name": f"Show volume mounts for '{container_name}'",
                         "value": f"container_action:show_volumes:{container_name}",
                     },
+                    {
+                        "name": f"Show health check configuration for '{container_name}'",
+                        "value": f"container_action:show_health:{container_name}",
+                    },
+                    {
+                        "name": f"Show ECS Exec command for '{container_name}'",
+                        "value": f"container_action:show_exec:{container_name}",
+                    },
+                    {
+                        "name": f"🚀 Execute shell in '{container_name}'",
+                        "value": f"container_action:exec_shell:{container_name}",
+                    },
                 ]
             )
 

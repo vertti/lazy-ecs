@@ -20,6 +20,25 @@ def mock_task_service():
 
 
 @pytest.fixture
+def mock_container_context():
+    return Mock(
+        cluster_name="test-cluster",
+        task_arn="test-task-arn",
+        container_name="test-container",
+        container_definition={
+            "name": "test-container",
+            "healthCheck": {
+                "command": ["CMD-SHELL", "curl -f http://localhost/health || exit 1"],
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3,
+                "startPeriod": 60,
+            },
+        },
+    )
+
+
+@pytest.fixture
 def container_ui(mock_ecs_client, mock_task_service):
     container_service = ContainerService(mock_ecs_client, mock_task_service)
     return ContainerUI(container_service)
@@ -323,3 +342,227 @@ def test_show_container_volume_mounts_empty(container_ui):
         "test-cluster", "task-arn", "web-container"
     )
     container_ui.container_service.get_volume_mounts.assert_called_once_with(context)
+
+
+def test_get_health_check_config_with_config(mock_ecs_client, mock_task_service, mock_container_context):
+    """Test getting health check configuration when present."""
+    container_service = ContainerService(mock_ecs_client, mock_task_service)
+
+    config = container_service.get_health_check_config(mock_container_context)
+
+    assert config is not None
+    assert config["command"] == ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+    assert config["interval"] == 30
+    assert config["timeout"] == 5
+    assert config["retries"] == 3
+    assert config["start_period"] == 60
+
+
+def test_get_health_check_config_no_config(mock_ecs_client, mock_task_service):
+    """Test getting health check configuration when not present."""
+    container_service = ContainerService(mock_ecs_client, mock_task_service)
+    context = Mock(container_definition={"name": "test-container"})
+
+    config = container_service.get_health_check_config(context)
+
+    assert config is None
+
+
+def test_get_health_status(mock_ecs_client, mock_task_service):
+    """Test getting current health status from running task."""
+    mock_ecs_client.describe_tasks.return_value = {
+        "tasks": [{"containers": [{"name": "test-container", "healthStatus": "HEALTHY"}]}]
+    }
+
+    container_service = ContainerService(mock_ecs_client, mock_task_service)
+    status = container_service.get_health_status("test-cluster", "test-task-arn", "test-container")
+
+    assert status == "HEALTHY"
+    mock_ecs_client.describe_tasks.assert_called_once_with(cluster="test-cluster", tasks=["test-task-arn"])
+
+
+def test_get_health_status_container_not_found(mock_ecs_client, mock_task_service):
+    """Test getting health status when container not found."""
+    mock_ecs_client.describe_tasks.return_value = {
+        "tasks": [{"containers": [{"name": "other-container", "healthStatus": "HEALTHY"}]}]
+    }
+
+    container_service = ContainerService(mock_ecs_client, mock_task_service)
+    status = container_service.get_health_status("test-cluster", "test-task-arn", "test-container")
+
+    assert status == "UNKNOWN"
+
+
+def test_show_container_health_check_with_config(container_ui, mock_container_context):
+    """Test displaying health check configuration and status."""
+    health_config = {
+        "command": ["CMD-SHELL", "curl -f http://localhost/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "start_period": 60,
+    }
+
+    container_ui.container_service.get_container_context = Mock(return_value=mock_container_context)
+    container_ui.container_service.get_health_check_config = Mock(return_value=health_config)
+    container_ui.container_service.get_health_status = Mock(return_value="HEALTHY")
+
+    container_ui.show_container_health_check("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.get_container_context.assert_called_once_with(
+        "test-cluster", "test-task-arn", "test-container"
+    )
+    container_ui.container_service.get_health_check_config.assert_called_once_with(mock_container_context)
+    container_ui.container_service.get_health_status.assert_called_once_with(
+        "test-cluster", "test-task-arn", "test-container"
+    )
+
+
+def test_show_container_health_check_no_context(container_ui):
+    """Test displaying health check with no container context."""
+    container_ui.container_service.get_container_context = Mock(return_value=None)
+
+    container_ui.show_container_health_check("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.get_container_context.assert_called_once_with(
+        "test-cluster", "test-task-arn", "test-container"
+    )
+
+
+def test_show_container_health_check_no_config(container_ui, mock_container_context):
+    """Test displaying health check when no configuration present."""
+    container_ui.container_service.get_container_context = Mock(return_value=mock_container_context)
+    container_ui.container_service.get_health_check_config = Mock(return_value=None)
+
+    container_ui.show_container_health_check("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.get_health_check_config.assert_called_once_with(mock_container_context)
+
+
+def test_check_ecs_exec_enabled_true(mock_ecs_client, mock_task_service):
+    """Test checking ECS Exec when enabled."""
+    mock_ecs_client.describe_tasks.return_value = {"tasks": [{"enableExecuteCommand": True}]}
+
+    container_service = ContainerService(mock_ecs_client, mock_task_service)
+    is_enabled = container_service.check_ecs_exec_enabled("test-cluster", "test-task-arn")
+
+    assert is_enabled is True
+    mock_ecs_client.describe_tasks.assert_called_once_with(cluster="test-cluster", tasks=["test-task-arn"])
+
+
+def test_check_ecs_exec_enabled_false(mock_ecs_client, mock_task_service):
+    """Test checking ECS Exec when disabled."""
+    mock_ecs_client.describe_tasks.return_value = {"tasks": [{"enableExecuteCommand": False}]}
+
+    container_service = ContainerService(mock_ecs_client, mock_task_service)
+    is_enabled = container_service.check_ecs_exec_enabled("test-cluster", "test-task-arn")
+
+    assert is_enabled is False
+
+
+def test_check_ecs_exec_enabled_no_tasks(mock_ecs_client, mock_task_service):
+    """Test checking ECS Exec when no tasks found."""
+    mock_ecs_client.describe_tasks.return_value = {"tasks": []}
+
+    container_service = ContainerService(mock_ecs_client, mock_task_service)
+    is_enabled = container_service.check_ecs_exec_enabled("test-cluster", "test-task-arn")
+
+    assert is_enabled is False
+
+
+def test_show_container_exec_command_enabled(container_ui, mock_container_context):
+    """Test displaying exec command when ECS Exec is enabled."""
+    container_ui.container_service.get_container_context = Mock(return_value=mock_container_context)
+    container_ui.container_service.check_ecs_exec_enabled = Mock(return_value=True)
+
+    container_ui.show_container_exec_command("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.get_container_context.assert_called_once_with(
+        "test-cluster", "test-task-arn", "test-container"
+    )
+    container_ui.container_service.check_ecs_exec_enabled.assert_called_once_with("test-cluster", "test-task-arn")
+
+
+def test_show_container_exec_command_disabled(container_ui, mock_container_context):
+    """Test displaying exec command when ECS Exec is disabled."""
+    container_ui.container_service.get_container_context = Mock(return_value=mock_container_context)
+    container_ui.container_service.check_ecs_exec_enabled = Mock(return_value=False)
+
+    container_ui.show_container_exec_command("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.check_ecs_exec_enabled.assert_called_once_with("test-cluster", "test-task-arn")
+
+
+def test_show_container_exec_command_no_context(container_ui):
+    """Test displaying exec command with no container context."""
+    container_ui.container_service.get_container_context = Mock(return_value=None)
+
+    container_ui.show_container_exec_command("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.get_container_context.assert_called_once_with(
+        "test-cluster", "test-task-arn", "test-container"
+    )
+
+
+def test_execute_ecs_exec_command_success(mock_ecs_client, mock_task_service):
+    """Test executing ECS Exec command successfully."""
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value.returncode = 0
+
+        container_service = ContainerService(mock_ecs_client, mock_task_service)
+        result = container_service.execute_ecs_exec_command("test-cluster", "test-task-arn", "test-container")
+
+        assert result is True
+        mock_run.assert_called_once()
+        args = mock_run.call_args[0][0]
+        assert "aws" in args
+        assert "ecs" in args
+        assert "execute-command" in args
+
+
+def test_execute_ecs_exec_command_failure(mock_ecs_client, mock_task_service):
+    """Test executing ECS Exec command with failure."""
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value.returncode = 1
+
+        container_service = ContainerService(mock_ecs_client, mock_task_service)
+        result = container_service.execute_ecs_exec_command("test-cluster", "test-task-arn", "test-container")
+
+        assert result is False
+
+
+def test_execute_container_shell_enabled(container_ui, mock_container_context):
+    """Test executing container shell when ECS Exec is enabled."""
+    container_ui.container_service.get_container_context = Mock(return_value=mock_container_context)
+    container_ui.container_service.check_ecs_exec_enabled = Mock(return_value=True)
+    container_ui.container_service.execute_ecs_exec_command = Mock(return_value=True)
+
+    with patch("rich.console.Console.input", return_value=""):
+        container_ui.execute_container_shell("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.execute_ecs_exec_command.assert_called_once_with(
+        "test-cluster", "test-task-arn", "test-container"
+    )
+
+
+def test_execute_container_shell_disabled(container_ui, mock_container_context):
+    """Test executing container shell when ECS Exec is disabled."""
+    container_ui.container_service.get_container_context = Mock(return_value=mock_container_context)
+    container_ui.container_service.check_ecs_exec_enabled = Mock(return_value=False)
+    container_ui.container_service.execute_ecs_exec_command = Mock()
+
+    container_ui.execute_container_shell("test-cluster", "test-task-arn", "test-container")
+
+    # Should not call execute_ecs_exec_command when disabled
+    container_ui.container_service.execute_ecs_exec_command.assert_not_called()
+
+
+def test_execute_container_shell_no_context(container_ui):
+    """Test executing container shell with no container context."""
+    container_ui.container_service.get_container_context = Mock(return_value=None)
+
+    container_ui.execute_container_shell("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.get_container_context.assert_called_once_with(
+        "test-cluster", "test-task-arn", "test-container"
+    )
