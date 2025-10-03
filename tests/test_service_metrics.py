@@ -6,7 +6,8 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from lazy_ecs.features.service.metrics import get_service_metrics
+from lazy_ecs.core.types import ServiceMetrics
+from lazy_ecs.features.service.metrics import format_metrics_display, get_service_metrics
 
 
 @pytest.fixture
@@ -125,3 +126,43 @@ def test_get_service_metrics_returns_none_when_no_data():
         )
 
         assert metrics is None
+
+
+def test_format_metrics_display_returns_formatted_strings():
+    metrics: ServiceMetrics = {
+        "cpu": {"current": 45.2, "average": 42.1, "maximum": 78.5, "minimum": 12.3},
+        "memory": {"current": 82.7, "average": 75.0, "maximum": 95.8, "minimum": 60.2},
+    }
+
+    lines = format_metrics_display(metrics)
+
+    assert len(lines) > 0
+    assert any("CPU" in line for line in lines)
+    assert any("Memory" in line for line in lines)
+
+
+def test_format_metrics_display_includes_all_statistics():
+    metrics: ServiceMetrics = {
+        "cpu": {"current": 45.2, "average": 42.1, "maximum": 78.5, "minimum": 12.3},
+        "memory": {"current": 82.7, "average": 75.0, "maximum": 95.8, "minimum": 60.2},
+    }
+
+    lines = format_metrics_display(metrics)
+    full_output = "\n".join(lines)
+
+    assert "45.2" in full_output
+    assert "42.1" in full_output
+    assert "78.5" in full_output
+    assert "12.3" in full_output
+
+
+def test_format_metrics_display_formats_percentages():
+    metrics: ServiceMetrics = {
+        "cpu": {"current": 45.234567, "average": 42.1, "maximum": 78.5, "minimum": 12.3},
+        "memory": {"current": 82.7, "average": 75.0, "maximum": 95.8, "minimum": 60.2},
+    }
+
+    lines = format_metrics_display(metrics)
+    full_output = "\n".join(lines)
+
+    assert "45.2%" in full_output or "45.23%" in full_output

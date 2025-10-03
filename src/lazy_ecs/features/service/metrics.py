@@ -47,6 +47,29 @@ def get_service_metrics(
     return {"cpu": cpu_stats, "memory": memory_stats}
 
 
+def format_metrics_display(metrics: ServiceMetrics) -> list[str]:
+    """Format service metrics into human-readable display lines."""
+    lines = []
+
+    cpu = metrics["cpu"]
+    memory = metrics["memory"]
+
+    lines.append("CPU Utilization:")
+    lines.append(f"  Current: {cpu['current']:.1f}%")
+    lines.append(f"  Average: {cpu['average']:.1f}%")
+    lines.append(f"  Peak:    {cpu['maximum']:.1f}%")
+    lines.append(f"  Low:     {cpu['minimum']:.1f}%")
+    lines.append("")
+
+    lines.append("Memory Utilization:")
+    lines.append(f"  Current: {memory['current']:.1f}%")
+    lines.append(f"  Average: {memory['average']:.1f}%")
+    lines.append(f"  Peak:    {memory['maximum']:.1f}%")
+    lines.append(f"  Low:     {memory['minimum']:.1f}%")
+
+    return lines
+
+
 def _get_metric_statistics(
     cloudwatch_client: CloudWatchClient,
     cluster_name: str,
