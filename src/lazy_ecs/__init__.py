@@ -163,6 +163,10 @@ def _navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster
             navigator.show_service_metrics(cluster_name, selected_service)
             # Continue the loop to show the menu again
 
+        elif selection_type == "action" and action_name == "open_console":
+            navigator.open_service_in_console(cluster_name, selected_service)
+            # Continue the loop to show the menu again
+
 
 def _handle_task_features(
     navigator: ECSNavigator, cluster_name: str, task_arn: str, task_details: TaskDetails | None, service_name: str
@@ -195,6 +199,8 @@ def _handle_task_features(
                 navigator.show_task_history(cluster_name, service_name)
             elif action_name == "show_details":
                 navigator.display_task_details(task_details)
+            elif action_name == "open_console":
+                navigator.open_task_in_console(cluster_name, task_arn)
 
 
 if __name__ == "__main__":

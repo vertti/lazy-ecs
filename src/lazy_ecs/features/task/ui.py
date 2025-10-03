@@ -118,6 +118,7 @@ class TaskUI(BaseUIComponent):
             [
                 {"name": "Show task details", "value": "task_action:show_details"},
                 {"name": "Show task history and failures", "value": "task_action:show_history"},
+                {"name": "🌐 Open in AWS console", "value": "task_action:open_console"},
             ]
         )
 
