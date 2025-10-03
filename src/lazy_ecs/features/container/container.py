@@ -205,3 +205,32 @@ class ContainerService(BaseAWSService):
             volume_mounts.append(volume_mount)
 
         return volume_mounts
+
+    def get_health_check_config(self, context: ContainerContext) -> dict[str, Any] | None:
+        """Get health check configuration from container definition."""
+        health_check = context.container_definition.get("healthCheck")
+        if not health_check:
+            return None
+
+        return {
+            "command": health_check.get("command", []),
+            "interval": health_check.get("interval", 30),
+            "timeout": health_check.get("timeout", 5),
+            "retries": health_check.get("retries", 3),
+            "start_period": health_check.get("startPeriod", 0),
+        }
+
+    def get_health_status(self, cluster_name: str, task_arn: str, container_name: str) -> str:
+        """Get current health status from running task."""
+        response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=[task_arn])
+        tasks = response.get("tasks", [])
+
+        if not tasks:
+            return "UNKNOWN"
+
+        containers = tasks[0].get("containers", [])
+        for container in containers:
+            if container.get("name") == container_name:
+                return container.get("healthStatus", "UNKNOWN")
+
+        return "UNKNOWN"

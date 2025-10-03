@@ -20,6 +20,25 @@ def mock_task_service():
 
 
 @pytest.fixture
+def mock_container_context():
+    return Mock(
+        cluster_name="test-cluster",
+        task_arn="test-task-arn",
+        container_name="test-container",
+        container_definition={
+            "name": "test-container",
+            "healthCheck": {
+                "command": ["CMD-SHELL", "curl -f http://localhost/health || exit 1"],
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3,
+                "startPeriod": 60,
+            },
+        },
+    )
+
+
+@pytest.fixture
 def container_ui(mock_ecs_client, mock_task_service):
     container_service = ContainerService(mock_ecs_client, mock_task_service)
     return ContainerUI(container_service)
@@ -323,3 +342,98 @@ def test_show_container_volume_mounts_empty(container_ui):
         "test-cluster", "task-arn", "web-container"
     )
     container_ui.container_service.get_volume_mounts.assert_called_once_with(context)
+
+
+def test_get_health_check_config_with_config(mock_ecs_client, mock_task_service, mock_container_context):
+    """Test getting health check configuration when present."""
+    container_service = ContainerService(mock_ecs_client, mock_task_service)
+
+    config = container_service.get_health_check_config(mock_container_context)
+
+    assert config is not None
+    assert config["command"] == ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+    assert config["interval"] == 30
+    assert config["timeout"] == 5
+    assert config["retries"] == 3
+    assert config["start_period"] == 60
+
+
+def test_get_health_check_config_no_config(mock_ecs_client, mock_task_service):
+    """Test getting health check configuration when not present."""
+    container_service = ContainerService(mock_ecs_client, mock_task_service)
+    context = Mock(container_definition={"name": "test-container"})
+
+    config = container_service.get_health_check_config(context)
+
+    assert config is None
+
+
+def test_get_health_status(mock_ecs_client, mock_task_service):
+    """Test getting current health status from running task."""
+    mock_ecs_client.describe_tasks.return_value = {
+        "tasks": [{"containers": [{"name": "test-container", "healthStatus": "HEALTHY"}]}]
+    }
+
+    container_service = ContainerService(mock_ecs_client, mock_task_service)
+    status = container_service.get_health_status("test-cluster", "test-task-arn", "test-container")
+
+    assert status == "HEALTHY"
+    mock_ecs_client.describe_tasks.assert_called_once_with(cluster="test-cluster", tasks=["test-task-arn"])
+
+
+def test_get_health_status_container_not_found(mock_ecs_client, mock_task_service):
+    """Test getting health status when container not found."""
+    mock_ecs_client.describe_tasks.return_value = {
+        "tasks": [{"containers": [{"name": "other-container", "healthStatus": "HEALTHY"}]}]
+    }
+
+    container_service = ContainerService(mock_ecs_client, mock_task_service)
+    status = container_service.get_health_status("test-cluster", "test-task-arn", "test-container")
+
+    assert status == "UNKNOWN"
+
+
+def test_show_container_health_check_with_config(container_ui, mock_container_context):
+    """Test displaying health check configuration and status."""
+    health_config = {
+        "command": ["CMD-SHELL", "curl -f http://localhost/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "start_period": 60,
+    }
+
+    container_ui.container_service.get_container_context = Mock(return_value=mock_container_context)
+    container_ui.container_service.get_health_check_config = Mock(return_value=health_config)
+    container_ui.container_service.get_health_status = Mock(return_value="HEALTHY")
+
+    container_ui.show_container_health_check("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.get_container_context.assert_called_once_with(
+        "test-cluster", "test-task-arn", "test-container"
+    )
+    container_ui.container_service.get_health_check_config.assert_called_once_with(mock_container_context)
+    container_ui.container_service.get_health_status.assert_called_once_with(
+        "test-cluster", "test-task-arn", "test-container"
+    )
+
+
+def test_show_container_health_check_no_context(container_ui):
+    """Test displaying health check with no container context."""
+    container_ui.container_service.get_container_context = Mock(return_value=None)
+
+    container_ui.show_container_health_check("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.get_container_context.assert_called_once_with(
+        "test-cluster", "test-task-arn", "test-container"
+    )
+
+
+def test_show_container_health_check_no_config(container_ui, mock_container_context):
+    """Test displaying health check when no configuration present."""
+    container_ui.container_service.get_container_context = Mock(return_value=mock_container_context)
+    container_ui.container_service.get_health_check_config = Mock(return_value=None)
+
+    container_ui.show_container_health_check("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.get_health_check_config.assert_called_once_with(mock_container_context)

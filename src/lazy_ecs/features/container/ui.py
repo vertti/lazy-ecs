@@ -325,3 +325,33 @@ class ContainerUI(BaseUIComponent):
 
         console.print("=" * 70, style="dim")
         console.print(f"📂 Total: {len(volume_mounts)} volume mounts", style="blue")
+
+    def show_container_health_check(self, cluster_name: str, task_arn: str, container_name: str) -> None:
+        with show_spinner():
+            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        if not context:
+            print_error(f"Could not find container '{container_name}'")
+            return
+
+        health_config = self.container_service.get_health_check_config(context)
+
+        if not health_config:
+            console.print(f"❓ No health check configured for container '{container_name}'", style="yellow")
+            return
+
+        current_status = self.container_service.get_health_status(cluster_name, task_arn, container_name)
+
+        status_icon = {"HEALTHY": "✅", "UNHEALTHY": "❌", "UNKNOWN": "❓"}.get(current_status, "❓")
+        status_color = {"HEALTHY": "green", "UNHEALTHY": "red", "UNKNOWN": "yellow"}.get(current_status, "yellow")
+
+        console.print(f"\n🏥 Health check for container '{container_name}':", style="bold cyan")
+        console.print("=" * 60, style="dim")
+
+        console.print(f"Status: {status_icon} {current_status}", style=status_color)
+        console.print(f"Command: {' '.join(health_config['command'])}", style="white")
+        console.print(f"Interval: {health_config['interval']}s", style="white")
+        console.print(f"Timeout: {health_config['timeout']}s", style="white")
+        console.print(f"Retries: {health_config['retries']}", style="white")
+        console.print(f"Start period: {health_config['start_period']}s", style="white")
+
+        console.print("=" * 60, style="dim")

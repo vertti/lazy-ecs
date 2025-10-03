@@ -213,5 +213,5 @@ def test_build_task_feature_choices() -> None:
     assert "navigation:back" in choice_values
     assert "navigation:exit" in choice_values
 
-    # Total: 5 actions x 2 containers + 2 navigation = 12
-    assert len(choices) == 12
+    # Total: 6 actions x 2 containers + 2 navigation = 14
+    assert len(choices) == 14
