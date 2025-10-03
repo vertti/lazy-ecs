@@ -132,7 +132,7 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - ✅ **Show environment variables & secrets** - Display environment variables and secrets configuration (without exposing secret values)
 - ✅ **Show port mappings** - Display container port configurations and networking
 - ✅ **Show volume mounts** - Display file system mounts and storage configuration
-- ⬜ **Show resource limits vs usage** - Display CPU/memory limits and actual consumption
+- ⬜ **Show resource limits vs usage** - Compare allocated CPU/memory with actual consumption to right-size containers
 - ⬜ **Show health check configuration** - Display health check settings and current status
 - ⬜ **Connect to running container** - Execute shell commands inside running containers (skip - against immutable philosophy)
 - ⬜ **Export container environment** - Save environment variables to .env file for local development
@@ -148,7 +148,7 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - ⬜ **Task definition comparison** - Compare current vs desired task definition versions
 - ⬜ **Show security groups** - Display networking and security configuration
 - ⬜ **Export task definition** - Save task definition as JSON/YAML files
-- ⬜ **Stop/Restart single task** - Manually stop tasks for debugging (service will auto-restart)
+- ⬜ **Stop/Restart single task** - Force restart of a wedged task without redeploying entire service (ECS auto-restarts stopped tasks)
 - ⬜ **Quick task failure reason** - Show failure reason inline without navigation
 
 ### Service-Level Features 🔧
@@ -160,7 +160,7 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - ⬜ **Show deployment history** - Display service deployment timeline and rollback options
 - ⬜ **Show auto-scaling configuration** - Display scaling policies and current metrics
 - ⬜ **Show load balancer health** - Display target group health and routing configuration
-- ⬜ **Service update (image tag)** - Update service with new image tag
+- ⬜ **Service update (image tag)** - Deploy new image version without leaving CLI
 - ⬜ **Service update (environment)** - Update environment variables for service
 
 ### Cluster-Level Features 🏗️
@@ -177,10 +177,14 @@ lazy-ecs will automatically use the standard AWS credentials chain:
   - ✅ Follow logs in real-time (tail -f style) with responsive keyboard shortcuts
   - ⬜ Download logs to file
 - ⬜ **Monitoring integration**:
-  - ⬜ Show CloudWatch metrics for containers/tasks
-  - ⬜ Display resource utilization trends
+  - ⬜ Show CloudWatch metrics (CPU/Memory utilization) for services and tasks
+  - ⬜ Display resource usage trends to identify spikes, leaks, and throttling
 - ⬜ **Port forwarding to container** - Direct local connection to container ports for debugging
 - ⬜ **Multi-region support** - Work with ECS across different AWS regions
+
+### Quality of Life Features 💡
+
+- ⬜ **Open resource in AWS console** - One-key shortcut to open current cluster/service/task in browser
 
 ## Development
 
