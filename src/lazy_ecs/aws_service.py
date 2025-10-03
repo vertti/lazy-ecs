@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Generator
 from typing import TYPE_CHECKING, Any
 
-from .core.types import LogConfig, ServiceEvent, ServiceInfo, TaskDetails, TaskInfo
+from .core.types import LogConfig, ServiceEvent, ServiceInfo, ServiceMetrics, TaskDetails, TaskInfo
 from .features.cluster.cluster import ClusterService
 from .features.container.container import ContainerService
 from .features.service.actions import ServiceActions
@@ -13,6 +13,7 @@ from .features.service.service import ServiceService
 from .features.task.task import TaskService
 
 if TYPE_CHECKING:
+    from mypy_boto3_cloudwatch.client import CloudWatchClient
     from mypy_boto3_ecs.client import ECSClient
     from mypy_boto3_logs.client import CloudWatchLogsClient
     from mypy_boto3_logs.type_defs import (
@@ -31,9 +32,11 @@ class ECSService:
         ecs_client: ECSClient,
         sts_client: STSClient | None = None,
         logs_client: CloudWatchLogsClient | None = None,
+        cloudwatch_client: CloudWatchClient | None = None,
     ) -> None:
         self.ecs_client = ecs_client
         self.sts_client = sts_client
+        self.cloudwatch_client = cloudwatch_client
         # Initialize feature services
         self._cluster = ClusterService(ecs_client)
         self._service = ServiceService(ecs_client)
@@ -130,3 +133,11 @@ class ECSService:
     def force_new_deployment(self, cluster_name: str, service_name: str) -> bool:
         """Force a new deployment for a service."""
         return self._service_actions.force_new_deployment(cluster_name, service_name)
+
+    def get_service_metrics(self, cluster_name: str, service_name: str, hours: int = 1) -> ServiceMetrics | None:
+        """Get CloudWatch metrics (CPU/Memory utilization) for a service."""
+        if not self.cloudwatch_client:
+            return None
+        from .features.service.metrics import get_service_metrics
+
+        return get_service_metrics(self.cloudwatch_client, cluster_name, service_name, hours)

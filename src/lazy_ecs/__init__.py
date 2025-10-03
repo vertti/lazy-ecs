@@ -6,6 +6,7 @@ from botocore.config import Config
 from rich.console import Console
 
 if TYPE_CHECKING:
+    from mypy_boto3_cloudwatch.client import CloudWatchClient
     from mypy_boto3_ecs import ECSClient
     from mypy_boto3_logs.client import CloudWatchLogsClient
     from mypy_boto3_sts.client import STSClient
@@ -32,7 +33,8 @@ def main() -> None:
         ecs_client = _create_aws_client(args.profile)
         logs_client = _create_logs_client(args.profile)
         sts_client = _create_sts_client(args.profile)
-        ecs_service = ECSService(ecs_client, sts_client, logs_client)
+        cloudwatch_client = _create_cloudwatch_client(args.profile)
+        ecs_service = ECSService(ecs_client, sts_client, logs_client, cloudwatch_client)
         navigator = ECSNavigator(ecs_service)
 
         _navigate_clusters(navigator, ecs_service)
@@ -83,6 +85,19 @@ def _create_sts_client(profile_name: str | None) -> "STSClient":
         session = boto3.Session(profile_name=profile_name)
         return session.client("sts", config=config)
     return boto3.client("sts", config=config)
+
+
+def _create_cloudwatch_client(profile_name: str | None) -> "CloudWatchClient":
+    """Create optimized CloudWatch client with connection pooling."""
+    config = Config(
+        max_pool_connections=5,  # Same config as ECS client
+        retries={"max_attempts": 2, "mode": "adaptive"},
+    )
+
+    if profile_name:
+        session = boto3.Session(profile_name=profile_name)
+        return session.client("cloudwatch", config=config)
+    return boto3.client("cloudwatch", config=config)
 
 
 def _navigate_clusters(navigator: ECSNavigator, ecs_service: ECSService) -> None:
@@ -142,6 +157,10 @@ def _navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster
 
         elif selection_type == "action" and action_name == "show_events":
             navigator.show_service_events(cluster_name, selected_service)
+            # Continue the loop to show the menu again
+
+        elif selection_type == "action" and action_name == "show_metrics":
+            navigator.show_service_metrics(cluster_name, selected_service)
             # Continue the loop to show the menu again
 
 

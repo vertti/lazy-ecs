@@ -125,7 +125,7 @@ def test_select_service_action_with_many_tasks(mock_select, service_ui):
 
     call_args = mock_select.call_args
     choices = call_args[0][1]
-    assert len(choices) == 102
+    assert len(choices) == 103  # 100 tasks + 3 actions (events, metrics, deployment)
 
 
 @patch("lazy_ecs.features.service.ui.select_with_auto_pagination")

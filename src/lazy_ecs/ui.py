@@ -96,6 +96,20 @@ class ECSNavigator(BaseUIComponent):
     def show_service_events(self, cluster_name: str, service_name: str) -> None:
         return self._service_ui.display_service_events(cluster_name, service_name)
 
+    def show_service_metrics(self, cluster_name: str, service_name: str) -> None:
+        """Fetch and display service metrics."""
+        with show_spinner():
+            metrics = self.ecs_service.get_service_metrics(cluster_name, service_name, hours=1)
+
+        if metrics:
+            self._service_ui.display_service_metrics(service_name, metrics)
+        else:
+            console.print(f"\n⚠️ No metrics available for service '{service_name}'", style="yellow")
+            console.print("This could mean:", style="dim")
+            console.print("  - The service has no running tasks", style="dim")
+            console.print("  - CloudWatch metrics are not yet available", style="dim")
+            console.print("  - The service was recently created", style="dim")
+
     def show_task_history(self, cluster_name: str, service_name: str) -> None:
         self._task_ui.display_task_history(cluster_name, service_name)
 

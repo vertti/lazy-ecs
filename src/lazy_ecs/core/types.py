@@ -70,3 +70,15 @@ class TaskHistoryDetails(TypedDict):
     started_at: datetime | None
     stopped_at: datetime | None
     containers: list[ContainerHistoryInfo]
+
+
+class MetricStatistics(TypedDict):
+    current: float
+    average: float
+    maximum: float
+    minimum: float
+
+
+class ServiceMetrics(TypedDict):
+    cpu: MetricStatistics
+    memory: MetricStatistics
