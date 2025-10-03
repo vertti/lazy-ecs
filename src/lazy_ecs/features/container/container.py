@@ -234,3 +234,41 @@ class ContainerService(BaseAWSService):
                 return container.get("healthStatus", "UNKNOWN")
 
         return "UNKNOWN"
+
+    def check_ecs_exec_enabled(self, cluster_name: str, task_arn: str) -> bool:
+        """Check if ECS Exec is enabled for the task."""
+        response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=[task_arn])
+        tasks = response.get("tasks", [])
+
+        if not tasks:
+            return False
+
+        return tasks[0].get("enableExecuteCommand", False)
+
+    def execute_ecs_exec_command(self, cluster_name: str, task_arn: str, container_name: str) -> bool:
+        """Execute ECS Exec command to connect to container."""
+        import subprocess
+
+        # Extract task ID from ARN
+        task_id = task_arn.split("/")[-1]
+
+        command = [
+            "aws",
+            "ecs",
+            "execute-command",
+            "--cluster",
+            cluster_name,
+            "--task",
+            task_id,
+            "--container",
+            container_name,
+            "--interactive",
+            "--command",
+            "/bin/bash",
+        ]
+
+        try:
+            result = subprocess.run(command, check=False)
+            return result.returncode == 0
+        except Exception:
+            return False

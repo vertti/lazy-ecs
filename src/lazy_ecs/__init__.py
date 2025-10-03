@@ -190,6 +190,8 @@ def _handle_task_features(
                 "show_ports": navigator.show_container_port_mappings,
                 "show_volumes": navigator.show_container_volume_mounts,
                 "show_health": navigator.show_container_health_check,
+                "show_exec": navigator.show_container_exec_command,
+                "exec_shell": navigator.execute_container_shell,
             }
 
             if action_name in action_methods:

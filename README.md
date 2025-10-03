@@ -134,7 +134,7 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - ✅ **Show volume mounts** - Display file system mounts and storage configuration
 - ⬜ **Show resource limits vs usage** - Compare allocated CPU/memory with actual consumption to right-size containers
 - ✅ **Show health check configuration** - Display health check settings and current status
-- ⬜ **Connect to running container** - Execute shell commands inside running containers (skip - against immutable philosophy)
+- ✅ **Connect to running container** - Execute shell commands inside running containers with ECS Exec
 - ⬜ **Export container environment** - Save environment variables to .env file for local development
 - ⬜ **Copy container command** - Get exact docker run command for local debugging
 
@@ -185,6 +185,33 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 ### Quality of Life Features
 
 - ✅ **Open resource in AWS console** - One-key shortcut to open current cluster/service/task in browser
+
+## Recent Updates
+
+### Container Health Check & ECS Exec Support
+
+**New Features Added:**
+- **Health Check Configuration Display** - View health check settings and current status (HEALTHY/UNHEALTHY/UNKNOWN)
+- **ECS Exec Command Display** - Show the exact AWS CLI command needed to connect to containers
+- **Direct Container Shell Access** - Execute shell commands directly inside running containers via ECS Exec
+
+**Health Check Features:**
+- Display health check command, interval, timeout, retries, and start period
+- Show real-time health status with visual indicators
+- Available for all containers with configured health checks
+
+**ECS Exec Features:**
+- Check if ECS Exec is enabled for tasks
+- Display ready-to-use AWS CLI commands for container access
+- Direct shell execution with user confirmation
+- Comprehensive setup instructions when ECS Exec is disabled
+- Support for alternative shells (/bin/bash, /bin/sh) and custom commands
+
+**Requirements for ECS Exec:**
+- ECS Exec must be enabled on the service/task (`enableExecuteCommand=true`)
+- AWS CLI and Session Manager plugin installed locally
+- Proper IAM permissions for SSM messages
+- Task role with required ECS Exec permissions
 
 ## Development
 

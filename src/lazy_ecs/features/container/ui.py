@@ -355,3 +355,85 @@ class ContainerUI(BaseUIComponent):
         console.print(f"Start period: {health_config['start_period']}s", style="white")
 
         console.print("=" * 60, style="dim")
+
+    def show_container_exec_command(self, cluster_name: str, task_arn: str, container_name: str) -> None:
+        with show_spinner():
+            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        if not context:
+            print_error(f"Could not find container '{container_name}'")
+            return
+
+        is_exec_enabled = self.container_service.check_ecs_exec_enabled(cluster_name, task_arn)
+
+        console.print(f"\n🔧 ECS Exec for container '{container_name}':", style="bold cyan")
+        console.print("=" * 70, style="dim")
+
+        if is_exec_enabled:
+            console.print("Status: ✅ ECS Exec is ENABLED", style="green")
+            console.print("\n📋 Command to connect:", style="bold white")
+
+            # Extract task ID from ARN for cleaner display
+            task_id = task_arn.split("/")[-1]
+
+            command = (
+                f"aws ecs execute-command --cluster {cluster_name} --task {task_id} "
+                f'--container {container_name} --interactive --command "/bin/bash"'
+            )
+            console.print(f"  {command}", style="cyan")
+
+            console.print("\n💡 Alternative shells:", style="dim")
+            console.print('  # For sh: --command "/bin/sh"', style="dim")
+            console.print('  # For specific command: --command "ls -la"', style="dim")
+
+        else:
+            console.print("Status: ❌ ECS Exec is DISABLED", style="red")
+            console.print("\n🔧 To enable ECS Exec, you need to:", style="bold yellow")
+            console.print("  1. Update your service with enableExecuteCommand=true:", style="white")
+            console.print(
+                "     aws ecs update-service --cluster CLUSTER --service SERVICE --enable-execute-command", style="cyan"
+            )
+            console.print("  2. Or update your task definition and redeploy", style="white")
+            console.print("  3. Ensure your task role has the required permissions:", style="white")
+            console.print("     - ssmmessages:CreateControlChannel", style="dim")
+            console.print("     - ssmmessages:CreateDataChannel", style="dim")
+            console.print("     - ssmmessages:OpenControlChannel", style="dim")
+            console.print("     - ssmmessages:OpenDataChannel", style="dim")
+            console.print("  4. Install Session Manager plugin on your local machine", style="white")
+
+        console.print("=" * 70, style="dim")
+
+    def execute_container_shell(self, cluster_name: str, task_arn: str, container_name: str) -> None:
+        with show_spinner():
+            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        if not context:
+            print_error(f"Could not find container '{container_name}'")
+            return
+
+        is_exec_enabled = self.container_service.check_ecs_exec_enabled(cluster_name, task_arn)
+
+        if not is_exec_enabled:
+            console.print(f"❌ ECS Exec is disabled for container '{container_name}'", style="red")
+            console.print("Use 'Show ECS Exec command' to see how to enable it.", style="dim")
+            return
+
+        console.print(f"🔧 Connecting to container '{container_name}'...", style="bold cyan")
+        console.print("⚠️  This will open an interactive shell session.", style="yellow")
+        console.print("Press Ctrl+C to cancel or Enter to continue...", style="dim")
+
+        try:
+            console.input("")  # Wait for user confirmation
+        except KeyboardInterrupt:
+            console.print("\n❌ Connection cancelled.", style="yellow")
+            return
+
+        console.print("🚀 Executing ECS Exec command...", style="green")
+        success = self.container_service.execute_ecs_exec_command(cluster_name, task_arn, container_name)
+
+        if success:
+            console.print("✅ Shell session completed.", style="green")
+        else:
+            console.print("❌ Failed to connect to container.", style="red")
+            console.print("Make sure you have:", style="dim")
+            console.print("  - AWS CLI configured", style="dim")
+            console.print("  - Session Manager plugin installed", style="dim")
+            console.print("  - Proper IAM permissions", style="dim")

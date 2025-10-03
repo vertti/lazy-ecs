@@ -93,6 +93,12 @@ class ECSNavigator(BaseUIComponent):
     def show_container_health_check(self, cluster_name: str, task_arn: str, container_name: str) -> None:
         return self._container_ui.show_container_health_check(cluster_name, task_arn, container_name)
 
+    def show_container_exec_command(self, cluster_name: str, task_arn: str, container_name: str) -> None:
+        return self._container_ui.show_container_exec_command(cluster_name, task_arn, container_name)
+
+    def execute_container_shell(self, cluster_name: str, task_arn: str, container_name: str) -> None:
+        return self._container_ui.execute_container_shell(cluster_name, task_arn, container_name)
+
     def handle_force_deployment(self, cluster_name: str, service_name: str) -> None:
         return self._service_ui.handle_force_deployment(cluster_name, service_name)
 
@@ -148,6 +154,8 @@ def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[s
         ("Show port mappings for container: {name}", "container_action", "show_ports"),
         ("Show volume mounts for container: {name}", "container_action", "show_volumes"),
         ("Show health check configuration for container: {name}", "container_action", "show_health"),
+        ("Show ECS Exec command for container: {name}", "container_action", "show_exec"),
+        ("🚀 Execute shell in container: {name}", "container_action", "exec_shell"),
     ]
 
     choices = []

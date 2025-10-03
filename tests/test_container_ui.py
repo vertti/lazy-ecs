@@ -437,3 +437,132 @@ def test_show_container_health_check_no_config(container_ui, mock_container_cont
     container_ui.show_container_health_check("test-cluster", "test-task-arn", "test-container")
 
     container_ui.container_service.get_health_check_config.assert_called_once_with(mock_container_context)
+
+
+def test_check_ecs_exec_enabled_true(mock_ecs_client, mock_task_service):
+    """Test checking ECS Exec when enabled."""
+    mock_ecs_client.describe_tasks.return_value = {"tasks": [{"enableExecuteCommand": True}]}
+
+    container_service = ContainerService(mock_ecs_client, mock_task_service)
+    is_enabled = container_service.check_ecs_exec_enabled("test-cluster", "test-task-arn")
+
+    assert is_enabled is True
+    mock_ecs_client.describe_tasks.assert_called_once_with(cluster="test-cluster", tasks=["test-task-arn"])
+
+
+def test_check_ecs_exec_enabled_false(mock_ecs_client, mock_task_service):
+    """Test checking ECS Exec when disabled."""
+    mock_ecs_client.describe_tasks.return_value = {"tasks": [{"enableExecuteCommand": False}]}
+
+    container_service = ContainerService(mock_ecs_client, mock_task_service)
+    is_enabled = container_service.check_ecs_exec_enabled("test-cluster", "test-task-arn")
+
+    assert is_enabled is False
+
+
+def test_check_ecs_exec_enabled_no_tasks(mock_ecs_client, mock_task_service):
+    """Test checking ECS Exec when no tasks found."""
+    mock_ecs_client.describe_tasks.return_value = {"tasks": []}
+
+    container_service = ContainerService(mock_ecs_client, mock_task_service)
+    is_enabled = container_service.check_ecs_exec_enabled("test-cluster", "test-task-arn")
+
+    assert is_enabled is False
+
+
+def test_show_container_exec_command_enabled(container_ui, mock_container_context):
+    """Test displaying exec command when ECS Exec is enabled."""
+    container_ui.container_service.get_container_context = Mock(return_value=mock_container_context)
+    container_ui.container_service.check_ecs_exec_enabled = Mock(return_value=True)
+
+    container_ui.show_container_exec_command("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.get_container_context.assert_called_once_with(
+        "test-cluster", "test-task-arn", "test-container"
+    )
+    container_ui.container_service.check_ecs_exec_enabled.assert_called_once_with("test-cluster", "test-task-arn")
+
+
+def test_show_container_exec_command_disabled(container_ui, mock_container_context):
+    """Test displaying exec command when ECS Exec is disabled."""
+    container_ui.container_service.get_container_context = Mock(return_value=mock_container_context)
+    container_ui.container_service.check_ecs_exec_enabled = Mock(return_value=False)
+
+    container_ui.show_container_exec_command("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.check_ecs_exec_enabled.assert_called_once_with("test-cluster", "test-task-arn")
+
+
+def test_show_container_exec_command_no_context(container_ui):
+    """Test displaying exec command with no container context."""
+    container_ui.container_service.get_container_context = Mock(return_value=None)
+
+    container_ui.show_container_exec_command("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.get_container_context.assert_called_once_with(
+        "test-cluster", "test-task-arn", "test-container"
+    )
+
+
+def test_execute_ecs_exec_command_success(mock_ecs_client, mock_task_service):
+    """Test executing ECS Exec command successfully."""
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value.returncode = 0
+
+        container_service = ContainerService(mock_ecs_client, mock_task_service)
+        result = container_service.execute_ecs_exec_command("test-cluster", "test-task-arn", "test-container")
+
+        assert result is True
+        mock_run.assert_called_once()
+        args = mock_run.call_args[0][0]
+        assert "aws" in args
+        assert "ecs" in args
+        assert "execute-command" in args
+
+
+def test_execute_ecs_exec_command_failure(mock_ecs_client, mock_task_service):
+    """Test executing ECS Exec command with failure."""
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value.returncode = 1
+
+        container_service = ContainerService(mock_ecs_client, mock_task_service)
+        result = container_service.execute_ecs_exec_command("test-cluster", "test-task-arn", "test-container")
+
+        assert result is False
+
+
+def test_execute_container_shell_enabled(container_ui, mock_container_context):
+    """Test executing container shell when ECS Exec is enabled."""
+    container_ui.container_service.get_container_context = Mock(return_value=mock_container_context)
+    container_ui.container_service.check_ecs_exec_enabled = Mock(return_value=True)
+    container_ui.container_service.execute_ecs_exec_command = Mock(return_value=True)
+
+    with patch("rich.console.Console.input", return_value=""):
+        container_ui.execute_container_shell("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.execute_ecs_exec_command.assert_called_once_with(
+        "test-cluster", "test-task-arn", "test-container"
+    )
+
+
+def test_execute_container_shell_disabled(container_ui, mock_container_context):
+    """Test executing container shell when ECS Exec is disabled."""
+    container_ui.container_service.get_container_context = Mock(return_value=mock_container_context)
+    container_ui.container_service.check_ecs_exec_enabled = Mock(return_value=False)
+    container_ui.container_service.execute_ecs_exec_command = Mock()
+
+    container_ui.execute_container_shell("test-cluster", "test-task-arn", "test-container")
+
+    # Should not call execute_ecs_exec_command when disabled
+    container_ui.container_service.execute_ecs_exec_command.assert_not_called()
+
+
+def test_execute_container_shell_no_context(container_ui):
+    """Test executing container shell with no container context."""
+    container_ui.container_service.get_container_context = Mock(return_value=None)
+
+    container_ui.execute_container_shell("test-cluster", "test-task-arn", "test-container")
+
+    container_ui.container_service.get_container_context.assert_called_once_with(
+        "test-cluster", "test-task-arn", "test-container"
+    )
