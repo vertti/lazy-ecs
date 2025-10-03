@@ -46,6 +46,7 @@ class ServiceUI(BaseUIComponent):
 
         choices.append({"name": "📋 Show service events", "value": "action:show_events"})
         choices.append({"name": "📊 Show metrics", "value": "action:show_metrics"})
+        choices.append({"name": "🌐 Open in AWS console", "value": "action:open_console"})
         choices.append({"name": "🚀 Force new deployment", "value": "action:force_deployment"})
 
         return select_with_auto_pagination(

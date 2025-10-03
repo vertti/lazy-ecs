@@ -141,3 +141,7 @@ class ECSService:
         from .features.service.metrics import get_service_metrics
 
         return get_service_metrics(self.cloudwatch_client, cluster_name, service_name, hours)
+
+    def get_region(self) -> str:
+        """Get the AWS region from the ECS client."""
+        return self.ecs_client.meta.region_name
