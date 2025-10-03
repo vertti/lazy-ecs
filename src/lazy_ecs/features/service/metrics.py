@@ -54,18 +54,17 @@ def format_metrics_display(metrics: ServiceMetrics) -> list[str]:
     cpu = metrics["cpu"]
     memory = metrics["memory"]
 
-    lines.append("CPU Utilization:")
-    lines.append(f"  Current: {cpu['current']:.1f}%")
-    lines.append(f"  Average: {cpu['average']:.1f}%")
-    lines.append(f"  Peak:    {cpu['maximum']:.1f}%")
-    lines.append(f"  Low:     {cpu['minimum']:.1f}%")
-    lines.append("")
+    cpu_line = (
+        f"CPU:    Current: {cpu['current']:5.1f}%  |  Avg: {cpu['average']:5.1f}%  |  "
+        f"Peak: {cpu['maximum']:5.1f}%  |  Low: {cpu['minimum']:5.1f}%"
+    )
+    memory_line = (
+        f"Memory: Current: {memory['current']:5.1f}%  |  Avg: {memory['average']:5.1f}%  |  "
+        f"Peak: {memory['maximum']:5.1f}%  |  Low: {memory['minimum']:5.1f}%"
+    )
 
-    lines.append("Memory Utilization:")
-    lines.append(f"  Current: {memory['current']:.1f}%")
-    lines.append(f"  Average: {memory['average']:.1f}%")
-    lines.append(f"  Peak:    {memory['maximum']:.1f}%")
-    lines.append(f"  Low:     {memory['minimum']:.1f}%")
+    lines.append(cpu_line)
+    lines.append(memory_line)
 
     return lines
 
