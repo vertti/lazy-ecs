@@ -8,9 +8,10 @@ from rich.table import Table
 
 from ...core.base import BaseUIComponent
 from ...core.navigation import select_with_auto_pagination
-from ...core.types import TaskInfo
+from ...core.types import ServiceMetrics, TaskInfo
 from ...core.utils import show_spinner
 from .actions import ServiceActions
+from .metrics import format_metrics_display
 from .service import ServiceService
 
 console = Console()
@@ -44,6 +45,7 @@ class ServiceUI(BaseUIComponent):
             choices.append({"name": task["name"], "value": f"task:show_details:{task['value']}"})
 
         choices.append({"name": "📋 Show service events", "value": "action:show_events"})
+        choices.append({"name": "📊 Show metrics", "value": "action:show_metrics"})
         choices.append({"name": "🚀 Force new deployment", "value": "action:force_deployment"})
 
         return select_with_auto_pagination(
@@ -108,6 +110,13 @@ class ServiceUI(BaseUIComponent):
             table.add_row(time_str, type_display, service_display, message)
 
         console.print(table)
+
+    def display_service_metrics(self, service_name: str, metrics: ServiceMetrics) -> None:
+        """Display service metrics."""
+        lines = format_metrics_display(metrics)
+        console.print(f"\n[bold cyan]Metrics for service '{service_name}' (last hour):[/bold cyan]")
+        for line in lines:
+            console.print(line)
 
 
 def _get_event_type_style(event_type: str) -> str:
