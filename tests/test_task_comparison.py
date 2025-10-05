@@ -256,3 +256,76 @@ def test_compare_task_definitions_no_changes():
     changes = compare_task_definitions(source, target)
 
     assert len(changes) == 0
+
+
+def test_compare_task_definitions_detects_port_changes():
+    source = {
+        "family": "my-app",
+        "revision": 1,
+        "containers": [
+            {
+                "name": "web",
+                "image": "nginx:1.21",
+                "ports": [{"containerPort": 80, "protocol": "tcp"}],
+            }
+        ],
+    }
+    target = {
+        "family": "my-app",
+        "revision": 2,
+        "containers": [
+            {
+                "name": "web",
+                "image": "nginx:1.21",
+                "ports": [{"containerPort": 8080, "protocol": "tcp"}],
+            }
+        ],
+    }
+
+    changes = compare_task_definitions(source, target)
+
+    assert len(changes) == 1
+    assert changes[0]["type"] == "ports_changed"
+    assert changes[0]["container"] == "web"
+
+
+def test_compare_task_definitions_detects_command_changes():
+    source = {
+        "family": "my-app",
+        "revision": 1,
+        "containers": [{"name": "web", "image": "nginx:1.21", "command": ["npm", "start"]}],
+    }
+    target = {
+        "family": "my-app",
+        "revision": 2,
+        "containers": [{"name": "web", "image": "nginx:1.21", "command": ["npm", "run", "prod"]}],
+    }
+
+    changes = compare_task_definitions(source, target)
+
+    assert len(changes) == 1
+    assert changes[0]["type"] == "command_changed"
+    assert changes[0]["container"] == "web"
+    assert changes[0]["old"] == ["npm", "start"]
+    assert changes[0]["new"] == ["npm", "run", "prod"]
+
+
+def test_compare_task_definitions_detects_entrypoint_changes():
+    source = {
+        "family": "my-app",
+        "revision": 1,
+        "containers": [{"name": "web", "image": "nginx:1.21", "entryPoint": ["/bin/sh"]}],
+    }
+    target = {
+        "family": "my-app",
+        "revision": 2,
+        "containers": [{"name": "web", "image": "nginx:1.21", "entryPoint": ["/bin/bash"]}],
+    }
+
+    changes = compare_task_definitions(source, target)
+
+    assert len(changes) == 1
+    assert changes[0]["type"] == "entrypoint_changed"
+    assert changes[0]["container"] == "web"
+    assert changes[0]["old"] == ["/bin/sh"]
+    assert changes[0]["new"] == ["/bin/bash"]

@@ -155,6 +155,39 @@ def _compare_container(source: dict[str, Any], target: dict[str, Any], changes: 
         changes,
     )
 
+    # Compare ports
+    if source.get("ports") != target.get("ports"):
+        changes.append(
+            {
+                "type": "ports_changed",
+                "container": container_name,
+                "old": source.get("ports", []),
+                "new": target.get("ports", []),
+            }
+        )
+
+    # Compare command
+    if source.get("command") != target.get("command"):
+        changes.append(
+            {
+                "type": "command_changed",
+                "container": container_name,
+                "old": source.get("command"),
+                "new": target.get("command"),
+            }
+        )
+
+    # Compare entrypoint
+    if source.get("entryPoint") != target.get("entryPoint"):
+        changes.append(
+            {
+                "type": "entrypoint_changed",
+                "container": container_name,
+                "old": source.get("entryPoint"),
+                "new": target.get("entryPoint"),
+            }
+        )
+
 
 def _compare_dicts(
     source: dict[str, str],

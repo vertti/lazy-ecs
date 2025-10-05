@@ -365,7 +365,50 @@ class TaskUI(BaseUIComponent):
             console.print(f"   - {change['old']}", style="red")
             console.print(f"   + {change['new']}", style="green")
 
+        elif change_type == "ports_changed":
+            console.print(f"🔌 Port mappings changed ({change['container']}):", style="bold yellow")
+            old_ports = change.get("old", [])
+            new_ports = change.get("new", [])
+            if old_ports:
+                console.print(f"   - {_format_ports(old_ports)}", style="red")
+            if new_ports:
+                console.print(f"   + {_format_ports(new_ports)}", style="green")
+
+        elif change_type == "command_changed":
+            console.print(f"⚙️  Command changed ({change['container']}):", style="bold yellow")
+            old_cmd = change.get("old")
+            new_cmd = change.get("new")
+            if old_cmd:
+                console.print(f"   - {' '.join(old_cmd)}", style="red")
+            if new_cmd:
+                console.print(f"   + {' '.join(new_cmd)}", style="green")
+
+        elif change_type == "entrypoint_changed":
+            console.print(f"🚪 Entrypoint changed ({change['container']}):", style="bold yellow")
+            old_ep = change.get("old")
+            new_ep = change.get("new")
+            if old_ep:
+                console.print(f"   - {' '.join(old_ep)}", style="red")
+            if new_ep:
+                console.print(f"   + {' '.join(new_ep)}", style="green")
+
         console.print()  # Add spacing between changes
+
+
+def _format_ports(ports: list[dict[str, Any]]) -> str:
+    """Format port mappings for display."""
+    if not ports:
+        return "none"
+    port_strs: list[str] = []
+    for port in ports:
+        container_port = port.get("containerPort", "?")
+        protocol = port.get("protocol", "tcp")
+        host_port = port.get("hostPort")
+        if host_port:
+            port_strs.append(f"{host_port}:{container_port}/{protocol}")
+        else:
+            port_strs.append(f"{container_port}/{protocol}")
+    return ", ".join(port_strs)
 
 
 def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[str, str]]:
