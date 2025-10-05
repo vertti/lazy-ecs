@@ -123,68 +123,99 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 
 ## Features
 
-### Container-Level Features
+### Navigation & Exploration
 
-- ✅ **Container log viewing** - Display recent logs with timestamps from CloudWatch
-- ✅ **Container log live tail viewing** - Real-time log streaming with instant keyboard shortcuts
-- ✅ **Log filtering** - CloudWatch filter patterns (include/exclude) during live tail
-- ✅ **Basic container details** - Show container name, image, CPU/memory configuration
-- ✅ **Show environment variables & secrets** - Display environment variables and secrets configuration (without exposing secret values)
-- ✅ **Show port mappings** - Display container port configurations and networking
-- ✅ **Show volume mounts** - Display file system mounts and storage configuration
-- ⬜ **Show resource limits vs usage** - Compare allocated CPU/memory with actual consumption to right-size containers
-- ⬜ **Show health check configuration** - Display health check settings and current status
-- ⬜ **Connect to running container** - Execute shell commands inside running containers (skip - against immutable philosophy)
-- ⬜ **Export container environment** - Save environment variables to .env file for local development
-- ⬜ **Copy container command** - Get exact docker run command for local debugging
+**Interactive cluster selection**
 
-### Task-Level Features
+- Arrow key navigation through ECS clusters
+- _Why it's great:_ AWS console requires multiple clicks through menus; AWS CLI requires memorizing cluster ARNs
 
-- ✅ **Task selection with auto-selection** - Automatically select single tasks, interactive selection for multiple
-- ✅ **Comprehensive task details** - Display task definition, status, containers, creation time
-- ✅ **Task definition version tracking** - Show if task is running desired vs outdated version
-- ✅ **Show task events/history** - Display task lifecycle events and failure reasons with smart analysis (OOM kills, timeouts, image pull failures)
-- ⬜ **Show task placement details** - Display placement constraints and actual host placement
-- ⬜ **Task definition comparison** - Compare current vs desired task definition versions
-- ⬜ **Show security groups** - Display networking and security configuration
-- ⬜ **Export task definition** - Save task definition as JSON/YAML files
-- ⬜ **Stop/Restart single task** - Force restart of a wedged task without redeploying entire service (ECS auto-restarts stopped tasks)
-- ⬜ **Quick task failure reason** - Show failure reason inline without navigation
+**Service browsing with smart status indicators**
 
-### Service-Level Features
+- Visual health indicators (✅ healthy, ⚠️ scaling, 🔴 over-scaled)
+- Running/desired/pending task counts at a glance
+- _Why it's great:_ AWS console hides task counts in separate tabs; requires mental math to determine service health
 
-- ✅ **Service browsing with status** - Display services with health indicators (healthy/scaling/over-scaled)
-- ✅ **Service status indicators** - Show running/desired/pending counts with visual status
-- ✅ **Force new deployment** - Trigger service redeployment directly from CLI (no more AWS console trips!)
-- ✅ **Show service events** - Display service-level events and deployment status with chronological sorting and proper categorization
-- ⬜ **Show deployment history** - Display service deployment timeline and rollback options
-- ⬜ **Show auto-scaling configuration** - Display scaling policies and current metrics
-- ⬜ **Show load balancer health** - Display target group health and routing configuration
-- ⬜ **Service update (image tag)** - Deploy new image version without leaving CLI
-- ⬜ **Service update (environment)** - Update environment variables for service
+**Task selection with auto-selection**
 
-### Cluster-Level Features
+- Automatically select single tasks; interactive picker for multiple
+- Shows desired vs actual task definition versions
+- _Why it's great:_ AWS console requires clicking through pagination; no easy way to spot version mismatches
 
-- ✅ **Interactive cluster selection** - Arrow key navigation through available ECS clusters
-- ✅ **Log group discovery** - Automatically find relevant log groups for debugging
-- ⬜ **Multi-cluster support** - Compare resources across clusters
-- ⬜ **Bulk operations across clusters** - Perform operations on multiple clusters
+**Open in AWS console**
 
-### Advanced Features
+- One-key shortcut to open current resource in browser
+- Works for clusters, services, and tasks
+- _Why it's great:_ When you need the full AWS console, jump there instantly without manual navigation
 
-- ⬜ **Enhanced log features**:
-  - ✅ Search/filter logs by keywords (CloudWatch patterns with include/exclude)
-  - ✅ Follow logs in real-time (tail -f style) with responsive keyboard shortcuts
-  - ⬜ Download logs to file
-- ⬜ **Monitoring integration**:
-  - ✅ Show CloudWatch metrics (CPU/Memory utilization) - Display current values, averages, and peaks
-  - ⬜ Add sparkline visualization - Inline Unicode trend indicators for quick visual assessment
-- ⬜ **Port forwarding to container** - Direct local connection to container ports for debugging
-- ⬜ **Multi-region support** - Work with ECS across different AWS regions
+### Container Inspection
 
-### Quality of Life Features
+**Container details**
 
-- ✅ **Open resource in AWS console** - One-key shortcut to open current cluster/service/task in browser
+- Name, image, CPU/memory configuration
+- Environment variables and secrets (without exposing values)
+- Port mappings and volume mounts
+- _Why it's great:_ AWS console spreads this across multiple tabs; AWS CLI requires complex JSON parsing
+
+**Log viewing with live tail**
+
+- Display recent logs with timestamps
+- Real-time streaming (tail -f style)
+- CloudWatch filter patterns (include/exclude)
+- _Why it's great:_ AWS console log viewer is slow and clunky; AWS CLI requires memorizing log group names and complex filter syntax
+
+### Service & Task Debugging
+
+**Force new deployment**
+
+- Trigger service redeployment directly from CLI
+- _Why it's great:_ AWS console requires navigating to service → Update → Force new deployment (3+ clicks)
+
+**Service events**
+
+- Display deployment events with chronological sorting
+- Proper event categorization
+- _Why it's great:_ AWS console shows events in reverse chronological order, making it hard to follow deployment progression
+
+**Task events/history with smart analysis**
+
+- Lifecycle events and failure reasons
+- Automatic detection of common failures (OOM kills, timeouts, image pull failures)
+- _Why it's great:_ AWS console requires clicking into each failed task individually; no smart analysis of failure patterns
+
+**CloudWatch metrics**
+
+- CPU/Memory utilization with current, average, and peak values
+- _Why it's great:_ AWS console requires switching to CloudWatch tab, selecting metrics, configuring graphs
+
+**Log group discovery**
+
+- Automatically find relevant log groups for debugging
+- _Why it's great:_ AWS console requires knowing the exact log group name; AWS CLI requires listing all log groups and filtering manually
+
+## Roadmap
+
+Features listed in priority order:
+
+1. **Task definition comparison** - Compare two task definition versions side-by-side with highlighted changes
+2. **Resource usage vs limits** - Show allocated vs actual CPU/memory with right-sizing recommendations
+3. **Export task definition** - Save task definitions as JSON/YAML files
+4. **Task placement details** - Display placement constraints and actual host placement
+5. **Health check configuration** - Display health check settings and current status
+6. **Download logs to file** - Export CloudWatch logs for offline analysis
+7. **Sparkline visualization** - Unicode trend indicators for metrics
+8. **Service deployment history** - Timeline of deployments with rollback options
+9. **Security groups** - Display networking and security configuration
+10. **Auto-scaling configuration** - Display scaling policies and current metrics
+11. **Load balancer health** - Display target group health and routing
+12. **Quick task failure reason** - Show failure reason inline without navigation
+13. **Export container environment** - Save environment variables to .env file
+14. **Multi-region support** - Work with ECS across AWS regions
+15. **Service update (image tag)** - Deploy new image version from CLI
+16. **Service update (environment)** - Update environment variables
+17. **Multi-cluster support** - Compare resources across clusters
+18. **Port forwarding** - Direct local connection to container ports
+19. **Stop/restart single task** - Force restart individual tasks
 
 ## Development
 
