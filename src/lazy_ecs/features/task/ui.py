@@ -284,11 +284,11 @@ class TaskUI(BaseUIComponent):
         if not selected_arn:
             return
 
-        # Get current task definition ARN
-        current_arn = f"arn:aws:ecs:us-east-1:123456789012:task-definition/{family}:{current_revision}"
+        # Use family:revision format which ECS accepts
+        current_task_def = f"{family}:{current_revision}"
 
         with show_spinner():
-            source, target = self.comparison_service.get_task_definitions_for_comparison(current_arn, selected_arn)
+            source, target = self.comparison_service.get_task_definitions_for_comparison(current_task_def, selected_arn)
             changes = compare_task_definitions(source, target)
 
         self._display_comparison_results(source, target, changes)
