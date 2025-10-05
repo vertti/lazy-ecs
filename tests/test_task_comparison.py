@@ -329,3 +329,34 @@ def test_compare_task_definitions_detects_entrypoint_changes():
     assert changes[0]["container"] == "web"
     assert changes[0]["old"] == ["/bin/sh"]
     assert changes[0]["new"] == ["/bin/bash"]
+
+
+def test_compare_task_definitions_detects_volume_changes():
+    source = {
+        "family": "my-app",
+        "revision": 1,
+        "containers": [
+            {
+                "name": "web",
+                "image": "nginx:1.21",
+                "mountPoints": [{"sourceVolume": "data", "containerPath": "/data"}],
+            }
+        ],
+    }
+    target = {
+        "family": "my-app",
+        "revision": 2,
+        "containers": [
+            {
+                "name": "web",
+                "image": "nginx:1.21",
+                "mountPoints": [{"sourceVolume": "data", "containerPath": "/var/data"}],
+            }
+        ],
+    }
+
+    changes = compare_task_definitions(source, target)
+
+    assert len(changes) == 1
+    assert changes[0]["type"] == "volumes_changed"
+    assert changes[0]["container"] == "web"

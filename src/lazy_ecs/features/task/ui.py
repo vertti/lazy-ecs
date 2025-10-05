@@ -392,6 +392,15 @@ class TaskUI(BaseUIComponent):
             if new_ep:
                 console.print(f"   + {' '.join(new_ep)}", style="green")
 
+        elif change_type == "volumes_changed":
+            console.print(f"💾 Volume mounts changed ({change['container']}):", style="bold yellow")
+            old_volumes = change.get("old", [])
+            new_volumes = change.get("new", [])
+            if old_volumes:
+                console.print(f"   - {_format_volumes(old_volumes)}", style="red")
+            if new_volumes:
+                console.print(f"   + {_format_volumes(new_volumes)}", style="green")
+
         console.print()  # Add spacing between changes
 
 
@@ -409,6 +418,20 @@ def _format_ports(ports: list[dict[str, Any]]) -> str:
         else:
             port_strs.append(f"{container_port}/{protocol}")
     return ", ".join(port_strs)
+
+
+def _format_volumes(volumes: list[dict[str, Any]]) -> str:
+    """Format volume mounts for display."""
+    if not volumes:
+        return "none"
+    volume_strs: list[str] = []
+    for vol in volumes:
+        source = vol.get("sourceVolume", "?")
+        path = vol.get("containerPath", "?")
+        read_only = vol.get("readOnly", False)
+        ro_flag = ":ro" if read_only else ""
+        volume_strs.append(f"{source}:{path}{ro_flag}")
+    return ", ".join(volume_strs)
 
 
 def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[str, str]]:

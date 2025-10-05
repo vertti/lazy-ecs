@@ -34,6 +34,7 @@ def normalize_task_definition(raw_task_def: dict[str, Any] | TaskDefinitionTypeD
             "environment": _extract_environment(container_dict),
             "secrets": _extract_secrets(container_dict),
             "ports": container_dict.get("portMappings", []),
+            "mountPoints": container_dict.get("mountPoints", []),
             "command": container_dict.get("command"),
             "entryPoint": container_dict.get("entryPoint"),
         }
@@ -185,6 +186,17 @@ def _compare_container(source: dict[str, Any], target: dict[str, Any], changes: 
                 "container": container_name,
                 "old": source.get("entryPoint"),
                 "new": target.get("entryPoint"),
+            }
+        )
+
+    # Compare volumes
+    if source.get("mountPoints") != target.get("mountPoints"):
+        changes.append(
+            {
+                "type": "volumes_changed",
+                "container": container_name,
+                "old": source.get("mountPoints", []),
+                "new": target.get("mountPoints", []),
             }
         )
 
