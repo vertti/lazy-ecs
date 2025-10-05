@@ -193,29 +193,35 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - Automatically find relevant log groups for debugging
 - _Why it's great:_ AWS console requires knowing the exact log group name; AWS CLI requires listing all log groups and filtering manually
 
+**Task definition comparison**
+
+- Compare any two task definition revisions side-by-side
+- Interactive revision selection from recent history
+- Color-coded diff showing images, environment variables, secrets, CPU/memory, ports, commands, entrypoints, and volume mounts
+- _Why it's great:_ AWS console has no native comparison tool; developers must download JSON and use external diff tools to answer "what changed between versions?"
+
 ## Roadmap
 
 Features listed in priority order:
 
-1. **Task definition comparison** - Compare two task definition versions side-by-side with highlighted changes
-2. **Resource usage vs limits** - Show allocated vs actual CPU/memory with right-sizing recommendations
-3. **Export task definition** - Save task definitions as JSON/YAML files
-4. **Task placement details** - Display placement constraints and actual host placement
-5. **Health check configuration** - Display health check settings and current status
-6. **Download logs to file** - Export CloudWatch logs for offline analysis
-7. **Sparkline visualization** - Unicode trend indicators for metrics
-8. **Service deployment history** - Timeline of deployments with rollback options
-9. **Security groups** - Display networking and security configuration
-10. **Auto-scaling configuration** - Display scaling policies and current metrics
-11. **Load balancer health** - Display target group health and routing
-12. **Quick task failure reason** - Show failure reason inline without navigation
-13. **Export container environment** - Save environment variables to .env file
-14. **Multi-region support** - Work with ECS across AWS regions
-15. **Service update (image tag)** - Deploy new image version from CLI
-16. **Service update (environment)** - Update environment variables
-17. **Multi-cluster support** - Compare resources across clusters
-18. **Port forwarding** - Direct local connection to container ports
-19. **Stop/restart single task** - Force restart individual tasks
+1. **Resource usage vs limits** - Show allocated vs actual CPU/memory with right-sizing recommendations
+2. **Export task definition** - Save task definitions as JSON/YAML files
+3. **Task placement details** - Display placement constraints and actual host placement
+4. **Health check configuration** - Display health check settings and current status
+5. **Download logs to file** - Export CloudWatch logs for offline analysis
+6. **Sparkline visualization** - Unicode trend indicators for metrics
+7. **Service deployment history** - Timeline of deployments with rollback options
+8. **Security groups** - Display networking and security configuration
+9. **Auto-scaling configuration** - Display scaling policies and current metrics
+10. **Load balancer health** - Display target group health and routing
+11. **Quick task failure reason** - Show failure reason inline without navigation
+12. **Export container environment** - Save environment variables to .env file
+13. **Multi-region support** - Work with ECS across AWS regions
+14. **Service update (image tag)** - Deploy new image version from CLI
+15. **Service update (environment)** - Update environment variables
+16. **Multi-cluster support** - Compare resources across clusters
+17. **Port forwarding** - Direct local connection to container ports
+18. **Stop/restart single task** - Force restart individual tasks
 
 ## Development
 

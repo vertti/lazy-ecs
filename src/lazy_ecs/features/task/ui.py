@@ -12,6 +12,7 @@ from ...core.base import BaseUIComponent
 from ...core.navigation import add_navigation_choices, select_with_auto_pagination
 from ...core.types import TaskDetails, TaskHistoryDetails
 from ...core.utils import print_warning, show_spinner
+from .comparison import TaskComparisonService, compare_task_definitions
 from .task import TaskService
 
 console = Console()
@@ -25,9 +26,10 @@ SEPARATOR_WIDTH = 80
 class TaskUI(BaseUIComponent):
     """UI component for task selection and display."""
 
-    def __init__(self, task_service: TaskService) -> None:
+    def __init__(self, task_service: TaskService, comparison_service: TaskComparisonService | None = None) -> None:
         super().__init__()
         self.task_service = task_service
+        self.comparison_service = comparison_service
 
     def select_task(self, cluster_name: str, service_name: str, desired_task_def_arn: str | None) -> str:
         """Interactive task selection."""
@@ -118,6 +120,7 @@ class TaskUI(BaseUIComponent):
             [
                 {"name": "Show task details", "value": "task_action:show_details"},
                 {"name": "Show task history and failures", "value": "task_action:show_history"},
+                {"name": "Compare task definitions", "value": "task_action:compare_definitions"},
                 {"name": "🌐 Open in AWS console", "value": "task_action:open_console"},
             ]
         )
@@ -247,6 +250,148 @@ class TaskUI(BaseUIComponent):
                     console.print(f"    Reason: {container['reason']}", style="dim")
 
         console.print("=" * 60, style="dim")
+
+    def show_task_definition_comparison(self, task_details: TaskDetails) -> None:
+        """Show task definition comparison interface."""
+        if not self.comparison_service:
+            console.print("❌ Comparison service not available", style="red")
+            return
+
+        family = task_details["task_definition_name"]
+        current_revision = task_details["task_definition_revision"]
+
+        console.print(f"\nComparing task definition: {family}:{current_revision}", style="bold cyan")
+        console.print("=" * 80, style="dim")
+
+        with show_spinner():
+            revisions = self.comparison_service.list_task_definition_revisions(family, limit=10)
+
+        if len(revisions) < 2:
+            print_warning("Not enough revisions to compare. Need at least 2 revisions.")
+            return
+
+        choices = [
+            {
+                "name": f"Revision {rev['revision']}"
+                + (" (current)" if rev["revision"] == int(current_revision) else ""),
+                "value": rev["arn"],
+            }
+            for rev in revisions
+        ]
+
+        selected_arn = select_with_auto_pagination(
+            f"Select revision to compare with v{current_revision}:", choices, "Back"
+        )
+
+        if not selected_arn:
+            return
+
+        with show_spinner():
+            source, target = self.comparison_service.get_task_definitions_for_comparison(
+                f"{family}:{current_revision}", selected_arn
+            )
+            changes = compare_task_definitions(source, target)
+
+        self._display_comparison_results(source, target, changes)
+
+    def _display_comparison_results(
+        self, source: dict[str, Any], target: dict[str, Any], changes: list[dict[str, Any]]
+    ) -> None:
+        """Display comparison results between two task definitions."""
+        console.print(
+            f"\n📊 Comparing: {source['family']}:v{source['revision']} → v{target['revision']}", style="bold cyan"
+        )
+        console.print("=" * 80, style="dim")
+
+        if not changes:
+            console.print("✅ No changes detected between these versions", style="green")
+            console.print("=" * 80, style="dim")
+            return
+
+        console.print(f"Found {len(changes)} changes:\n", style="yellow")
+
+        for change in changes:
+            self._display_change(change)
+
+        console.print("\n" + "=" * 80, style="dim")
+
+    def _display_change(self, change: dict[str, Any]) -> None:
+        change_type = change["type"]
+        container = change.get("container", "")
+
+        display_config = {
+            "image_changed": ("🐳", f"Image changed for '{container}'"),
+            "env_added": ("+", f"Environment variable added ({container})"),
+            "env_removed": ("-", f"Environment variable removed ({container})"),
+            "env_changed": ("🔄", f"Environment variable changed ({container})"),
+            "secret_changed": ("🔐", f"Secret reference changed ({container})"),
+            "task_cpu_changed": ("💻", "Task CPU changed"),
+            "task_memory_changed": ("🧠", "Task Memory changed"),
+            "container_cpu_changed": ("💻", f"Container CPU changed ({container})"),
+            "container_memory_changed": ("🧠", f"Container Memory changed ({container})"),
+            "ports_changed": ("🔌", f"Port mappings changed ({container})"),
+            "command_changed": ("⚙️ ", f"Command changed ({container})"),
+            "entrypoint_changed": ("🚪", f"Entrypoint changed ({container})"),
+            "volumes_changed": ("💾", f"Volume mounts changed ({container})"),
+        }
+
+        if change_type in display_config:
+            emoji, label = display_config[change_type]
+            console.print(f"{emoji} {label}:", style="bold yellow")
+
+            if "key" in change:
+                if change_type.endswith("_added"):
+                    console.print(f"   + {change['key']}={change['value']}", style="green")
+                elif change_type.endswith("_removed"):
+                    console.print(f"   - {change['key']}={change['value']}", style="red")
+                elif change_type.endswith("_changed"):
+                    if change_type == "secret_changed":
+                        console.print(f"   {change['key']}: ARN updated", style="yellow")
+                    else:
+                        console.print(f"   {change['key']}:", style="white")
+                        console.print(f"   - {change['old']}", style="red")
+                        console.print(f"   + {change['new']}", style="green")
+            elif change_type == "ports_changed":
+                if change.get("old"):
+                    console.print(f"   - {_format_ports(change['old'])}", style="red")
+                if change.get("new"):
+                    console.print(f"   + {_format_ports(change['new'])}", style="green")
+            elif change_type in ("command_changed", "entrypoint_changed"):
+                if change.get("old"):
+                    console.print(f"   - {' '.join(change['old'])}", style="red")
+                if change.get("new"):
+                    console.print(f"   + {' '.join(change['new'])}", style="green")
+            elif change_type == "volumes_changed":
+                if change.get("old"):
+                    console.print(f"   - {_format_volumes(change['old'])}", style="red")
+                if change.get("new"):
+                    console.print(f"   + {_format_volumes(change['new'])}", style="green")
+            else:
+                console.print(f"   - {change.get('old')}", style="red")
+                console.print(f"   + {change.get('new')}", style="green")
+
+        console.print()
+
+
+def _format_ports(ports: list[dict[str, Any]]) -> str:
+    if not ports:
+        return "none"
+    port_strs: list[str] = []
+    for port in ports:
+        container_port = port.get("containerPort", "?")
+        protocol = port.get("protocol", "tcp")
+        host_port = port.get("hostPort")
+        port_strs.append(f"{host_port}:{container_port}/{protocol}" if host_port else f"{container_port}/{protocol}")
+    return ", ".join(port_strs)
+
+
+def _format_volumes(volumes: list[dict[str, Any]]) -> str:
+    if not volumes:
+        return "none"
+    return ", ".join(
+        f"{vol.get('sourceVolume', '?')}:{vol.get('containerPath', '?')}{':ro' if vol.get('readOnly') else ''}"
+        for vol in volumes
+    )
 
 
 def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[str, str]]:

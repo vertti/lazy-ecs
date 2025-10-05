@@ -148,4 +148,4 @@ def test_select_task_feature_with_many_containers(mock_select, task_ui):
 
     call_args = mock_select.call_args
     choices = call_args[0][1]
-    assert len(choices) == 53  # 3 task actions (details, history, console) + 10 containers * 5 actions each
+    assert len(choices) == 54  # 4 task actions (details, history, compare, console) + 10 containers * 5 actions each

@@ -199,6 +199,8 @@ def _handle_task_features(
                 navigator.show_task_history(cluster_name, service_name)
             elif action_name == "show_details":
                 navigator.display_task_details(task_details)
+            elif action_name == "compare_definitions":
+                navigator.show_task_definition_comparison(task_details)
             elif action_name == "open_console":
                 navigator.open_task_in_console(cluster_name, task_arn)
 

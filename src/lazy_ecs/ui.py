@@ -15,6 +15,7 @@ from .features.cluster.cluster import ClusterService
 from .features.cluster.ui import ClusterUI
 from .features.container.ui import ContainerUI
 from .features.service.ui import ServiceUI
+from .features.task.comparison import TaskComparisonService
 from .features.task.ui import TaskUI
 
 console = Console()
@@ -34,7 +35,8 @@ class ECSNavigator(BaseUIComponent):
         self._service_ui = ServiceUI(ecs_service._service, ecs_service._service_actions)
 
         # Initialize task UI components
-        self._task_ui = TaskUI(ecs_service._task)
+        comparison_service = TaskComparisonService(ecs_service.ecs_client)
+        self._task_ui = TaskUI(ecs_service._task, comparison_service)
 
         # Initialize container UI components
         self._container_ui = ContainerUI(ecs_service._container)
@@ -112,6 +114,11 @@ class ECSNavigator(BaseUIComponent):
 
     def show_task_history(self, cluster_name: str, service_name: str) -> None:
         self._task_ui.display_task_history(cluster_name, service_name)
+
+    def show_task_definition_comparison(self, task_details: TaskDetails | None) -> None:
+        """Show task definition comparison interface."""
+        if task_details:
+            self._task_ui.show_task_definition_comparison(task_details)
 
     def open_service_in_console(self, cluster_name: str, service_name: str) -> None:
         """Open the service in AWS console."""
