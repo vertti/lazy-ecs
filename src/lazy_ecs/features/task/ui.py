@@ -270,12 +270,14 @@ class TaskUI(BaseUIComponent):
             print_warning("Not enough revisions to compare. Need at least 2 revisions.")
             return
 
-        choices = []
-        for rev in revisions:
-            revision_num = rev["revision"]
-            is_current = revision_num == int(current_revision)
-            label = f"Revision {revision_num}" + (" (current)" if is_current else "")
-            choices.append({"name": label, "value": rev["arn"]})
+        choices = [
+            {
+                "name": f"Revision {rev['revision']}"
+                + (" (current)" if rev["revision"] == int(current_revision) else ""),
+                "value": rev["arn"],
+            }
+            for rev in revisions
+        ]
 
         selected_arn = select_with_auto_pagination(
             f"Select revision to compare with v{current_revision}:", choices, "Back"
@@ -284,11 +286,10 @@ class TaskUI(BaseUIComponent):
         if not selected_arn:
             return
 
-        # Use family:revision format which ECS accepts
-        current_task_def = f"{family}:{current_revision}"
-
         with show_spinner():
-            source, target = self.comparison_service.get_task_definitions_for_comparison(current_task_def, selected_arn)
+            source, target = self.comparison_service.get_task_definitions_for_comparison(
+                f"{family}:{current_revision}", selected_arn
+            )
             changes = compare_task_definitions(source, target)
 
         self._display_comparison_results(source, target, changes)
@@ -315,97 +316,64 @@ class TaskUI(BaseUIComponent):
         console.print("\n" + "=" * 80, style="dim")
 
     def _display_change(self, change: dict[str, Any]) -> None:
-        """Display a single change with appropriate formatting."""
         change_type = change["type"]
+        container = change.get("container", "")
 
-        if change_type == "image_changed":
-            console.print(f"🐳 Image changed for '{change['container']}':", style="bold yellow")
-            console.print(f"   - {change['old']}", style="red")
-            console.print(f"   + {change['new']}", style="green")
+        display_config = {
+            "image_changed": ("🐳", f"Image changed for '{container}'"),
+            "env_added": ("+", f"Environment variable added ({container})"),
+            "env_removed": ("-", f"Environment variable removed ({container})"),
+            "env_changed": ("🔄", f"Environment variable changed ({container})"),
+            "secret_changed": ("🔐", f"Secret reference changed ({container})"),
+            "task_cpu_changed": ("💻", "Task CPU changed"),
+            "task_memory_changed": ("🧠", "Task Memory changed"),
+            "container_cpu_changed": ("💻", f"Container CPU changed ({container})"),
+            "container_memory_changed": ("🧠", f"Container Memory changed ({container})"),
+            "ports_changed": ("🔌", f"Port mappings changed ({container})"),
+            "command_changed": ("⚙️ ", f"Command changed ({container})"),
+            "entrypoint_changed": ("🚪", f"Entrypoint changed ({container})"),
+            "volumes_changed": ("💾", f"Volume mounts changed ({container})"),
+        }
 
-        elif change_type == "env_added":
-            container = change.get("container", "")
-            console.print(f"+ Environment variable added ({container}):", style="bold green")
-            console.print(f"   + {change['key']}={change['value']}", style="green")
+        if change_type in display_config:
+            emoji, label = display_config[change_type]
+            console.print(f"{emoji} {label}:", style="bold yellow")
 
-        elif change_type == "env_removed":
-            container = change.get("container", "")
-            console.print(f"- Environment variable removed ({container}):", style="bold red")
-            console.print(f"   - {change['key']}={change['value']}", style="red")
+            if "key" in change:
+                if change_type.endswith("_added"):
+                    console.print(f"   + {change['key']}={change['value']}", style="green")
+                elif change_type.endswith("_removed"):
+                    console.print(f"   - {change['key']}={change['value']}", style="red")
+                elif change_type.endswith("_changed"):
+                    if change_type == "secret_changed":
+                        console.print(f"   {change['key']}: ARN updated", style="yellow")
+                    else:
+                        console.print(f"   {change['key']}:", style="white")
+                        console.print(f"   - {change['old']}", style="red")
+                        console.print(f"   + {change['new']}", style="green")
+            elif change_type == "ports_changed":
+                if change.get("old"):
+                    console.print(f"   - {_format_ports(change['old'])}", style="red")
+                if change.get("new"):
+                    console.print(f"   + {_format_ports(change['new'])}", style="green")
+            elif change_type in ("command_changed", "entrypoint_changed"):
+                if change.get("old"):
+                    console.print(f"   - {' '.join(change['old'])}", style="red")
+                if change.get("new"):
+                    console.print(f"   + {' '.join(change['new'])}", style="green")
+            elif change_type == "volumes_changed":
+                if change.get("old"):
+                    console.print(f"   - {_format_volumes(change['old'])}", style="red")
+                if change.get("new"):
+                    console.print(f"   + {_format_volumes(change['new'])}", style="green")
+            else:
+                console.print(f"   - {change.get('old')}", style="red")
+                console.print(f"   + {change.get('new')}", style="green")
 
-        elif change_type == "env_changed":
-            container = change.get("container", "")
-            console.print(f"🔄 Environment variable changed ({container}):", style="bold yellow")
-            console.print(f"   {change['key']}:", style="white")
-            console.print(f"   - {change['old']}", style="red")
-            console.print(f"   + {change['new']}", style="green")
-
-        elif change_type == "secret_changed":
-            container = change.get("container", "")
-            console.print(f"🔐 Secret reference changed ({container}):", style="bold yellow")
-            console.print(f"   {change['key']}: ARN updated", style="yellow")
-
-        elif change_type == "task_cpu_changed":
-            console.print("💻 Task CPU changed:", style="bold yellow")
-            console.print(f"   - {change['old']}", style="red")
-            console.print(f"   + {change['new']}", style="green")
-
-        elif change_type == "task_memory_changed":
-            console.print("🧠 Task Memory changed:", style="bold yellow")
-            console.print(f"   - {change['old']}", style="red")
-            console.print(f"   + {change['new']}", style="green")
-
-        elif change_type == "container_cpu_changed":
-            console.print(f"💻 Container CPU changed ({change['container']}):", style="bold yellow")
-            console.print(f"   - {change['old']}", style="red")
-            console.print(f"   + {change['new']}", style="green")
-
-        elif change_type == "container_memory_changed":
-            console.print(f"🧠 Container Memory changed ({change['container']}):", style="bold yellow")
-            console.print(f"   - {change['old']}", style="red")
-            console.print(f"   + {change['new']}", style="green")
-
-        elif change_type == "ports_changed":
-            console.print(f"🔌 Port mappings changed ({change['container']}):", style="bold yellow")
-            old_ports = change.get("old", [])
-            new_ports = change.get("new", [])
-            if old_ports:
-                console.print(f"   - {_format_ports(old_ports)}", style="red")
-            if new_ports:
-                console.print(f"   + {_format_ports(new_ports)}", style="green")
-
-        elif change_type == "command_changed":
-            console.print(f"⚙️  Command changed ({change['container']}):", style="bold yellow")
-            old_cmd = change.get("old")
-            new_cmd = change.get("new")
-            if old_cmd:
-                console.print(f"   - {' '.join(old_cmd)}", style="red")
-            if new_cmd:
-                console.print(f"   + {' '.join(new_cmd)}", style="green")
-
-        elif change_type == "entrypoint_changed":
-            console.print(f"🚪 Entrypoint changed ({change['container']}):", style="bold yellow")
-            old_ep = change.get("old")
-            new_ep = change.get("new")
-            if old_ep:
-                console.print(f"   - {' '.join(old_ep)}", style="red")
-            if new_ep:
-                console.print(f"   + {' '.join(new_ep)}", style="green")
-
-        elif change_type == "volumes_changed":
-            console.print(f"💾 Volume mounts changed ({change['container']}):", style="bold yellow")
-            old_volumes = change.get("old", [])
-            new_volumes = change.get("new", [])
-            if old_volumes:
-                console.print(f"   - {_format_volumes(old_volumes)}", style="red")
-            if new_volumes:
-                console.print(f"   + {_format_volumes(new_volumes)}", style="green")
-
-        console.print()  # Add spacing between changes
+        console.print()
 
 
 def _format_ports(ports: list[dict[str, Any]]) -> str:
-    """Format port mappings for display."""
     if not ports:
         return "none"
     port_strs: list[str] = []
@@ -413,25 +381,17 @@ def _format_ports(ports: list[dict[str, Any]]) -> str:
         container_port = port.get("containerPort", "?")
         protocol = port.get("protocol", "tcp")
         host_port = port.get("hostPort")
-        if host_port:
-            port_strs.append(f"{host_port}:{container_port}/{protocol}")
-        else:
-            port_strs.append(f"{container_port}/{protocol}")
+        port_strs.append(f"{host_port}:{container_port}/{protocol}" if host_port else f"{container_port}/{protocol}")
     return ", ".join(port_strs)
 
 
 def _format_volumes(volumes: list[dict[str, Any]]) -> str:
-    """Format volume mounts for display."""
     if not volumes:
         return "none"
-    volume_strs: list[str] = []
-    for vol in volumes:
-        source = vol.get("sourceVolume", "?")
-        path = vol.get("containerPath", "?")
-        read_only = vol.get("readOnly", False)
-        ro_flag = ":ro" if read_only else ""
-        volume_strs.append(f"{source}:{path}{ro_flag}")
-    return ", ".join(volume_strs)
+    return ", ".join(
+        f"{vol.get('sourceVolume', '?')}:{vol.get('containerPath', '?')}{':ro' if vol.get('readOnly') else ''}"
+        for vol in volumes
+    )
 
 
 def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[str, str]]:

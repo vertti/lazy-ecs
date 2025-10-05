@@ -107,98 +107,34 @@ def _compare_containers(
 
 
 def _compare_container(source: dict[str, Any], target: dict[str, Any], changes: list[dict[str, Any]]) -> None:
-    """Compare individual container configurations."""
     container_name = source["name"]
 
-    if source.get("image") != target.get("image"):
-        changes.append(
-            {
-                "type": "image_changed",
-                "container": container_name,
-                "old": source.get("image"),
-                "new": target.get("image"),
-            }
-        )
+    _add_change_if_different(source, target, "image", "image_changed", container_name, changes)
+    _add_change_if_different(source, target, "cpu", "container_cpu_changed", container_name, changes)
+    _add_change_if_different(source, target, "memory", "container_memory_changed", container_name, changes)
 
-    if source.get("cpu") != target.get("cpu"):
-        changes.append(
-            {
-                "type": "container_cpu_changed",
-                "container": container_name,
-                "old": source.get("cpu"),
-                "new": target.get("cpu"),
-            }
-        )
+    _compare_dicts(source.get("environment", {}), target.get("environment", {}), "env", container_name, changes)
+    _compare_dicts(source.get("secrets", {}), target.get("secrets", {}), "secret", container_name, changes)
 
-    if source.get("memory") != target.get("memory"):
-        changes.append(
-            {
-                "type": "container_memory_changed",
-                "container": container_name,
-                "old": source.get("memory"),
-                "new": target.get("memory"),
-            }
-        )
+    _add_change_if_different(source, target, "ports", "ports_changed", container_name, changes, default=[])
+    _add_change_if_different(source, target, "command", "command_changed", container_name, changes)
+    _add_change_if_different(source, target, "entryPoint", "entrypoint_changed", container_name, changes)
+    _add_change_if_different(source, target, "mountPoints", "volumes_changed", container_name, changes, default=[])
 
-    _compare_dicts(
-        source.get("environment", {}),
-        target.get("environment", {}),
-        "env",
-        container_name,
-        changes,
-    )
 
-    _compare_dicts(
-        source.get("secrets", {}),
-        target.get("secrets", {}),
-        "secret",
-        container_name,
-        changes,
-    )
-
-    # Compare ports
-    if source.get("ports") != target.get("ports"):
-        changes.append(
-            {
-                "type": "ports_changed",
-                "container": container_name,
-                "old": source.get("ports", []),
-                "new": target.get("ports", []),
-            }
-        )
-
-    # Compare command
-    if source.get("command") != target.get("command"):
-        changes.append(
-            {
-                "type": "command_changed",
-                "container": container_name,
-                "old": source.get("command"),
-                "new": target.get("command"),
-            }
-        )
-
-    # Compare entrypoint
-    if source.get("entryPoint") != target.get("entryPoint"):
-        changes.append(
-            {
-                "type": "entrypoint_changed",
-                "container": container_name,
-                "old": source.get("entryPoint"),
-                "new": target.get("entryPoint"),
-            }
-        )
-
-    # Compare volumes
-    if source.get("mountPoints") != target.get("mountPoints"):
-        changes.append(
-            {
-                "type": "volumes_changed",
-                "container": container_name,
-                "old": source.get("mountPoints", []),
-                "new": target.get("mountPoints", []),
-            }
-        )
+def _add_change_if_different(
+    source: dict[str, Any],
+    target: dict[str, Any],
+    key: str,
+    change_type: str,
+    container_name: str,
+    changes: list[dict[str, Any]],
+    default: dict[str, Any] | list[Any] | None = None,
+) -> None:
+    source_val = source.get(key, default)
+    target_val = target.get(key, default)
+    if source_val != target_val:
+        changes.append({"type": change_type, "container": container_name, "old": source_val, "new": target_val})
 
 
 def _compare_dicts(
@@ -208,16 +144,10 @@ def _compare_dicts(
     container_name: str,
     changes: list[dict[str, Any]],
 ) -> None:
-    """Compare two dictionaries and record additions, removals, and changes."""
     for key, value in source.items():
         if key not in target:
             changes.append(
-                {
-                    "type": f"{change_prefix}_removed",
-                    "container": container_name,
-                    "key": key,
-                    "value": value,
-                }
+                {"type": f"{change_prefix}_removed", "container": container_name, "key": key, "value": value}
             )
         elif target[key] != value:
             changes.append(
@@ -232,14 +162,7 @@ def _compare_dicts(
 
     for key, value in target.items():
         if key not in source:
-            changes.append(
-                {
-                    "type": f"{change_prefix}_added",
-                    "container": container_name,
-                    "key": key,
-                    "value": value,
-                }
-            )
+            changes.append({"type": f"{change_prefix}_added", "container": container_name, "key": key, "value": value})
 
 
 class TaskComparisonService(BaseAWSService):
@@ -249,35 +172,28 @@ class TaskComparisonService(BaseAWSService):
         super().__init__(ecs_client)
 
     def list_task_definition_revisions(self, family: str, limit: int = 10) -> list[dict[str, Any]]:
-        """List recent task definition revisions for a family in reverse chronological order."""
         response = self.ecs_client.list_task_definitions(familyPrefix=family, sort="DESC")
-
         task_def_arns = response.get("taskDefinitionArns", [])
 
-        revisions = []
-        for arn in task_def_arns:
-            family_name = arn.split("/")[-1].split(":")[0]
-            revision = int(arn.split(":")[-1])
-            revisions.append(
-                {
-                    "arn": arn,
-                    "family": family_name,
-                    "revision": revision,
-                }
-            )
+        revisions = [
+            {
+                "arn": arn,
+                "family": arn.split("/")[-1].split(":")[0],
+                "revision": int(arn.split(":")[-1]),
+            }
+            for arn in task_def_arns
+        ]
 
         revisions.sort(key=lambda r: r["revision"], reverse=True)
-
         return revisions[:limit]
 
     def get_task_definitions_for_comparison(
         self, source_arn: str, target_arn: str
     ) -> tuple[dict[str, Any], dict[str, Any]]:
-        """Get and normalize two task definitions for comparison."""
         source_response = self.ecs_client.describe_task_definition(taskDefinition=source_arn)
         target_response = self.ecs_client.describe_task_definition(taskDefinition=target_arn)
 
-        source_normalized = normalize_task_definition(source_response["taskDefinition"])
-        target_normalized = normalize_task_definition(target_response["taskDefinition"])
-
-        return source_normalized, target_normalized
+        return (
+            normalize_task_definition(source_response["taskDefinition"]),
+            normalize_task_definition(target_response["taskDefinition"]),
+        )
