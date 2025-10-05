@@ -12,6 +12,7 @@ from ...core.base import BaseUIComponent
 from ...core.navigation import add_navigation_choices, select_with_auto_pagination
 from ...core.types import TaskDetails, TaskHistoryDetails
 from ...core.utils import print_warning, show_spinner
+from .comparison import TaskComparisonService, compare_task_definitions
 from .task import TaskService
 
 console = Console()
@@ -25,9 +26,10 @@ SEPARATOR_WIDTH = 80
 class TaskUI(BaseUIComponent):
     """UI component for task selection and display."""
 
-    def __init__(self, task_service: TaskService) -> None:
+    def __init__(self, task_service: TaskService, comparison_service: TaskComparisonService | None = None) -> None:
         super().__init__()
         self.task_service = task_service
+        self.comparison_service = comparison_service
 
     def select_task(self, cluster_name: str, service_name: str, desired_task_def_arn: str | None) -> str:
         """Interactive task selection."""
@@ -118,6 +120,7 @@ class TaskUI(BaseUIComponent):
             [
                 {"name": "Show task details", "value": "task_action:show_details"},
                 {"name": "Show task history and failures", "value": "task_action:show_history"},
+                {"name": "Compare task definitions", "value": "task_action:compare_definitions"},
                 {"name": "🌐 Open in AWS console", "value": "task_action:open_console"},
             ]
         )
@@ -247,6 +250,122 @@ class TaskUI(BaseUIComponent):
                     console.print(f"    Reason: {container['reason']}", style="dim")
 
         console.print("=" * 60, style="dim")
+
+    def show_task_definition_comparison(self, task_details: TaskDetails) -> None:
+        """Show task definition comparison interface."""
+        if not self.comparison_service:
+            console.print("❌ Comparison service not available", style="red")
+            return
+
+        family = task_details["task_definition_name"]
+        current_revision = task_details["task_definition_revision"]
+
+        console.print(f"\nComparing task definition: {family}:{current_revision}", style="bold cyan")
+        console.print("=" * 80, style="dim")
+
+        with show_spinner():
+            revisions = self.comparison_service.list_task_definition_revisions(family, limit=10)
+
+        if len(revisions) < 2:
+            print_warning("Not enough revisions to compare. Need at least 2 revisions.")
+            return
+
+        choices = []
+        for rev in revisions:
+            revision_num = rev["revision"]
+            is_current = revision_num == int(current_revision)
+            label = f"Revision {revision_num}" + (" (current)" if is_current else "")
+            choices.append({"name": label, "value": rev["arn"]})
+
+        selected_arn = select_with_auto_pagination(
+            f"Select revision to compare with v{current_revision}:", choices, "Back"
+        )
+
+        if not selected_arn:
+            return
+
+        # Get current task definition ARN
+        current_arn = f"arn:aws:ecs:us-east-1:123456789012:task-definition/{family}:{current_revision}"
+
+        with show_spinner():
+            source, target = self.comparison_service.get_task_definitions_for_comparison(current_arn, selected_arn)
+            changes = compare_task_definitions(source, target)
+
+        self._display_comparison_results(source, target, changes)
+
+    def _display_comparison_results(
+        self, source: dict[str, Any], target: dict[str, Any], changes: list[dict[str, Any]]
+    ) -> None:
+        """Display comparison results between two task definitions."""
+        console.print(
+            f"\n📊 Comparing: {source['family']}:v{source['revision']} → v{target['revision']}", style="bold cyan"
+        )
+        console.print("=" * 80, style="dim")
+
+        if not changes:
+            console.print("✅ No changes detected between these versions", style="green")
+            console.print("=" * 80, style="dim")
+            return
+
+        console.print(f"Found {len(changes)} changes:\n", style="yellow")
+
+        for change in changes:
+            self._display_change(change)
+
+        console.print("\n" + "=" * 80, style="dim")
+
+    def _display_change(self, change: dict[str, Any]) -> None:
+        """Display a single change with appropriate formatting."""
+        change_type = change["type"]
+
+        if change_type == "image_changed":
+            console.print(f"🐳 Image changed for '{change['container']}':", style="bold yellow")
+            console.print(f"   - {change['old']}", style="red")
+            console.print(f"   + {change['new']}", style="green")
+
+        elif change_type == "env_added":
+            container = change.get("container", "")
+            console.print(f"+ Environment variable added ({container}):", style="bold green")
+            console.print(f"   + {change['key']}={change['value']}", style="green")
+
+        elif change_type == "env_removed":
+            container = change.get("container", "")
+            console.print(f"- Environment variable removed ({container}):", style="bold red")
+            console.print(f"   - {change['key']}={change['value']}", style="red")
+
+        elif change_type == "env_changed":
+            container = change.get("container", "")
+            console.print(f"🔄 Environment variable changed ({container}):", style="bold yellow")
+            console.print(f"   {change['key']}:", style="white")
+            console.print(f"   - {change['old']}", style="red")
+            console.print(f"   + {change['new']}", style="green")
+
+        elif change_type == "secret_changed":
+            container = change.get("container", "")
+            console.print(f"🔐 Secret reference changed ({container}):", style="bold yellow")
+            console.print(f"   {change['key']}: ARN updated", style="yellow")
+
+        elif change_type == "task_cpu_changed":
+            console.print("💻 Task CPU changed:", style="bold yellow")
+            console.print(f"   - {change['old']}", style="red")
+            console.print(f"   + {change['new']}", style="green")
+
+        elif change_type == "task_memory_changed":
+            console.print("🧠 Task Memory changed:", style="bold yellow")
+            console.print(f"   - {change['old']}", style="red")
+            console.print(f"   + {change['new']}", style="green")
+
+        elif change_type == "container_cpu_changed":
+            console.print(f"💻 Container CPU changed ({change['container']}):", style="bold yellow")
+            console.print(f"   - {change['old']}", style="red")
+            console.print(f"   + {change['new']}", style="green")
+
+        elif change_type == "container_memory_changed":
+            console.print(f"🧠 Container Memory changed ({change['container']}):", style="bold yellow")
+            console.print(f"   - {change['old']}", style="red")
+            console.print(f"   + {change['new']}", style="green")
+
+        console.print()  # Add spacing between changes
 
 
 def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[str, str]]:
