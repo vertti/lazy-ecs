@@ -290,9 +290,8 @@ def test_get_service_info_with_more_than_10_services():
         service_info = service.get_service_info("production")
 
         assert len(service_info) == 15
-        service_names = [info["name"] for info in service_info]
-        for i in range(15):
-            assert any(f"service-{i:02d}" in name for name in service_names)
+        service_names = {info["name"] for info in service_info}
+        assert all(any(f"service-{i:02d}" in name for name in service_names) for i in range(15))
 
 
 def test_get_tasks(ecs_client_with_tasks) -> None:

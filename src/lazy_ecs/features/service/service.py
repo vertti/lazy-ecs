@@ -31,10 +31,11 @@ class ServiceService(BaseAWSService):
         if not service_names:
             return []
 
-        all_services = []
-        for batch in batch_items(service_names, 10):
-            response = self.ecs_client.describe_services(cluster=cluster_name, services=batch)
-            all_services.extend(response.get("services", []))
+        all_services = [
+            service
+            for batch in batch_items(service_names, 10)
+            for service in self.ecs_client.describe_services(cluster=cluster_name, services=batch).get("services", [])
+        ]
 
         return [_create_service_info(service) for service in all_services]
 
