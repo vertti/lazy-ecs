@@ -1,6 +1,6 @@
 [project]
 name = "lazy-ecs"
-version = "0.7.1"
+version = "0.7.2"
 description = "A CLI tool for working with AWS services"
 readme = "README.md"
 authors = [
@@ -55,28 +55,71 @@ target-version = "py311"
 line-length = 120
 
 [tool.ruff.lint]
-select = [
-  "E", # pycodestyle errors
-  "W", # pycodestyle warnings
-  "F", # pyflakes
-  "I", # isort
-  "B", # flake8-bugbear
-  "C4", # flake8-comprehensions
-  "UP", # pyupgrade
-  "ANN", # flake8-annotations - require type annotations
-  "N", # naming conventions
-  "SIM", # simplify
-  "RET", # return values
-  "ARG", # unused arguments
-  "PTH", # pathlib
-  "RUF", # ruff-specific rules
+select = ["ALL"]
+ignore = [
+  # Formatter conflicts
+  "COM812", # Trailing comma - conflicts with formatter
+  "ISC001", # Implicit string concatenation - conflicts with formatter
+
+  # Docstrings - too verbose for this project style
+  "D100",
+  "D101",
+  "D102",
+  "D103",
+  "D104",
+  "D105",
+  "D107",
+  "D203",
+  "D213", # Incompatible docstring rules
+  "D401", # First line should be imperative - we prefer descriptive
+
+  # Line length - we use 120, not 88
+  "E501", # Handle with line-length = 120 instead
+
+  # Not applicable for CLI tool
+  "TID252", # Relative imports are fine in our structure
+  "TC001",
+  "TC002",
+  "TC003", # Type checking imports - not worth the complexity
+
+  # Too restrictive
+  "FBT001", # Boolean positional args are OK
+  "S110", # Try/except pass - sometimes needed
+  "SLF001", # Private member access - needed for testing
+  "PLC0415", # Import at top - sometimes needed for dynamic imports
+  "BLE001", # Blind except - acceptable for top-level error handling
+  "PLR2004", # Magic values - small numbers in comparisons are clear
+  "DTZ006",
+  "DTZ901", # Datetime timezone - not critical for this tool
+  "PERF401", # List comprehensions - readability over micro-optimizations
+  "TRY300",
+  "TRY301", # Try/except else blocks - not needed
+
+  # Complexity - will address selectively
+  "C901", # Function complexity
+  "PLR0911", # Too many return statements
+  "PLR0912", # Too many branches
+  "PLR0913", # Too many arguments
+  "PLR0915", # Too many statements
 ]
-ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = [
   "ANN001", # Missing type annotation for function argument (test fixtures/mocks)
   "ANN201", # Missing return type annotation for public function (test fixtures)
+  "S101", # Use of assert - that's the point of tests!
+  "PLR0913", # Too many arguments in test functions
+  "PLR2004", # Magic values in tests are fine for readability
+  "DTZ001", # Datetime without timezone - test data doesn't need it
+  "PT019", # Fixture without value - sometimes needed for side effects
+  "PGH003", # Type ignore without code - acceptable in tests
+]
+"scripts/**" = [
+  "T201", # Print statements - needed for script output
+  "PLC0415", # Import in function - needed for screenshot generation
+  "DTZ001", # Datetime without timezone - mock data is fine
+  "PGH003", # Type ignore without code - will fix if needed
+  "EXE001", # Shebang on non-executable - handled by uv run
 ]
 
 [tool.pyrefly]

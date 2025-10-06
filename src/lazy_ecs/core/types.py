@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, TypedDict
-
-if TYPE_CHECKING:
-    pass
+from typing import Any, TypedDict
 
 
 class ServiceInfo(TypedDict):

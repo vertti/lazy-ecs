@@ -15,6 +15,7 @@ def mock_paginated_client():
         def test_something(mock_paginated_client):
             pages = [{"clusterArns": ["arn1", "arn2"]}]
             client = mock_paginated_client(pages)
+
     """
 
     def _create_client(pages: list[dict]) -> Mock:

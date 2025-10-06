@@ -62,7 +62,7 @@ def test_display_task_details_success(task_ui):
         "is_desired_version": True,
         "task_status": "RUNNING",
         "containers": [
-            {"name": "web-api", "image": "nginx:latest", "cpu": 256, "memory": 512, "memoryReservation": None}
+            {"name": "web-api", "image": "nginx:latest", "cpu": 256, "memory": 512, "memoryReservation": None},
         ],
         "created_at": None,
         "started_at": None,

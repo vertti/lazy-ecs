@@ -50,7 +50,7 @@ def get_questionary_style() -> questionary.Style:
             ("pointer", "fg:cyan bold"),
             ("highlighted", "fg:cyan"),
             ("selected", "fg:green"),
-        ]
+        ],
     )
 
 
@@ -125,7 +125,10 @@ def select_with_navigation(prompt: str, choices: list[dict[str, str]], back_text
 
 
 def select_with_pagination(
-    prompt: str, choices: list[dict[str, str]], back_text: str | None, page_size: int = 25
+    prompt: str,
+    choices: list[dict[str, str]],
+    back_text: str | None,
+    page_size: int = 25,
 ) -> str | None:
     """Selection with pagination for large lists."""
     total_items = len(choices)
@@ -146,13 +149,14 @@ def select_with_pagination(
         if current_page < total_pages - 1:
             paginated_choices.append(
                 questionary.Choice(
-                    f"→ Next Page ({end_idx + 1}-{min(end_idx + page_size, total_items)})", "pagination:next"
-                )
+                    f"→ Next Page ({end_idx + 1}-{min(end_idx + page_size, total_items)})",
+                    "pagination:next",
+                ),
             )
 
         if current_page > 0:
             paginated_choices.append(
-                questionary.Choice(f"← Previous Page ({start_idx - page_size + 1}-{start_idx})", "pagination:previous")
+                questionary.Choice(f"← Previous Page ({start_idx - page_size + 1}-{start_idx})", "pagination:previous"),
             )
 
         if back_text:
@@ -161,7 +165,10 @@ def select_with_pagination(
         paginated_choices.append(questionary.Choice("❌ Exit", "navigation:exit"))
 
         selected = questionary.select(
-            page_prompt, choices=paginated_choices, style=get_questionary_style(), use_shortcuts=False
+            page_prompt,
+            choices=paginated_choices,
+            style=get_questionary_style(),
+            use_shortcuts=False,
         ).ask()
 
         if selected == "pagination:next":
@@ -173,7 +180,10 @@ def select_with_pagination(
 
 
 def select_with_auto_pagination(
-    prompt: str, choices: list[dict[str, str]], back_text: str | None, threshold: int = PAGINATION_THRESHOLD
+    prompt: str,
+    choices: list[dict[str, str]],
+    back_text: str | None,
+    threshold: int = PAGINATION_THRESHOLD,
 ) -> str | None:
     """Select with automatic pagination based on choice count.
 

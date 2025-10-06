@@ -54,7 +54,11 @@ class ContainerUI(BaseUIComponent):
         filter_pattern = ""
         while True:
             action = self._display_logs_with_tail(
-                container_name, log_group_name, log_stream_name, filter_pattern, lines
+                container_name,
+                log_group_name,
+                log_stream_name,
+                filter_pattern,
+                lines,
             )
 
             if action == Action.STOP:
@@ -95,7 +99,10 @@ class ContainerUI(BaseUIComponent):
         # Fetch and display recent logs
         if filter_pattern:
             events = self.container_service.get_container_logs_filtered(
-                log_group_name, log_stream_name, filter_pattern, lines
+                log_group_name,
+                log_stream_name,
+                filter_pattern,
+                lines,
             )
         else:
             events = self.container_service.get_container_logs(log_group_name, log_stream_name, lines)
@@ -139,12 +146,14 @@ class ContainerUI(BaseUIComponent):
             log_generator = None
             try:
                 log_generator = self.container_service.get_live_container_logs_tail(
-                    log_group_name, log_stream_name, filter_pattern
+                    log_group_name,
+                    log_stream_name,
+                    filter_pattern,
                 )
                 for event in log_generator:
                     if stop_event.is_set():
                         break
-                    log_queue.put(cast(dict[str, Any], event))
+                    log_queue.put(cast("dict[str, Any]", event))
             except Exception:
                 pass  # Iterator exhausted or error
             finally:

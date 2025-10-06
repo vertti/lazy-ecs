@@ -46,58 +46,46 @@ def main() -> None:
 
 def _create_aws_client(profile_name: str | None) -> "ECSClient":
     """Create optimized AWS ECS client with connection pooling."""
-    # Optimized configuration for better performance
     config = Config(
-        max_pool_connections=5,  # Increase from default 1, but keep reasonable for CLI
-        retries={
-            "max_attempts": 2,  # Reduce from default 3 for faster failure
-            "mode": "adaptive",
-        },
+        max_pool_connections=5,
+        retries={"max_attempts": 2, "mode": "adaptive"},
     )
 
-    if profile_name:
-        session = boto3.Session(profile_name=profile_name)
-        return session.client("ecs", config=config)
-    return boto3.client("ecs", config=config)
+    session = boto3.Session(profile_name=profile_name) if profile_name else boto3
+    return session.client("ecs", config=config)
 
 
 def _create_logs_client(profile_name: str | None) -> "CloudWatchLogsClient":
     """Create optimized CloudWatch Logs client with connection pooling."""
     config = Config(
-        max_pool_connections=5,  # Same config as ECS client
+        max_pool_connections=5,
         retries={"max_attempts": 2, "mode": "adaptive"},
     )
 
-    if profile_name:
-        session = boto3.Session(profile_name=profile_name)
-        return session.client("logs", config=config)
-    return boto3.client("logs", config=config)
+    session = boto3.Session(profile_name=profile_name) if profile_name else boto3
+    return session.client("logs", config=config)
 
 
 def _create_sts_client(profile_name: str | None) -> "STSClient":
     """Create optimized STS client with connection pooling."""
     config = Config(
-        max_pool_connections=5,  # Same config as ECS client
+        max_pool_connections=5,
         retries={"max_attempts": 2, "mode": "adaptive"},
     )
 
-    if profile_name:
-        session = boto3.Session(profile_name=profile_name)
-        return session.client("sts", config=config)
-    return boto3.client("sts", config=config)
+    session = boto3.Session(profile_name=profile_name) if profile_name else boto3
+    return session.client("sts", config=config)
 
 
 def _create_cloudwatch_client(profile_name: str | None) -> "CloudWatchClient":
     """Create optimized CloudWatch client with connection pooling."""
     config = Config(
-        max_pool_connections=5,  # Same config as ECS client
+        max_pool_connections=5,
         retries={"max_attempts": 2, "mode": "adaptive"},
     )
 
-    if profile_name:
-        session = boto3.Session(profile_name=profile_name)
-        return session.client("cloudwatch", config=config)
-    return boto3.client("cloudwatch", config=config)
+    session = boto3.Session(profile_name=profile_name) if profile_name else boto3
+    return session.client("cloudwatch", config=config)
 
 
 def _navigate_clusters(navigator: ECSNavigator, ecs_service: ECSService) -> None:
@@ -168,41 +156,61 @@ def _navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster
             # Continue the loop to show the menu again
 
 
+_CONTAINER_ACTIONS = {
+    "tail_logs": lambda nav, cluster, task_arn, container: nav.show_container_logs_live_tail(
+        cluster,
+        task_arn,
+        container,
+    ),
+    "show_env": lambda nav, cluster, task_arn, container: nav.show_container_environment_variables(
+        cluster,
+        task_arn,
+        container,
+    ),
+    "show_secrets": lambda nav, cluster, task_arn, container: nav.show_container_secrets(cluster, task_arn, container),
+    "show_ports": lambda nav, cluster, task_arn, container: nav.show_container_port_mappings(
+        cluster,
+        task_arn,
+        container,
+    ),
+    "show_volumes": lambda nav, cluster, task_arn, container: nav.show_container_volume_mounts(
+        cluster,
+        task_arn,
+        container,
+    ),
+}
+
+_TASK_ACTIONS = {
+    "show_history": lambda nav, cluster, service, _task_arn, _task_details: nav.show_task_history(cluster, service),
+    "show_details": lambda nav, _cluster, _service, _task_arn, task_details: nav.display_task_details(task_details),
+    "compare_definitions": lambda nav, _cluster, _service, _task_arn, task_details: nav.show_task_definition_comparison(
+        task_details,
+    ),
+    "open_console": lambda nav, cluster, _service, task_arn, _task_details: nav.open_task_in_console(cluster, task_arn),
+}
+
+
 def _handle_task_features(
-    navigator: ECSNavigator, cluster_name: str, task_arn: str, task_details: TaskDetails | None, service_name: str
+    navigator: ECSNavigator,
+    cluster_name: str,
+    task_arn: str,
+    task_details: TaskDetails | None,
+    service_name: str,
 ) -> bool:
     """Handle task feature selection and execution. Returns True if back was chosen, False if exit."""
     while True:
         selection = navigator.select_task_feature(task_details)
 
-        # Handle navigation responses
         should_continue, should_exit = handle_navigation(selection)
         if not should_continue:
-            return not should_exit  # True for back, False for exit
+            return not should_exit
 
         selection_type, action_name, container_name = parse_selection(selection)
-        if selection_type == "container_action":
-            # Map action names to methods
-            action_methods = {
-                "tail_logs": navigator.show_container_logs_live_tail,
-                "show_env": navigator.show_container_environment_variables,
-                "show_secrets": navigator.show_container_secrets,
-                "show_ports": navigator.show_container_port_mappings,
-                "show_volumes": navigator.show_container_volume_mounts,
-            }
 
-            if action_name in action_methods:
-                action_methods[action_name](cluster_name, task_arn, container_name)
-
-        elif selection_type == "task_action":
-            if action_name == "show_history":
-                navigator.show_task_history(cluster_name, service_name)
-            elif action_name == "show_details":
-                navigator.display_task_details(task_details)
-            elif action_name == "compare_definitions":
-                navigator.show_task_definition_comparison(task_details)
-            elif action_name == "open_console":
-                navigator.open_task_in_console(cluster_name, task_arn)
+        if selection_type == "container_action" and action_name in _CONTAINER_ACTIONS:
+            _CONTAINER_ACTIONS[action_name](navigator, cluster_name, task_arn, container_name)
+        elif selection_type == "task_action" and action_name in _TASK_ACTIONS:
+            _TASK_ACTIONS[action_name](navigator, cluster_name, service_name, task_arn, task_details)
 
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ def cloudwatch_client_with_metrics():
                             {"Name": "ClusterName", "Value": cluster_name},
                             {"Name": "ServiceName", "Value": service_name},
                         ],
-                    }
+                    },
                 ],
             )
 
@@ -52,7 +52,7 @@ def cloudwatch_client_with_metrics():
                             {"Name": "ClusterName", "Value": cluster_name},
                             {"Name": "ServiceName", "Value": service_name},
                         ],
-                    }
+                    },
                 ],
             )
 

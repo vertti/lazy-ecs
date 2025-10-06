@@ -64,7 +64,9 @@ class ContainerService(BaseAWSService):
         return None
 
     def get_container_definition(
-        self, task_definition: TaskDefinitionTypeDef, container_name: str
+        self,
+        task_definition: TaskDefinitionTypeDef,
+        container_name: str,
     ) -> ContainerDefinitionOutputTypeDef | None:
         for container_def in task_definition["containerDefinitions"]:
             if container_def["name"] == container_name:
@@ -104,12 +106,19 @@ class ContainerService(BaseAWSService):
         if not self.logs_client:
             return []
         response = self.logs_client.get_log_events(
-            logGroupName=log_group, logStreamName=log_stream, limit=lines, startFromHead=False
+            logGroupName=log_group,
+            logStreamName=log_stream,
+            limit=lines,
+            startFromHead=False,
         )
         return response.get("events", [])
 
     def get_container_logs_filtered(
-        self, log_group: str, log_stream: str, filter_pattern: str, lines: int = 50
+        self,
+        log_group: str,
+        log_stream: str,
+        filter_pattern: str,
+        lines: int = 50,
     ) -> list[FilteredLogEventTypeDef]:
         """Get container logs with CloudWatch filter pattern applied."""
         if not self.logs_client:
@@ -123,16 +132,17 @@ class ContainerService(BaseAWSService):
         return response.get("events", [])
 
     def get_live_container_logs_tail(
-        self, log_group: str, log_stream: str, event_filter_pattern: str = ""
+        self,
+        log_group: str,
+        log_stream: str,
+        event_filter_pattern: str = "",
     ) -> Generator[StartLiveTailResponseStreamTypeDef | LiveTailSessionLogEventTypeDef]:
         """Get container logs in real time from CloudWatch."""
         if not self.logs_client:
             return
         region = self.ecs_client.meta.region_name
         aws_account_id = (
-            (lambda: self.sts_client.get_caller_identity().get("Account"))()
-            if self.sts_client
-            else environ.get("AWS_ACCOUNT_ID")
+            self.sts_client.get_caller_identity().get("Account") if self.sts_client else environ.get("AWS_ACCOUNT_ID")
         )
         if not region or not aws_account_id:
             return

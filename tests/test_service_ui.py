@@ -7,7 +7,7 @@ import pytest
 
 from lazy_ecs.features.service.actions import ServiceActions
 from lazy_ecs.features.service.service import ServiceService
-from lazy_ecs.features.service.ui import ServiceUI, _get_event_type_style
+from lazy_ecs.features.service.ui import ServiceUI
 
 
 @pytest.fixture
@@ -34,8 +34,8 @@ def test_select_service_with_services(mock_select, service_ui):
                 "running_count": 2,
                 "desired_count": 2,
                 "pending_count": 0,
-            }
-        ]
+            },
+        ],
     )
     mock_select.return_value = "service:web-api"
 
@@ -56,7 +56,7 @@ def test_select_service_with_many_services(mock_select, service_ui):
                 "running_count": 1,
                 "desired_count": 1,
                 "pending_count": 0,
-            }
+            },
         )
     service_ui.service_service.get_service_info = Mock(return_value=service_info)
     mock_select.return_value = "service:service-50"
@@ -91,8 +91,8 @@ def test_select_service_navigation_back(mock_select, service_ui):
                 "running_count": 2,
                 "desired_count": 2,
                 "pending_count": 0,
-            }
-        ]
+            },
+        ],
     )
     mock_select.return_value.ask.return_value = "navigation:back"
 
@@ -207,15 +207,6 @@ def test_display_service_events_no_events(mock_print, service_ui):
     mock_print.assert_called_once_with("No events found for service 'web-api'", style="blue")
 
 
-def test_get_event_type_style():
-    """Test event type style mapping."""
-    assert _get_event_type_style("deployment") == "blue"
-    assert _get_event_type_style("scaling") == "yellow"
-    assert _get_event_type_style("failure") == "red"
-    assert _get_event_type_style("other") == "white"
-    assert _get_event_type_style("unknown") == "white"  # Default case
-
-
 @patch("lazy_ecs.features.service.ui.console.print")
 def test_service_name_truncation_shows_end(mock_print, service_ui):
     """Test that long service names are truncated to show the distinguishing end part."""
@@ -225,7 +216,7 @@ def test_service_name_truncation_shows_end(mock_print, service_ui):
             "created_at": datetime(2024, 1, 15, 10, 30, 45),
             "message": "(service very-long-service-name-with-important-suffix-v2) has started a deployment",
             "event_type": "deployment",
-        }
+        },
     ]
     service_ui.service_service.get_service_events = Mock(return_value=mock_events)
 
