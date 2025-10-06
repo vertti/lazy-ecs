@@ -334,6 +334,46 @@ def test_get_task_info(ecs_client_with_tasks) -> None:
         assert "images" in info
 
 
+def test_get_task_info_with_more_than_100_tasks():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="app-task",
+            containerDefinitions=[{"name": "app", "image": "nginx", "memory": 256}],
+        )
+
+        client.create_service(
+            cluster="production",
+            serviceName="app-service",
+            taskDefinition="app-task",
+            desiredCount=150,
+        )
+
+        for _ in range(150):
+            client.run_task(
+                cluster="production",
+                taskDefinition="app-task",
+                launchType="FARGATE",
+                networkConfiguration={
+                    "awsvpcConfiguration": {
+                        "subnets": ["subnet-12345"],
+                        "assignPublicIp": "ENABLED",
+                    }
+                },
+            )
+
+        service = ECSService(client)
+        task_info = service.get_task_info("production", "app-service")
+
+        assert len(task_info) == 150
+        for info in task_info:
+            assert "name" in info
+            assert "value" in info
+            assert "task_def_arn" in info
+
+
 def test_get_task_details(ecs_client_with_tasks) -> None:
     service = ECSService(ecs_client_with_tasks)
     tasks = service.get_tasks("production", "web-api")
