@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from ...core.base import BaseAWSService
 from ...core.types import ServiceEvent, ServiceInfo
-from ...core.utils import determine_service_status, extract_name_from_arn, paginate_aws_list
+from ...core.utils import batch_items, determine_service_status, extract_name_from_arn, paginate_aws_list
 
 if TYPE_CHECKING:
     from typing import Any
@@ -31,9 +31,12 @@ class ServiceService(BaseAWSService):
         if not service_names:
             return []
 
-        response = self.ecs_client.describe_services(cluster=cluster_name, services=service_names)
-        services = response.get("services", [])
-        return [_create_service_info(service) for service in services]
+        all_services = []
+        for batch in batch_items(service_names, 10):
+            response = self.ecs_client.describe_services(cluster=cluster_name, services=batch)
+            all_services.extend(response.get("services", []))
+
+        return [_create_service_info(service) for service in all_services]
 
     def get_desired_task_definition_arn(self, cluster_name: str, service_name: str) -> str | None:
         response = self.ecs_client.describe_services(cluster=cluster_name, services=[service_name])

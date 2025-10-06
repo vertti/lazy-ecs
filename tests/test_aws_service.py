@@ -268,6 +268,33 @@ def test_get_service_info(ecs_client_with_services) -> None:
         assert "pending_count" in info
 
 
+def test_get_service_info_with_more_than_10_services():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="app-task",
+            containerDefinitions=[{"name": "app", "image": "nginx", "memory": 256}],
+        )
+
+        for i in range(15):
+            client.create_service(
+                cluster="production",
+                serviceName=f"service-{i:02d}",
+                taskDefinition="app-task",
+                desiredCount=2,
+            )
+
+        service = ECSService(client)
+        service_info = service.get_service_info("production")
+
+        assert len(service_info) == 15
+        service_names = [info["name"] for info in service_info]
+        for i in range(15):
+            assert any(f"service-{i:02d}" in name for name in service_names)
+
+
 def test_get_tasks(ecs_client_with_tasks) -> None:
     service = ECSService(ecs_client_with_tasks)
     tasks = service.get_tasks("production", "web-api")
