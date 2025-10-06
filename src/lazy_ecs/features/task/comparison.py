@@ -72,7 +72,9 @@ def compare_task_definitions(source: dict[str, Any], target: dict[str, Any]) -> 
 
 
 def _compare_task_level_resources(
-    source: dict[str, Any], target: dict[str, Any], changes: list[dict[str, Any]]
+    source: dict[str, Any],
+    target: dict[str, Any],
+    changes: list[dict[str, Any]],
 ) -> None:
     """Compare task-level CPU and memory."""
     if source.get("taskCpu") != target.get("taskCpu"):
@@ -81,7 +83,7 @@ def _compare_task_level_resources(
                 "type": "task_cpu_changed",
                 "old": source.get("taskCpu"),
                 "new": target.get("taskCpu"),
-            }
+            },
         )
 
     if source.get("taskMemory") != target.get("taskMemory"):
@@ -90,12 +92,14 @@ def _compare_task_level_resources(
                 "type": "task_memory_changed",
                 "old": source.get("taskMemory"),
                 "new": target.get("taskMemory"),
-            }
+            },
         )
 
 
 def _compare_containers(
-    source_containers: list[dict[str, Any]], target_containers: list[dict[str, Any]], changes: list[dict[str, Any]]
+    source_containers: list[dict[str, Any]],
+    target_containers: list[dict[str, Any]],
+    changes: list[dict[str, Any]],
 ) -> None:
     """Compare containers between two task definitions."""
     source_by_name = {c["name"]: c for c in source_containers}
@@ -147,7 +151,7 @@ def _compare_dicts(
     for key, value in source.items():
         if key not in target:
             changes.append(
-                {"type": f"{change_prefix}_removed", "container": container_name, "key": key, "value": value}
+                {"type": f"{change_prefix}_removed", "container": container_name, "key": key, "value": value},
             )
         elif target[key] != value:
             changes.append(
@@ -157,7 +161,7 @@ def _compare_dicts(
                     "key": key,
                     "old": value,
                     "new": target[key],
-                }
+                },
             )
 
     for key, value in target.items():
@@ -188,7 +192,9 @@ class TaskComparisonService(BaseAWSService):
         return revisions[:limit]
 
     def get_task_definitions_for_comparison(
-        self, source_arn: str, target_arn: str
+        self,
+        source_arn: str,
+        target_arn: str,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         source_response = self.ecs_client.describe_task_definition(taskDefinition=source_arn)
         target_response = self.ecs_client.describe_task_definition(taskDefinition=target_arn)

@@ -44,7 +44,7 @@ class TestTaskHistoryUI:
                         "reason": None,
                         "health_status": "HEALTHY",
                         "last_status": "RUNNING",
-                    }
+                    },
                 ],
             },
             {
@@ -65,7 +65,7 @@ class TestTaskHistoryUI:
                         "reason": "OutOfMemoryError: Container killed due to memory usage",
                         "health_status": "UNHEALTHY",
                         "last_status": "STOPPED",
-                    }
+                    },
                 ],
             },
         ]
@@ -125,7 +125,7 @@ class TestTaskHistoryUI:
                     "reason": "OutOfMemoryError: Container killed due to memory usage",
                     "health_status": "UNHEALTHY",
                     "last_status": "STOPPED",
-                }
+                },
             ],
         }
 

@@ -138,7 +138,7 @@ class TaskUI(BaseUIComponent):
                 {"name": "Show task history and failures", "value": "task_action:show_history"},
                 {"name": "Compare task definitions", "value": "task_action:compare_definitions"},
                 {"name": "🌐 Open in AWS console", "value": "task_action:open_console"},
-            ]
+            ],
         )
 
         for container in containers:
@@ -165,7 +165,7 @@ class TaskUI(BaseUIComponent):
                         "name": f"Show volume mounts for '{container_name}'",
                         "value": f"container_action:show_volumes:{container_name}",
                     },
-                ]
+                ],
             )
 
         return select_with_auto_pagination("Select a feature for this task:", choices, "Back to service selection")
@@ -183,7 +183,9 @@ class TaskUI(BaseUIComponent):
             return
 
         sorted_history = sorted(
-            task_history, key=lambda t: t["created_at"] if t["created_at"] else datetime.min, reverse=True
+            task_history,
+            key=lambda t: t["created_at"] if t["created_at"] else datetime.min,
+            reverse=True,
         )
         recent_tasks = sorted_history[:MAX_RECENT_TASKS]
 
@@ -296,7 +298,9 @@ class TaskUI(BaseUIComponent):
         ]
 
         selected_arn = select_with_auto_pagination(
-            f"Select revision to compare with v{current_revision}:", choices, "Back"
+            f"Select revision to compare with v{current_revision}:",
+            choices,
+            "Back",
         )
 
         if not selected_arn:
@@ -304,18 +308,23 @@ class TaskUI(BaseUIComponent):
 
         with show_spinner():
             source, target = self.comparison_service.get_task_definitions_for_comparison(
-                f"{family}:{current_revision}", selected_arn
+                f"{family}:{current_revision}",
+                selected_arn,
             )
             changes = compare_task_definitions(source, target)
 
         self._display_comparison_results(source, target, changes)
 
     def _display_comparison_results(
-        self, source: dict[str, Any], target: dict[str, Any], changes: list[dict[str, Any]]
+        self,
+        source: dict[str, Any],
+        target: dict[str, Any],
+        changes: list[dict[str, Any]],
     ) -> None:
         """Display comparison results between two task definitions."""
         console.print(
-            f"\n📊 Comparing: {source['family']}:v{source['revision']} → v{target['revision']}", style="bold cyan"
+            f"\n📊 Comparing: {source['family']}:v{source['revision']} → v{target['revision']}",
+            style="bold cyan",
         )
         console.print("=" * 80, style="dim")
 

@@ -21,7 +21,11 @@ class TaskService(BaseAWSService):
 
     def get_tasks(self, cluster_name: str, service_name: str) -> list[str]:
         return paginate_aws_list(
-            self.ecs_client, "list_tasks", "taskArns", cluster=cluster_name, serviceName=service_name
+            self.ecs_client,
+            "list_tasks",
+            "taskArns",
+            cluster=cluster_name,
+            serviceName=service_name,
         )
 
     def get_task_info(self, cluster_name: str, service_name: str, desired_task_def_arn: str | None) -> list[TaskInfo]:
@@ -38,7 +42,10 @@ class TaskService(BaseAWSService):
         return [_create_task_info(task, desired_task_def_arn) for task in all_tasks]
 
     def get_task_details(
-        self, cluster_name: str, task_arn: str, desired_task_def_arn: str | None
+        self,
+        cluster_name: str,
+        task_arn: str,
+        desired_task_def_arn: str | None,
     ) -> TaskDetails | None:
         result = self.get_task_and_definition(cluster_name, task_arn)
         if not result:
@@ -49,7 +56,9 @@ class TaskService(BaseAWSService):
         return _build_task_details(task, task_definition, is_desired_version)
 
     def get_task_and_definition(
-        self, cluster_name: str, task_arn: str
+        self,
+        cluster_name: str,
+        task_arn: str,
     ) -> tuple[TaskTypeDef, TaskDefinitionTypeDef] | None:
         task_response = self.ecs_client.describe_tasks(cluster=cluster_name, tasks=[task_arn])
         tasks = task_response.get("tasks", [])
@@ -106,7 +115,11 @@ class TaskService(BaseAWSService):
 
             if exit_code is not None and exit_code != 0:
                 return self._analyze_container_failure(
-                    container["name"], exit_code, container_reason, stop_code, stopped_reason
+                    container["name"],
+                    exit_code,
+                    container_reason,
+                    stop_code,
+                    stopped_reason,
                 )
 
         # No container failures, analyze task-level issues
@@ -129,7 +142,7 @@ class TaskService(BaseAWSService):
                     "reason": container.get("reason"),
                     "health_status": container.get("healthStatus"),
                     "last_status": container.get("lastStatus", "UNKNOWN"),
-                }
+                },
             )
 
         return {
@@ -230,7 +243,9 @@ def _create_task_info(task: TaskTypeDef, desired_task_def_arn: str | None) -> Ta
 
 
 def _build_task_details(
-    task: TaskTypeDef, task_definition: TaskDefinitionTypeDef, is_desired_version: bool
+    task: TaskTypeDef,
+    task_definition: TaskDefinitionTypeDef,
+    is_desired_version: bool,
 ) -> TaskDetails:
     """Build comprehensive task details dictionary."""
     task_arn = task["taskArn"]

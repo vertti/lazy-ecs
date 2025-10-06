@@ -32,7 +32,7 @@ class TestTaskHistoryParsing:
                     "reason": "OutOfMemoryError: Container killed due to memory usage",
                     "healthStatus": "UNHEALTHY",
                     "lastStatus": "STOPPED",
-                }
+                },
             ],
         }
 
@@ -54,7 +54,7 @@ class TestTaskHistoryParsing:
                     "reason": "OutOfMemoryError: Container killed due to memory usage",
                     "health_status": "UNHEALTHY",
                     "last_status": "STOPPED",
-                }
+                },
             ],
         }
 
@@ -91,7 +91,7 @@ class TestTaskHistoryParsing:
                     "reason": None,
                     "health_status": "HEALTHY",
                     "last_status": "RUNNING",
-                }
+                },
             ],
         }
 
@@ -120,7 +120,11 @@ class TestTaskHistoryParsing:
     def test_analyze_timeout_failure(self):
         """Test analysis of timeout failure."""
         result = TaskService._analyze_container_failure(
-            "web-api", 137, "Task killed", "TaskFailedToStart", "Task timed out"
+            "web-api",
+            137,
+            "Task killed",
+            "TaskFailedToStart",
+            "Task timed out",
         )
         assert "⏰" in result
         assert "timeout" in result.lower()
@@ -137,8 +141,8 @@ class TestTaskHistoryService:
                 "taskArns": [
                     "arn:aws:ecs:us-east-1:123456789012:task/cluster/running-task",
                     "arn:aws:ecs:us-east-1:123456789012:task/cluster/stopped-task",
-                ]
-            }
+                ],
+            },
         ]
         client = mock_paginated_client(pages)
 
@@ -151,8 +155,8 @@ class TestTaskHistoryService:
                     "stoppedReason": "Essential container in task exited",
                     "taskDefinitionArn": "arn:aws:ecs:us-east-1:123456789012:task-definition/web-api:5",
                     "containers": [{"name": "web-api", "exitCode": 137}],
-                }
-            ]
+                },
+            ],
         }
         return client
 

@@ -85,7 +85,7 @@ def test_show_logs_live_tail_with_filter_exclude(container_ui):
     container_ui.container_service.get_container_logs_filtered = Mock(return_value=filtered_events)
     # Return different iterators for each call
     container_ui.container_service.get_live_container_logs_tail = Mock(
-        side_effect=[iter(live_events_first), iter(live_events_second)]
+        side_effect=[iter(live_events_first), iter(live_events_second)],
     )
 
     # Mock the queues to simulate pressing 'f' for filter then 's' to stop
@@ -115,7 +115,10 @@ def test_show_logs_live_tail_with_filter_exclude(container_ui):
 
     # Should be called with -healthcheck filter pattern
     container_ui.container_service.get_container_logs_filtered.assert_called_once_with(
-        "test-log-group", "test-stream", "-healthcheck", 50
+        "test-log-group",
+        "test-stream",
+        "-healthcheck",
+        50,
     )
 
 
@@ -136,7 +139,7 @@ def test_get_container_logs_filtered(mock_ecs_client, mock_task_service):
     mock_logs_client.filter_log_events.return_value = {
         "events": [
             {"timestamp": 1234567890000, "message": "ERROR: Something failed"},
-        ]
+        ],
     }
 
     container_service = ContainerService(mock_ecs_client, mock_task_service, None, mock_logs_client)
@@ -163,7 +166,9 @@ def test_show_container_environment_variables_success(container_ui):
     container_ui.show_container_environment_variables("test-cluster", "task-arn", "web-container")
 
     container_ui.container_service.get_container_context.assert_called_once_with(
-        "test-cluster", "task-arn", "web-container"
+        "test-cluster",
+        "task-arn",
+        "web-container",
     )
     container_ui.container_service.get_environment_variables.assert_called_once_with(context)
 
@@ -175,7 +180,9 @@ def test_show_container_environment_variables_no_context(container_ui):
     container_ui.show_container_environment_variables("test-cluster", "task-arn", "web-container")
 
     container_ui.container_service.get_container_context.assert_called_once_with(
-        "test-cluster", "task-arn", "web-container"
+        "test-cluster",
+        "task-arn",
+        "web-container",
     )
 
 
@@ -189,7 +196,9 @@ def test_show_container_environment_variables_empty(container_ui):
     container_ui.show_container_environment_variables("test-cluster", "task-arn", "web-container")
 
     container_ui.container_service.get_container_context.assert_called_once_with(
-        "test-cluster", "task-arn", "web-container"
+        "test-cluster",
+        "task-arn",
+        "web-container",
     )
     container_ui.container_service.get_environment_variables.assert_called_once_with(context)
 
@@ -208,7 +217,9 @@ def test_show_container_secrets_success(container_ui):
     container_ui.show_container_secrets("test-cluster", "task-arn", "web-container")
 
     container_ui.container_service.get_container_context.assert_called_once_with(
-        "test-cluster", "task-arn", "web-container"
+        "test-cluster",
+        "task-arn",
+        "web-container",
     )
     container_ui.container_service.get_secrets.assert_called_once_with(context)
 
@@ -220,7 +231,9 @@ def test_show_container_secrets_no_context(container_ui):
     container_ui.show_container_secrets("test-cluster", "task-arn", "web-container")
 
     container_ui.container_service.get_container_context.assert_called_once_with(
-        "test-cluster", "task-arn", "web-container"
+        "test-cluster",
+        "task-arn",
+        "web-container",
     )
 
 
@@ -234,7 +247,9 @@ def test_show_container_secrets_empty(container_ui):
     container_ui.show_container_secrets("test-cluster", "task-arn", "web-container")
 
     container_ui.container_service.get_container_context.assert_called_once_with(
-        "test-cluster", "task-arn", "web-container"
+        "test-cluster",
+        "task-arn",
+        "web-container",
     )
     container_ui.container_service.get_secrets.assert_called_once_with(context)
 
@@ -250,7 +265,9 @@ def test_show_container_port_mappings_success(container_ui):
     container_ui.show_container_port_mappings("test-cluster", "task-arn", "web-container")
 
     container_ui.container_service.get_container_context.assert_called_once_with(
-        "test-cluster", "task-arn", "web-container"
+        "test-cluster",
+        "task-arn",
+        "web-container",
     )
     container_ui.container_service.get_port_mappings.assert_called_once_with(context)
 
@@ -262,7 +279,9 @@ def test_show_container_port_mappings_no_context(container_ui):
     container_ui.show_container_port_mappings("test-cluster", "task-arn", "web-container")
 
     container_ui.container_service.get_container_context.assert_called_once_with(
-        "test-cluster", "task-arn", "web-container"
+        "test-cluster",
+        "task-arn",
+        "web-container",
     )
 
 
@@ -276,7 +295,9 @@ def test_show_container_port_mappings_empty(container_ui):
     container_ui.show_container_port_mappings("test-cluster", "task-arn", "web-container")
 
     container_ui.container_service.get_container_context.assert_called_once_with(
-        "test-cluster", "task-arn", "web-container"
+        "test-cluster",
+        "task-arn",
+        "web-container",
     )
     container_ui.container_service.get_port_mappings.assert_called_once_with(context)
 
@@ -285,7 +306,7 @@ def test_show_container_volume_mounts_success(container_ui):
     """Test displaying container volume mounts successfully."""
     context = {"container_definition": {"mountPoints": []}}
     volume_mounts = [
-        {"source_volume": "data-vol", "container_path": "/data", "read_only": False, "host_path": "/host/data"}
+        {"source_volume": "data-vol", "container_path": "/data", "read_only": False, "host_path": "/host/data"},
     ]
 
     container_ui.container_service.get_container_context = Mock(return_value=context)
@@ -294,7 +315,9 @@ def test_show_container_volume_mounts_success(container_ui):
     container_ui.show_container_volume_mounts("test-cluster", "task-arn", "web-container")
 
     container_ui.container_service.get_container_context.assert_called_once_with(
-        "test-cluster", "task-arn", "web-container"
+        "test-cluster",
+        "task-arn",
+        "web-container",
     )
     container_ui.container_service.get_volume_mounts.assert_called_once_with(context)
 
@@ -306,7 +329,9 @@ def test_show_container_volume_mounts_no_context(container_ui):
     container_ui.show_container_volume_mounts("test-cluster", "task-arn", "web-container")
 
     container_ui.container_service.get_container_context.assert_called_once_with(
-        "test-cluster", "task-arn", "web-container"
+        "test-cluster",
+        "task-arn",
+        "web-container",
     )
 
 
@@ -320,6 +345,8 @@ def test_show_container_volume_mounts_empty(container_ui):
     container_ui.show_container_volume_mounts("test-cluster", "task-arn", "web-container")
 
     container_ui.container_service.get_container_context.assert_called_once_with(
-        "test-cluster", "task-arn", "web-container"
+        "test-cluster",
+        "task-arn",
+        "web-container",
     )
     container_ui.container_service.get_volume_mounts.assert_called_once_with(context)

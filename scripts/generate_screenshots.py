@@ -75,7 +75,7 @@ def generate_task_comparison_screenshot() -> None:
                 "environment": {"ENV": "staging", "DEBUG": "true"},
                 "cpu": 256,
                 "memory": 512,
-            }
+            },
         ],
         "taskCpu": "256",
         "taskMemory": "512",
@@ -91,7 +91,7 @@ def generate_task_comparison_screenshot() -> None:
                 "environment": {"ENV": "production", "LOG_LEVEL": "info"},
                 "cpu": 256,
                 "memory": 512,
-            }
+            },
         ],
         "taskCpu": "512",
         "taskMemory": "1024",
@@ -186,7 +186,7 @@ def generate_task_failure_screenshot() -> None:
                     "reason": "OutOfMemoryError: Java heap space",
                     "health_status": None,
                     "last_status": "STOPPED",
-                }
+                },
             ],
         },
         {

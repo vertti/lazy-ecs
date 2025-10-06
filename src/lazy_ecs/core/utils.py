@@ -133,7 +133,7 @@ def wait_for_keypress(stop_event: threading.Event) -> str | None:
                     char = sys.stdin.read(1)
                     # Handle Ctrl-C properly
                     if char == "\x03":  # Ctrl-C
-                        raise KeyboardInterrupt()
+                        raise KeyboardInterrupt
                     return char
 
             return None

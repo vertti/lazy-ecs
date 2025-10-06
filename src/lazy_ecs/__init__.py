@@ -158,17 +158,25 @@ def _navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster
 
 _CONTAINER_ACTIONS = {
     "tail_logs": lambda nav, cluster, task_arn, container: nav.show_container_logs_live_tail(
-        cluster, task_arn, container
+        cluster,
+        task_arn,
+        container,
     ),
     "show_env": lambda nav, cluster, task_arn, container: nav.show_container_environment_variables(
-        cluster, task_arn, container
+        cluster,
+        task_arn,
+        container,
     ),
     "show_secrets": lambda nav, cluster, task_arn, container: nav.show_container_secrets(cluster, task_arn, container),
     "show_ports": lambda nav, cluster, task_arn, container: nav.show_container_port_mappings(
-        cluster, task_arn, container
+        cluster,
+        task_arn,
+        container,
     ),
     "show_volumes": lambda nav, cluster, task_arn, container: nav.show_container_volume_mounts(
-        cluster, task_arn, container
+        cluster,
+        task_arn,
+        container,
     ),
 }
 
@@ -176,14 +184,18 @@ _TASK_ACTIONS = {
     "show_history": lambda nav, cluster, service, _task_arn, _task_details: nav.show_task_history(cluster, service),
     "show_details": lambda nav, _cluster, _service, _task_arn, task_details: nav.display_task_details(task_details),
     "compare_definitions": lambda nav, _cluster, _service, _task_arn, task_details: nav.show_task_definition_comparison(
-        task_details
+        task_details,
     ),
     "open_console": lambda nav, cluster, _service, task_arn, _task_details: nav.open_task_in_console(cluster, task_arn),
 }
 
 
 def _handle_task_features(
-    navigator: ECSNavigator, cluster_name: str, task_arn: str, task_details: TaskDetails | None, service_name: str
+    navigator: ECSNavigator,
+    cluster_name: str,
+    task_arn: str,
+    task_details: TaskDetails | None,
+    service_name: str,
 ) -> bool:
     """Handle task feature selection and execution. Returns True if back was chosen, False if exit."""
     while True:

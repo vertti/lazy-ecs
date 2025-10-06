@@ -132,9 +132,9 @@ def test_service_events_sorted_by_time():
                         "createdAt": datetime(2024, 1, 15, 11, 0, 0),
                         "message": "Middle event",
                     },
-                ]
-            }
-        ]
+                ],
+            },
+        ],
     }
 
     service = ServiceService(mock_client)

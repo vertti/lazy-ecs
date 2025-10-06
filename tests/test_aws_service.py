@@ -60,7 +60,7 @@ def ecs_client_with_tasks():
                         "logDriver": "awslogs",
                         "options": {"awslogs-group": "/ecs/production/web", "awslogs-stream-prefix": "ecs"},
                     },
-                }
+                },
             ],
         )
 
@@ -80,7 +80,7 @@ def ecs_client_with_tasks():
                 "awsvpcConfiguration": {
                     "subnets": ["subnet-12345"],
                     "assignPublicIp": "ENABLED",
-                }
+                },
             },
         )
 
@@ -171,7 +171,7 @@ def ecs_client_with_secrets():
                         {
                             "name": "SSL_CERT",
                             "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:ssl-cert-MnOpQr",
-                        }
+                        },
                     ],
                 },
             ],
@@ -244,7 +244,10 @@ def test_get_services_pagination():
 
         for i in range(200):
             client.create_service(
-                cluster="production", serviceName=f"service-{i:03d}", taskDefinition="app-task", desiredCount=1
+                cluster="production",
+                serviceName=f"service-{i:03d}",
+                taskDefinition="app-task",
+                desiredCount=1,
             )
 
         service = ECSService(client)
@@ -423,7 +426,7 @@ def test_get_log_config_no_config():
                 "awsvpcConfiguration": {
                     "subnets": ["subnet-12345"],
                     "assignPublicIp": "ENABLED",
-                }
+                },
             },
         )
 
@@ -703,7 +706,7 @@ def test_get_container_port_mappings_success() -> None:
                     {"containerPort": 80, "hostPort": 8080, "protocol": "tcp"},
                     {"containerPort": 443, "hostPort": 0, "protocol": "tcp"},
                 ],
-            }
+            },
         ],
     )
 

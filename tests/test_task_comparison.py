@@ -21,7 +21,7 @@ def test_normalize_task_definition_strips_aws_metadata():
                 "image": "nginx:1.21",
                 "cpu": 256,
                 "memory": 512,
-            }
+            },
         ],
     }
 
@@ -61,7 +61,7 @@ def test_normalize_task_definition_extracts_container_fields():
                 },
                 "command": ["npm", "start"],
                 "entryPoint": ["/bin/sh"],
-            }
+            },
         ],
     }
 
@@ -88,7 +88,7 @@ def test_normalize_task_definition_handles_missing_fields():
             {
                 "name": "web",
                 "image": "nginx:1.21",
-            }
+            },
         ],
     }
 
@@ -149,7 +149,7 @@ def test_compare_task_definitions_detects_env_var_changes():
                 "name": "web",
                 "image": "nginx:1.21",
                 "environment": {"ENV": "staging", "DEBUG": "false"},
-            }
+            },
         ],
     }
     target = {
@@ -160,7 +160,7 @@ def test_compare_task_definitions_detects_env_var_changes():
                 "name": "web",
                 "image": "nginx:1.21",
                 "environment": {"ENV": "production", "LOG_LEVEL": "info"},
-            }
+            },
         ],
     }
 
@@ -219,7 +219,7 @@ def test_compare_task_definitions_detects_secret_changes():
                 "name": "web",
                 "image": "nginx:1.21",
                 "secrets": {"API_KEY": "arn:aws:secretsmanager:us-east-1:123:secret:api-key-v1"},
-            }
+            },
         ],
     }
     target = {
@@ -230,7 +230,7 @@ def test_compare_task_definitions_detects_secret_changes():
                 "name": "web",
                 "image": "nginx:1.21",
                 "secrets": {"API_KEY": "arn:aws:secretsmanager:us-east-1:123:secret:api-key-v2"},
-            }
+            },
         ],
     }
 
@@ -267,7 +267,7 @@ def test_compare_task_definitions_detects_port_changes():
                 "name": "web",
                 "image": "nginx:1.21",
                 "ports": [{"containerPort": 80, "protocol": "tcp"}],
-            }
+            },
         ],
     }
     target = {
@@ -278,7 +278,7 @@ def test_compare_task_definitions_detects_port_changes():
                 "name": "web",
                 "image": "nginx:1.21",
                 "ports": [{"containerPort": 8080, "protocol": "tcp"}],
-            }
+            },
         ],
     }
 
@@ -340,7 +340,7 @@ def test_compare_task_definitions_detects_volume_changes():
                 "name": "web",
                 "image": "nginx:1.21",
                 "mountPoints": [{"sourceVolume": "data", "containerPath": "/data"}],
-            }
+            },
         ],
     }
     target = {
@@ -351,7 +351,7 @@ def test_compare_task_definitions_detects_volume_changes():
                 "name": "web",
                 "image": "nginx:1.21",
                 "mountPoints": [{"sourceVolume": "data", "containerPath": "/var/data"}],
-            }
+            },
         ],
     }
 

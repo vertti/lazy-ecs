@@ -22,7 +22,7 @@ def ecs_client_with_task_definitions():
                     "image": "nginx:1.19",
                     "memory": 512,
                     "environment": [{"name": "ENV", "value": "dev"}],
-                }
+                },
             ],
         )
 
@@ -34,7 +34,7 @@ def ecs_client_with_task_definitions():
                     "image": "nginx:1.20",
                     "memory": 512,
                     "environment": [{"name": "ENV", "value": "staging"}],
-                }
+                },
             ],
         )
 
@@ -46,7 +46,7 @@ def ecs_client_with_task_definitions():
                     "image": "nginx:1.21",
                     "memory": 1024,
                     "environment": [{"name": "ENV", "value": "production"}],
-                }
+                },
             ],
         )
 

@@ -57,7 +57,8 @@ def test_select_service_action_integration(mock_ecs_service) -> None:
     assert result == "task:show_details:task-arn-1"
     mock_ecs_service.get_task_info.assert_called_once_with("production", "web-api")
     navigator._service_ui.select_service_action.assert_called_once_with(
-        "web-api", [{"name": "task-1", "value": "task-arn-1"}]
+        "web-api",
+        [{"name": "task-1", "value": "task-arn-1"}],
     )
 
 

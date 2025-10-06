@@ -50,13 +50,15 @@ class ServiceUI(BaseUIComponent):
         choices.append({"name": "🚀 Force new deployment", "value": "action:force_deployment"})
 
         return select_with_auto_pagination(
-            f"Select action for service '{service_name}':", choices, "Back to cluster selection"
+            f"Select action for service '{service_name}':",
+            choices,
+            "Back to cluster selection",
         )
 
     def handle_force_deployment(self, cluster_name: str, service_name: str) -> None:
         """Handle force deployment confirmation and execution."""
         confirm = questionary.confirm(
-            f"Force new deployment for service '{service_name}' in cluster '{cluster_name}'?"
+            f"Force new deployment for service '{service_name}' in cluster '{cluster_name}'?",
         ).ask()
 
         if confirm:
