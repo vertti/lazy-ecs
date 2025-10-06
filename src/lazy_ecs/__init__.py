@@ -51,10 +51,8 @@ def _create_aws_client(profile_name: str | None) -> "ECSClient":
         retries={"max_attempts": 2, "mode": "adaptive"},
     )
 
-    if profile_name:
-        session = boto3.Session(profile_name=profile_name)
-        return session.client("ecs", config=config)
-    return boto3.client("ecs", config=config)
+    session = boto3.Session(profile_name=profile_name) if profile_name else boto3
+    return session.client("ecs", config=config)
 
 
 def _create_logs_client(profile_name: str | None) -> "CloudWatchLogsClient":
@@ -64,10 +62,8 @@ def _create_logs_client(profile_name: str | None) -> "CloudWatchLogsClient":
         retries={"max_attempts": 2, "mode": "adaptive"},
     )
 
-    if profile_name:
-        session = boto3.Session(profile_name=profile_name)
-        return session.client("logs", config=config)
-    return boto3.client("logs", config=config)
+    session = boto3.Session(profile_name=profile_name) if profile_name else boto3
+    return session.client("logs", config=config)
 
 
 def _create_sts_client(profile_name: str | None) -> "STSClient":
@@ -77,10 +73,8 @@ def _create_sts_client(profile_name: str | None) -> "STSClient":
         retries={"max_attempts": 2, "mode": "adaptive"},
     )
 
-    if profile_name:
-        session = boto3.Session(profile_name=profile_name)
-        return session.client("sts", config=config)
-    return boto3.client("sts", config=config)
+    session = boto3.Session(profile_name=profile_name) if profile_name else boto3
+    return session.client("sts", config=config)
 
 
 def _create_cloudwatch_client(profile_name: str | None) -> "CloudWatchClient":
@@ -90,10 +84,8 @@ def _create_cloudwatch_client(profile_name: str | None) -> "CloudWatchClient":
         retries={"max_attempts": 2, "mode": "adaptive"},
     )
 
-    if profile_name:
-        session = boto3.Session(profile_name=profile_name)
-        return session.client("cloudwatch", config=config)
-    return boto3.client("cloudwatch", config=config)
+    session = boto3.Session(profile_name=profile_name) if profile_name else boto3
+    return session.client("cloudwatch", config=config)
 
 
 def _navigate_clusters(navigator: ECSNavigator, ecs_service: ECSService) -> None:

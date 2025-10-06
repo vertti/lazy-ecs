@@ -130,9 +130,7 @@ class ContainerService(BaseAWSService):
             return
         region = self.ecs_client.meta.region_name
         aws_account_id = (
-            (lambda: self.sts_client.get_caller_identity().get("Account"))()
-            if self.sts_client
-            else environ.get("AWS_ACCOUNT_ID")
+            self.sts_client.get_caller_identity().get("Account") if self.sts_client else environ.get("AWS_ACCOUNT_ID")
         )
         if not region or not aws_account_id:
             return
