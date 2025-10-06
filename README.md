@@ -136,6 +136,8 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - Running/desired/pending task counts at a glance
 - _Why it's great:_ AWS console hides task counts in separate tabs; requires mental math to determine service health
 
+![Service Status](images/service-status.svg)
+
 **Task selection with auto-selection**
 
 - Automatically select single tasks; interactive picker for multiple
@@ -183,10 +185,14 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - Automatic detection of common failures (OOM kills, timeouts, image pull failures)
 - _Why it's great:_ AWS console requires clicking into each failed task individually; no smart analysis of failure patterns
 
+![Task History](images/task-history.svg)
+
 **CloudWatch metrics**
 
 - CPU/Memory utilization with current, average, and peak values
 - _Why it's great:_ AWS console requires switching to CloudWatch tab, selecting metrics, configuring graphs
+
+![CloudWatch Metrics](images/metrics.svg)
 
 **Log group discovery**
 
@@ -199,6 +205,8 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - Interactive revision selection from recent history
 - Color-coded diff showing images, environment variables, secrets, CPU/memory, ports, commands, entrypoints, and volume mounts
 - _Why it's great:_ AWS console has no native comparison tool; developers must download JSON and use external diff tools to answer "what changed between versions?"
+
+![Task Definition Comparison](images/task-comparison.svg)
 
 ## Roadmap
 
