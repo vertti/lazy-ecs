@@ -46,13 +46,9 @@ def main() -> None:
 
 def _create_aws_client(profile_name: str | None) -> "ECSClient":
     """Create optimized AWS ECS client with connection pooling."""
-    # Optimized configuration for better performance
     config = Config(
-        max_pool_connections=5,  # Increase from default 1, but keep reasonable for CLI
-        retries={
-            "max_attempts": 2,  # Reduce from default 3 for faster failure
-            "mode": "adaptive",
-        },
+        max_pool_connections=5,
+        retries={"max_attempts": 2, "mode": "adaptive"},
     )
 
     if profile_name:
@@ -64,7 +60,7 @@ def _create_aws_client(profile_name: str | None) -> "ECSClient":
 def _create_logs_client(profile_name: str | None) -> "CloudWatchLogsClient":
     """Create optimized CloudWatch Logs client with connection pooling."""
     config = Config(
-        max_pool_connections=5,  # Same config as ECS client
+        max_pool_connections=5,
         retries={"max_attempts": 2, "mode": "adaptive"},
     )
 
@@ -77,7 +73,7 @@ def _create_logs_client(profile_name: str | None) -> "CloudWatchLogsClient":
 def _create_sts_client(profile_name: str | None) -> "STSClient":
     """Create optimized STS client with connection pooling."""
     config = Config(
-        max_pool_connections=5,  # Same config as ECS client
+        max_pool_connections=5,
         retries={"max_attempts": 2, "mode": "adaptive"},
     )
 
@@ -90,7 +86,7 @@ def _create_sts_client(profile_name: str | None) -> "STSClient":
 def _create_cloudwatch_client(profile_name: str | None) -> "CloudWatchClient":
     """Create optimized CloudWatch client with connection pooling."""
     config = Config(
-        max_pool_connections=5,  # Same config as ECS client
+        max_pool_connections=5,
         retries={"max_attempts": 2, "mode": "adaptive"},
     )
 

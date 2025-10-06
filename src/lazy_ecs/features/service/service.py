@@ -55,7 +55,6 @@ class ServiceService(BaseAWSService):
         events = services[0].get("events", [])
         service_events = [_create_service_event(dict(event)) for event in events]
 
-        # Sort by creation time, most recent first (handle None values)
         return sorted(service_events, key=lambda x: x["created_at"] or datetime.min, reverse=True)
 
 
@@ -99,7 +98,6 @@ def _categorize_event(message: str) -> str:
     """Categorize service event based on message content."""
     message_lower = message.lower()
 
-    # Check failure first to catch "deployment failed" as failure, not deployment
     if any(term in message_lower for term in ["failed", "error", "unhealthy", "unable"]):
         return "failure"
     if any(
