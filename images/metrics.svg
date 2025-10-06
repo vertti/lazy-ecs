@@ -1,0 +1,241 @@
+<svg
+  class="rich-terminal"
+  viewBox="0 0 1238 147.6"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <style>
+  @font-face {
+          font-family: "Fira Code";
+          src: local("FiraCode-Regular"),
+                  url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff2/FiraCode-Regular.woff2") format("woff2"),
+                  url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff/FiraCode-Regular.woff") format("woff");
+          font-style: normal;
+          font-weight: 400;
+      }
+      @font-face {
+          font-family: "Fira Code";
+          src: local("FiraCode-Bold"),
+                  url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff2/FiraCode-Bold.woff2") format("woff2"),
+                  url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff/FiraCode-Bold.woff") format("woff");
+          font-style: bold;
+          font-weight: 700;
+      }
+
+      .terminal-826816461-matrix {
+          font-family: Fira Code, monospace;
+          font-size: 20px;
+          line-height: 24.4px;
+          font-variant-east-asian: full-width;
+      }
+
+      .terminal-826816461-r1 { fill: #b9bcba }
+  .terminal-826816461-r2 { fill: #578fa4;font-weight: bold }
+  </style>
+
+  <defs>
+    <clipPath id="terminal-826816461-clip-terminal">
+      <rect x="0" y="0" width="1219.0" height="96.6" />
+    </clipPath>
+    <clipPath id="terminal-826816461-line-0">
+      <rect x="0" y="1.5" width="1220" height="24.65" />
+    </clipPath>
+    <clipPath id="terminal-826816461-line-1">
+      <rect x="0" y="25.9" width="1220" height="24.65" />
+    </clipPath>
+    <clipPath id="terminal-826816461-line-2">
+      <rect x="0" y="50.3" width="1220" height="24.65" />
+    </clipPath>
+  </defs>
+
+  <rect
+    fill="#191919"
+    stroke="rgba(255,255,255,0.15)"
+    stroke-width="1"
+    x="0"
+    y="0"
+    width="1238"
+    height="147.6"
+    rx="8"
+  />
+
+  <g
+    transform="translate(12, 6)"
+    clip-path="url(#terminal-826816461-clip-terminal)"
+  >
+    <g class="terminal-826816461-matrix">
+      <text
+        class="terminal-826816461-r1"
+        x="1220"
+        y="20"
+        textLength="12.2"
+        clip-path="url(#terminal-826816461-line-0)"
+      >
+      </text><text
+        class="terminal-826816461-r2"
+        x="0"
+        y="44.4"
+        textLength="244"
+        clip-path="url(#terminal-826816461-line-1)"
+      >Metrics&#160;for&#160;service&#160;</text><text
+        class="terminal-826816461-r2"
+        x="244"
+        y="44.4"
+        textLength="158.6"
+        clip-path="url(#terminal-826816461-line-1)"
+      >&#x27;api-service&#x27;</text><text
+        class="terminal-826816461-r2"
+        x="414.8"
+        y="44.4"
+        textLength="12.2"
+        clip-path="url(#terminal-826816461-line-1)"
+      >(</text><text
+        class="terminal-826816461-r2"
+        x="427"
+        y="44.4"
+        textLength="109.8"
+        clip-path="url(#terminal-826816461-line-1)"
+      >last&#160;hour</text><text
+        class="terminal-826816461-r2"
+        x="536.8"
+        y="44.4"
+        textLength="12.2"
+        clip-path="url(#terminal-826816461-line-1)"
+      >)</text><text
+        class="terminal-826816461-r2"
+        x="549"
+        y="44.4"
+        textLength="12.2"
+        clip-path="url(#terminal-826816461-line-1)"
+      >:</text><text
+        class="terminal-826816461-r1"
+        x="1220"
+        y="44.4"
+        textLength="12.2"
+        clip-path="url(#terminal-826816461-line-1)"
+      >
+      </text><text
+        class="terminal-826816461-r1"
+        x="0"
+        y="68.8"
+        textLength="219.6"
+        clip-path="url(#terminal-826816461-line-2)"
+      >CPU:&#160;&#160;&#160;&#160;Current:&#160;&#160;</text><text
+        class="terminal-826816461-r2"
+        x="219.6"
+        y="68.8"
+        textLength="48.8"
+        clip-path="url(#terminal-826816461-line-2)"
+      >23.5</text><text
+        class="terminal-826816461-r1"
+        x="268.4"
+        y="68.8"
+        textLength="146.4"
+        clip-path="url(#terminal-826816461-line-2)"
+      >%&#160;&#160;|&#160;&#160;Avg:&#160;&#160;</text><text
+        class="terminal-826816461-r2"
+        x="414.8"
+        y="68.8"
+        textLength="48.8"
+        clip-path="url(#terminal-826816461-line-2)"
+      >21.2</text><text
+        class="terminal-826816461-r1"
+        x="463.6"
+        y="68.8"
+        textLength="158.6"
+        clip-path="url(#terminal-826816461-line-2)"
+      >%&#160;&#160;|&#160;&#160;Peak:&#160;&#160;</text><text
+        class="terminal-826816461-r2"
+        x="622.2"
+        y="68.8"
+        textLength="48.8"
+        clip-path="url(#terminal-826816461-line-2)"
+      >45.8</text><text
+        class="terminal-826816461-r1"
+        x="671"
+        y="68.8"
+        textLength="146.4"
+        clip-path="url(#terminal-826816461-line-2)"
+      >%&#160;&#160;|&#160;&#160;Low:&#160;&#160;</text><text
+        class="terminal-826816461-r2"
+        x="817.4"
+        y="68.8"
+        textLength="48.8"
+        clip-path="url(#terminal-826816461-line-2)"
+      >12.1</text><text
+        class="terminal-826816461-r1"
+        x="866.2"
+        y="68.8"
+        textLength="12.2"
+        clip-path="url(#terminal-826816461-line-2)"
+      >%</text><text
+        class="terminal-826816461-r1"
+        x="1220"
+        y="68.8"
+        textLength="12.2"
+        clip-path="url(#terminal-826816461-line-2)"
+      >
+      </text><text
+        class="terminal-826816461-r1"
+        x="0"
+        y="93.2"
+        textLength="219.6"
+        clip-path="url(#terminal-826816461-line-3)"
+      >Memory:&#160;Current:&#160;&#160;</text><text
+        class="terminal-826816461-r2"
+        x="219.6"
+        y="93.2"
+        textLength="48.8"
+        clip-path="url(#terminal-826816461-line-3)"
+      >67.3</text><text
+        class="terminal-826816461-r1"
+        x="268.4"
+        y="93.2"
+        textLength="146.4"
+        clip-path="url(#terminal-826816461-line-3)"
+      >%&#160;&#160;|&#160;&#160;Avg:&#160;&#160;</text><text
+        class="terminal-826816461-r2"
+        x="414.8"
+        y="93.2"
+        textLength="48.8"
+        clip-path="url(#terminal-826816461-line-3)"
+      >65.1</text><text
+        class="terminal-826816461-r1"
+        x="463.6"
+        y="93.2"
+        textLength="158.6"
+        clip-path="url(#terminal-826816461-line-3)"
+      >%&#160;&#160;|&#160;&#160;Peak:&#160;&#160;</text><text
+        class="terminal-826816461-r2"
+        x="622.2"
+        y="93.2"
+        textLength="48.8"
+        clip-path="url(#terminal-826816461-line-3)"
+      >78.4</text><text
+        class="terminal-826816461-r1"
+        x="671"
+        y="93.2"
+        textLength="146.4"
+        clip-path="url(#terminal-826816461-line-3)"
+      >%&#160;&#160;|&#160;&#160;Low:&#160;&#160;</text><text
+        class="terminal-826816461-r2"
+        x="817.4"
+        y="93.2"
+        textLength="48.8"
+        clip-path="url(#terminal-826816461-line-3)"
+      >58.2</text><text
+        class="terminal-826816461-r1"
+        x="866.2"
+        y="93.2"
+        textLength="12.2"
+        clip-path="url(#terminal-826816461-line-3)"
+      >%</text><text
+        class="terminal-826816461-r1"
+        x="1220"
+        y="93.2"
+        textLength="12.2"
+        clip-path="url(#terminal-826816461-line-3)"
+      >
+      </text>
+    </g>
+  </g>
+</svg>

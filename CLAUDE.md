@@ -124,6 +124,37 @@ printf '\n\033[B\n' | timeout 5 aws-vault exec working-aws-profile-name -- uv ru
 
 This allows testing the full navigation flow without manual interaction, ensuring features like navigation buttons haven't been accidentally removed during refactoring.
 
+## Generating Feature Screenshots
+
+Feature screenshots for the README are generated using Rich's built-in SVG export:
+
+```bash
+# Regenerate all screenshots
+uv run python scripts/generate_screenshots.py
+```
+
+**How It Works:**
+
+- `scripts/generate_screenshots.py` creates mock data and renders UI components
+- Uses `Console(record=True)` to capture output
+- Exports to SVG format in `images/` directory
+- Screenshots are embedded in README.md
+
+**When to Regenerate:**
+
+- After visual UI improvements
+- When adding new features that need screenshots
+- After changing console output formatting
+- Before releasing new versions
+
+**Adding New Screenshots:**
+
+1. Add a new function in `generate_screenshots.py`
+2. Create realistic mock data
+3. Call the relevant UI display methods
+4. Save with `console.save_svg()`
+5. Embed in README.md with `![Description](images/name.svg)`
+
 ## Testing Patterns
 
 **AWS Service Mocking with Moto:**

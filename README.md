@@ -17,6 +17,96 @@ The AWS ECS web console is confusing to navigate, with multiple clicks through d
 
 **lazy-ecs** solves this with a simple, interactive CLI that lets you quickly drill down from clusters → services → tasks → containers with just arrow keys. It destroys the AWS CLI in usability for ECS exploration and debugging.
 
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [AWS Authentication](#aws-authentication)
+- [Roadmap](#roadmap)
+- [Development](#development)
+
+## Features
+
+### Navigation & Exploration
+
+**Interactive cluster selection**
+
+- Arrow key navigation through ECS clusters
+- _Why it's great:_ AWS console requires multiple clicks through menus; AWS CLI requires memorizing cluster ARNs
+
+**Service browsing with smart status indicators**
+
+- Visual health indicators (✅ healthy, ⚠️ scaling, 🔴 over-scaled)
+- Running/desired/pending task counts at a glance
+- _Why it's great:_ AWS console hides task counts in separate tabs; requires mental math to determine service health
+
+![Service Status](images/service-status.svg)
+
+**Open in AWS console**
+
+- One-key shortcut to open current resource in browser
+- Works for clusters, services, and tasks
+- _Why it's great:_ When you need the full AWS console, jump there instantly without manual navigation
+
+### Container Inspection
+
+**Container details**
+
+- Name, image, CPU/memory configuration
+- Environment variables and secrets (without exposing values)
+- Port mappings and volume mounts
+- _Why it's great:_ AWS console spreads this across multiple tabs; AWS CLI requires complex JSON parsing
+
+**Log viewing with live tail**
+
+- Display recent logs with timestamps
+- Real-time streaming (tail -f style)
+- CloudWatch filter patterns (include/exclude)
+- _Why it's great:_ AWS console log viewer is slow and clunky; AWS CLI requires memorizing log group names and complex filter syntax
+
+### Service & Task Debugging
+
+**Force new deployment**
+
+- Trigger service redeployment directly from CLI
+- _Why it's great:_ AWS console requires navigating to service → Update → Force new deployment (3+ clicks)
+
+**Service events**
+
+- Display deployment events with chronological sorting
+- Proper event categorization
+- _Why it's great:_ AWS console shows events in reverse chronological order, making it hard to follow deployment progression
+
+**Task events/history with smart analysis**
+
+- Lifecycle events and failure reasons
+- Automatic detection of common failures (OOM kills, timeouts, image pull failures)
+- Shows desired vs actual task definition versions (spot outdated tasks immediately)
+- _Why it's great:_ AWS console requires clicking into each failed task individually; no smart analysis of failure patterns; no easy way to spot version mismatches
+
+![Task History](images/task-history.svg)
+
+**CloudWatch metrics**
+
+- CPU/Memory utilization with current, average, and peak values
+- _Why it's great:_ AWS console requires switching to CloudWatch tab, selecting metrics, configuring graphs
+
+![CloudWatch Metrics](images/metrics.svg)
+
+**Log group discovery**
+
+- Automatically find relevant log groups for debugging
+- _Why it's great:_ AWS console requires knowing the exact log group name; AWS CLI requires listing all log groups and filtering manually
+
+**Task definition comparison**
+
+- Compare any two task definition revisions side-by-side
+- Interactive revision selection from recent history
+- Color-coded diff showing images, environment variables, secrets, CPU/memory, ports, commands, entrypoints, and volume mounts
+- _Why it's great:_ AWS console has no native comparison tool; developers must download JSON and use external diff tools to answer "what changed between versions?"
+
+![Task Definition Comparison](images/task-comparison.svg)
+
 ## Installation
 
 ### Homebrew
@@ -120,85 +210,6 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 - Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
 - AWS credentials file (~/.aws/credentials)
 - IAM instance profile (when running on EC2)
-
-## Features
-
-### Navigation & Exploration
-
-**Interactive cluster selection**
-
-- Arrow key navigation through ECS clusters
-- _Why it's great:_ AWS console requires multiple clicks through menus; AWS CLI requires memorizing cluster ARNs
-
-**Service browsing with smart status indicators**
-
-- Visual health indicators (✅ healthy, ⚠️ scaling, 🔴 over-scaled)
-- Running/desired/pending task counts at a glance
-- _Why it's great:_ AWS console hides task counts in separate tabs; requires mental math to determine service health
-
-**Task selection with auto-selection**
-
-- Automatically select single tasks; interactive picker for multiple
-- Shows desired vs actual task definition versions
-- _Why it's great:_ AWS console requires clicking through pagination; no easy way to spot version mismatches
-
-**Open in AWS console**
-
-- One-key shortcut to open current resource in browser
-- Works for clusters, services, and tasks
-- _Why it's great:_ When you need the full AWS console, jump there instantly without manual navigation
-
-### Container Inspection
-
-**Container details**
-
-- Name, image, CPU/memory configuration
-- Environment variables and secrets (without exposing values)
-- Port mappings and volume mounts
-- _Why it's great:_ AWS console spreads this across multiple tabs; AWS CLI requires complex JSON parsing
-
-**Log viewing with live tail**
-
-- Display recent logs with timestamps
-- Real-time streaming (tail -f style)
-- CloudWatch filter patterns (include/exclude)
-- _Why it's great:_ AWS console log viewer is slow and clunky; AWS CLI requires memorizing log group names and complex filter syntax
-
-### Service & Task Debugging
-
-**Force new deployment**
-
-- Trigger service redeployment directly from CLI
-- _Why it's great:_ AWS console requires navigating to service → Update → Force new deployment (3+ clicks)
-
-**Service events**
-
-- Display deployment events with chronological sorting
-- Proper event categorization
-- _Why it's great:_ AWS console shows events in reverse chronological order, making it hard to follow deployment progression
-
-**Task events/history with smart analysis**
-
-- Lifecycle events and failure reasons
-- Automatic detection of common failures (OOM kills, timeouts, image pull failures)
-- _Why it's great:_ AWS console requires clicking into each failed task individually; no smart analysis of failure patterns
-
-**CloudWatch metrics**
-
-- CPU/Memory utilization with current, average, and peak values
-- _Why it's great:_ AWS console requires switching to CloudWatch tab, selecting metrics, configuring graphs
-
-**Log group discovery**
-
-- Automatically find relevant log groups for debugging
-- _Why it's great:_ AWS console requires knowing the exact log group name; AWS CLI requires listing all log groups and filtering manually
-
-**Task definition comparison**
-
-- Compare any two task definition revisions side-by-side
-- Interactive revision selection from recent history
-- Color-coded diff showing images, environment variables, secrets, CPU/memory, ports, commands, entrypoints, and volume mounts
-- _Why it's great:_ AWS console has no native comparison tool; developers must download JSON and use external diff tools to answer "what changed between versions?"
 
 ## Roadmap
 
