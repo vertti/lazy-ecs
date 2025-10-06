@@ -138,16 +138,3 @@ class TestTaskHistoryUI:
         mock_task_service.get_task_failure_analysis.assert_called_once_with(failed_task)
         assert any("Failure Analysis" in str(call) for call in mock_print.call_args_list)
         assert any("memory" in str(call) for call in mock_print.call_args_list)
-
-    def test_build_task_history_choices_includes_history_option(self):
-        """Test that task feature choices include task history option."""
-        # Import the function directly to test it
-        from lazy_ecs.features.task.ui import _build_task_feature_choices
-
-        containers = [{"name": "web-api", "image": "nginx:latest"}]
-        choices = _build_task_feature_choices(containers)
-
-        # Check that task history option is included
-        history_choices = [c for c in choices if "task history" in c["name"].lower()]
-        assert len(history_choices) > 0
-        assert any("task history" in choice["name"].lower() for choice in history_choices)

@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from rich.console import Console
 
 from .aws_service import ECSService
 from .core.base import BaseUIComponent
-from .core.navigation import add_navigation_choices
 from .core.types import TaskDetails
 from .core.utils import show_spinner
 from .features.cluster.cluster import ClusterService
@@ -141,30 +138,3 @@ class ECSNavigator(BaseUIComponent):
         url = build_task_url(region, cluster_name, task_arn)
         console.print(f"\n🌐 Opening task in AWS console: {url}", style="cyan")
         webbrowser.open(url)
-
-
-def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[str, str]]:
-    """Build feature menu choices for containers plus navigation options."""
-    actions = [
-        ("Show logs (tail) for container: {name}", "container_action", "tail_logs"),
-        ("Show environment variables for container: {name}", "container_action", "show_env"),
-        ("Show secrets for container: {name}", "container_action", "show_secrets"),
-        ("Show port mappings for container: {name}", "container_action", "show_ports"),
-        ("Show volume mounts for container: {name}", "container_action", "show_volumes"),
-    ]
-
-    choices = []
-
-    # Add container actions
-    for display_template, action_type, action_name in actions:
-        for container in containers:
-            container_name = container["name"]
-            choices.append(
-                {
-                    "name": display_template.format(name=container_name),
-                    "value": f"{action_type}:{action_name}:{container_name}",
-                }
-            )
-
-    # Add navigation options
-    return add_navigation_choices(choices, "Back to service selection")

@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from ...core.base import BaseUIComponent
-from ...core.navigation import add_navigation_choices, select_with_auto_pagination
+from ...core.navigation import select_with_auto_pagination
 from ...core.types import TaskDetails, TaskHistoryDetails
 from ...core.utils import print_warning, show_spinner
 from .comparison import TaskComparisonService, compare_task_definitions
@@ -390,52 +390,3 @@ def _format_volumes(volumes: list[dict[str, Any]]) -> str:
         f"{vol.get('sourceVolume', '?')}:{vol.get('containerPath', '?')}{':ro' if vol.get('readOnly') else ''}"
         for vol in volumes
     )
-
-
-def _build_task_feature_choices(containers: list[dict[str, Any]]) -> list[dict[str, str]]:
-    choices = []
-
-    # Add task-level features first - show task details as first option
-    choices.extend(
-        [
-            {
-                "name": "Show task details",
-                "value": "task_action:show_details",
-            },
-            {
-                "name": "Show task history and failures",
-                "value": "task_action:show_history",
-            },
-        ]
-    )
-
-    for container in containers:
-        container_name = container["name"]
-
-        # Add container features
-        choices.extend(
-            [
-                {
-                    "name": f"Show logs (tail) for container '{container_name}'",
-                    "value": f"container_action:tail_logs:{container_name}",
-                },
-                {
-                    "name": f"Show environment variables for '{container_name}'",
-                    "value": f"container_action:show_env:{container_name}",
-                },
-                {
-                    "name": f"Show secrets for '{container_name}'",
-                    "value": f"container_action:show_secrets:{container_name}",
-                },
-                {
-                    "name": f"Show port mappings for '{container_name}'",
-                    "value": f"container_action:show_ports:{container_name}",
-                },
-                {
-                    "name": f"Show volume mounts for '{container_name}'",
-                    "value": f"container_action:show_volumes:{container_name}",
-                },
-            ]
-        )
-
-    return add_navigation_choices(choices, "Back to service selection")
