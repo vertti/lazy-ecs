@@ -17,105 +17,13 @@
         font-weight: 700;
     }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    .terminal-1402603902-matrix {
-=======
     .terminal-826816461-matrix {
->>>>>>> f9bf929 (images fixup)
-=======
-    .terminal-3868132101-matrix {
->>>>>>> 3662d5a (use dimmed_monokai style for screenshots)
         font-family: Fira Code, monospace;
         font-size: 20px;
         line-height: 24.4px;
         font-variant-east-asian: full-width;
     }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    .terminal-1402603902-title {
-=======
-    .terminal-3868132101-title {
->>>>>>> 3662d5a (use dimmed_monokai style for screenshots)
-        font-size: 18px;
-        font-weight: bold;
-        font-family: arial;
-    }
-
-    .terminal-3868132101-r1 { fill: #b9bcba }
-.terminal-3868132101-r2 { fill: #578fa4;font-weight: bold }
-.terminal-3868132101-r3 { fill: #879a3b }
-.terminal-3868132101-r4 { fill: #797a79 }
-.terminal-3868132101-r5 { fill: #855c8d;font-weight: bold }
-.terminal-3868132101-r6 { fill: #578fa4 }
-.terminal-3868132101-r7 { fill: #c5a635 }
-.terminal-3868132101-r8 { fill: #be3f48 }
-    </style>
-
-    <defs>
-    <clipPath id="terminal-3868132101-clip-terminal">
-      <rect x="0" y="0" width="1219.0" height="291.79999999999995" />
-    </clipPath>
-    <clipPath id="terminal-3868132101-line-0">
-    <rect x="0" y="1.5" width="1220" height="24.65"/>
-            </clipPath>
-<clipPath id="terminal-3868132101-line-1">
-    <rect x="0" y="25.9" width="1220" height="24.65"/>
-            </clipPath>
-<clipPath id="terminal-3868132101-line-2">
-    <rect x="0" y="50.3" width="1220" height="24.65"/>
-            </clipPath>
-<clipPath id="terminal-3868132101-line-3">
-    <rect x="0" y="74.7" width="1220" height="24.65"/>
-            </clipPath>
-<clipPath id="terminal-3868132101-line-4">
-    <rect x="0" y="99.1" width="1220" height="24.65"/>
-            </clipPath>
-<clipPath id="terminal-3868132101-line-5">
-    <rect x="0" y="123.5" width="1220" height="24.65"/>
-            </clipPath>
-<clipPath id="terminal-3868132101-line-6">
-    <rect x="0" y="147.9" width="1220" height="24.65"/>
-            </clipPath>
-<clipPath id="terminal-3868132101-line-7">
-    <rect x="0" y="172.3" width="1220" height="24.65"/>
-            </clipPath>
-<clipPath id="terminal-3868132101-line-8">
-    <rect x="0" y="196.7" width="1220" height="24.65"/>
-            </clipPath>
-<clipPath id="terminal-3868132101-line-9">
-    <rect x="0" y="221.1" width="1220" height="24.65"/>
-            </clipPath>
-<clipPath id="terminal-3868132101-line-10">
-    <rect x="0" y="245.5" width="1220" height="24.65"/>
-            </clipPath>
-    </defs>
-
-    <rect fill="#191919" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1236" height="340.8" rx="8"/>
-            <g transform="translate(26,22)">
-            <circle cx="0" cy="0" r="7" fill="#ff5f57"/>
-            <circle cx="22" cy="0" r="7" fill="#febc2e"/>
-            <circle cx="44" cy="0" r="7" fill="#28c840"/>
-            </g>
-        
-    <g transform="translate(9, 41)" clip-path="url(#terminal-3868132101-clip-terminal)">
-    
-<<<<<<< HEAD
-    <g class="terminal-1402603902-matrix">
-    <text class="terminal-1402603902-r1" x="1220" y="20" textLength="12.2" clip-path="url(#terminal-1402603902-line-0)">
-</text><text class="terminal-1402603902-r2" x="0" y="44.4" textLength="280.6" clip-path="url(#terminal-1402603902-line-1)">CloudWatch&#160;Metrics&#160;for&#160;</text><text class="terminal-1402603902-r3" x="280.6" y="44.4" textLength="158.6" clip-path="url(#terminal-1402603902-line-1)">&#x27;api-service&#x27;</text><text class="terminal-1402603902-r2" x="451.4" y="44.4" textLength="12.2" clip-path="url(#terminal-1402603902-line-1)">(</text><text class="terminal-1402603902-r2" x="463.6" y="44.4" textLength="61" clip-path="url(#terminal-1402603902-line-1)">Last&#160;</text><text class="terminal-1402603902-r2" x="524.6" y="44.4" textLength="12.2" clip-path="url(#terminal-1402603902-line-1)">1</text><text class="terminal-1402603902-r2" x="536.8" y="44.4" textLength="61" clip-path="url(#terminal-1402603902-line-1)">&#160;hour</text><text class="terminal-1402603902-r2" x="597.8" y="44.4" textLength="12.2" clip-path="url(#terminal-1402603902-line-1)">)</text><text class="terminal-1402603902-r1" x="1220" y="44.4" textLength="12.2" clip-path="url(#terminal-1402603902-line-1)">
-</text><text class="terminal-1402603902-r4" x="0" y="68.8" textLength="976" clip-path="url(#terminal-1402603902-line-2)">================================================================================</text><text class="terminal-1402603902-r1" x="1220" y="68.8" textLength="12.2" clip-path="url(#terminal-1402603902-line-2)">
-</text><text class="terminal-1402603902-r1" x="0" y="93.2" textLength="610" clip-path="url(#terminal-1402603902-line-3)">┏━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━┓</text><text class="terminal-1402603902-r1" x="1220" y="93.2" textLength="12.2" clip-path="url(#terminal-1402603902-line-3)">
-</text><text class="terminal-1402603902-r1" x="0" y="117.6" textLength="12.2" clip-path="url(#terminal-1402603902-line-4)">┃</text><text class="terminal-1402603902-r5" x="24.4" y="117.6" textLength="219.6" clip-path="url(#terminal-1402603902-line-4)">Metric&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-1402603902-r1" x="256.2" y="117.6" textLength="12.2" clip-path="url(#terminal-1402603902-line-4)">┃</text><text class="terminal-1402603902-r5" x="280.6" y="117.6" textLength="85.4" clip-path="url(#terminal-1402603902-line-4)">Current</text><text class="terminal-1402603902-r1" x="378.2" y="117.6" textLength="12.2" clip-path="url(#terminal-1402603902-line-4)">┃</text><text class="terminal-1402603902-r5" x="402.6" y="117.6" textLength="85.4" clip-path="url(#terminal-1402603902-line-4)">Average</text><text class="terminal-1402603902-r1" x="500.2" y="117.6" textLength="12.2" clip-path="url(#terminal-1402603902-line-4)">┃</text><text class="terminal-1402603902-r5" x="524.6" y="117.6" textLength="61" clip-path="url(#terminal-1402603902-line-4)">Peak&#160;</text><text class="terminal-1402603902-r1" x="597.8" y="117.6" textLength="12.2" clip-path="url(#terminal-1402603902-line-4)">┃</text><text class="terminal-1402603902-r1" x="1220" y="117.6" textLength="12.2" clip-path="url(#terminal-1402603902-line-4)">
-</text><text class="terminal-1402603902-r1" x="0" y="142" textLength="610" clip-path="url(#terminal-1402603902-line-5)">┡━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━┩</text><text class="terminal-1402603902-r1" x="1220" y="142" textLength="12.2" clip-path="url(#terminal-1402603902-line-5)">
-</text><text class="terminal-1402603902-r1" x="0" y="166.4" textLength="12.2" clip-path="url(#terminal-1402603902-line-6)">│</text><text class="terminal-1402603902-r6" x="24.4" y="166.4" textLength="219.6" clip-path="url(#terminal-1402603902-line-6)">CPU&#160;Utilization&#160;&#160;&#160;</text><text class="terminal-1402603902-r1" x="256.2" y="166.4" textLength="12.2" clip-path="url(#terminal-1402603902-line-6)">│</text><text class="terminal-1402603902-r7" x="280.6" y="166.4" textLength="85.4" clip-path="url(#terminal-1402603902-line-6)">23.5%&#160;&#160;</text><text class="terminal-1402603902-r1" x="378.2" y="166.4" textLength="12.2" clip-path="url(#terminal-1402603902-line-6)">│</text><text class="terminal-1402603902-r3" x="402.6" y="166.4" textLength="85.4" clip-path="url(#terminal-1402603902-line-6)">21.2%&#160;&#160;</text><text class="terminal-1402603902-r1" x="500.2" y="166.4" textLength="12.2" clip-path="url(#terminal-1402603902-line-6)">│</text><text class="terminal-1402603902-r8" x="524.6" y="166.4" textLength="61" clip-path="url(#terminal-1402603902-line-6)">45.8%</text><text class="terminal-1402603902-r1" x="597.8" y="166.4" textLength="12.2" clip-path="url(#terminal-1402603902-line-6)">│</text><text class="terminal-1402603902-r1" x="1220" y="166.4" textLength="12.2" clip-path="url(#terminal-1402603902-line-6)">
-</text><text class="terminal-1402603902-r1" x="0" y="190.8" textLength="12.2" clip-path="url(#terminal-1402603902-line-7)">│</text><text class="terminal-1402603902-r6" x="24.4" y="190.8" textLength="219.6" clip-path="url(#terminal-1402603902-line-7)">Memory&#160;Utilization</text><text class="terminal-1402603902-r1" x="256.2" y="190.8" textLength="12.2" clip-path="url(#terminal-1402603902-line-7)">│</text><text class="terminal-1402603902-r7" x="280.6" y="190.8" textLength="85.4" clip-path="url(#terminal-1402603902-line-7)">67.3%&#160;&#160;</text><text class="terminal-1402603902-r1" x="378.2" y="190.8" textLength="12.2" clip-path="url(#terminal-1402603902-line-7)">│</text><text class="terminal-1402603902-r3" x="402.6" y="190.8" textLength="85.4" clip-path="url(#terminal-1402603902-line-7)">65.1%&#160;&#160;</text><text class="terminal-1402603902-r1" x="500.2" y="190.8" textLength="12.2" clip-path="url(#terminal-1402603902-line-7)">│</text><text class="terminal-1402603902-r8" x="524.6" y="190.8" textLength="61" clip-path="url(#terminal-1402603902-line-7)">78.4%</text><text class="terminal-1402603902-r1" x="597.8" y="190.8" textLength="12.2" clip-path="url(#terminal-1402603902-line-7)">│</text><text class="terminal-1402603902-r1" x="1220" y="190.8" textLength="12.2" clip-path="url(#terminal-1402603902-line-7)">
-</text><text class="terminal-1402603902-r1" x="0" y="215.2" textLength="610" clip-path="url(#terminal-1402603902-line-8)">└────────────────────┴─────────┴─────────┴───────┘</text><text class="terminal-1402603902-r1" x="1220" y="215.2" textLength="12.2" clip-path="url(#terminal-1402603902-line-8)">
-</text><text class="terminal-1402603902-r1" x="1220" y="239.6" textLength="12.2" clip-path="url(#terminal-1402603902-line-9)">
-</text><text class="terminal-1402603902-r7" x="0" y="264" textLength="402.6" clip-path="url(#terminal-1402603902-line-10)">💡&#160;Tip:&#160;Memory&#160;consistently&#160;above&#160;</text><text class="terminal-1402603902-r2" x="414.8" y="264" textLength="24.4" clip-path="url(#terminal-1402603902-line-10)">60</text><text class="terminal-1402603902-r7" x="439.2" y="264" textLength="414.8" clip-path="url(#terminal-1402603902-line-10)">%&#160;-&#160;consider&#160;increasing&#160;allocation</text><text class="terminal-1402603902-r1" x="1220" y="264" textLength="12.2" clip-path="url(#terminal-1402603902-line-10)">
-</text><text class="terminal-1402603902-r4" x="0" y="288.4" textLength="976" clip-path="url(#terminal-1402603902-line-11)">================================================================================</text><text class="terminal-1402603902-r1" x="1220" y="288.4" textLength="12.2" clip-path="url(#terminal-1402603902-line-11)">
-=======
     .terminal-826816461-r1 { fill: #b9bcba }
 .terminal-826816461-r2 { fill: #578fa4;font-weight: bold }
     </style>
@@ -144,22 +52,6 @@
 </text><text class="terminal-826816461-r2" x="0" y="44.4" textLength="244" clip-path="url(#terminal-826816461-line-1)">Metrics&#160;for&#160;service&#160;</text><text class="terminal-826816461-r2" x="244" y="44.4" textLength="158.6" clip-path="url(#terminal-826816461-line-1)">&#x27;api-service&#x27;</text><text class="terminal-826816461-r2" x="414.8" y="44.4" textLength="12.2" clip-path="url(#terminal-826816461-line-1)">(</text><text class="terminal-826816461-r2" x="427" y="44.4" textLength="109.8" clip-path="url(#terminal-826816461-line-1)">last&#160;hour</text><text class="terminal-826816461-r2" x="536.8" y="44.4" textLength="12.2" clip-path="url(#terminal-826816461-line-1)">)</text><text class="terminal-826816461-r2" x="549" y="44.4" textLength="12.2" clip-path="url(#terminal-826816461-line-1)">:</text><text class="terminal-826816461-r1" x="1220" y="44.4" textLength="12.2" clip-path="url(#terminal-826816461-line-1)">
 </text><text class="terminal-826816461-r1" x="0" y="68.8" textLength="219.6" clip-path="url(#terminal-826816461-line-2)">CPU:&#160;&#160;&#160;&#160;Current:&#160;&#160;</text><text class="terminal-826816461-r2" x="219.6" y="68.8" textLength="48.8" clip-path="url(#terminal-826816461-line-2)">23.5</text><text class="terminal-826816461-r1" x="268.4" y="68.8" textLength="146.4" clip-path="url(#terminal-826816461-line-2)">%&#160;&#160;|&#160;&#160;Avg:&#160;&#160;</text><text class="terminal-826816461-r2" x="414.8" y="68.8" textLength="48.8" clip-path="url(#terminal-826816461-line-2)">21.2</text><text class="terminal-826816461-r1" x="463.6" y="68.8" textLength="158.6" clip-path="url(#terminal-826816461-line-2)">%&#160;&#160;|&#160;&#160;Peak:&#160;&#160;</text><text class="terminal-826816461-r2" x="622.2" y="68.8" textLength="48.8" clip-path="url(#terminal-826816461-line-2)">45.8</text><text class="terminal-826816461-r1" x="671" y="68.8" textLength="146.4" clip-path="url(#terminal-826816461-line-2)">%&#160;&#160;|&#160;&#160;Low:&#160;&#160;</text><text class="terminal-826816461-r2" x="817.4" y="68.8" textLength="48.8" clip-path="url(#terminal-826816461-line-2)">12.1</text><text class="terminal-826816461-r1" x="866.2" y="68.8" textLength="12.2" clip-path="url(#terminal-826816461-line-2)">%</text><text class="terminal-826816461-r1" x="1220" y="68.8" textLength="12.2" clip-path="url(#terminal-826816461-line-2)">
 </text><text class="terminal-826816461-r1" x="0" y="93.2" textLength="219.6" clip-path="url(#terminal-826816461-line-3)">Memory:&#160;Current:&#160;&#160;</text><text class="terminal-826816461-r2" x="219.6" y="93.2" textLength="48.8" clip-path="url(#terminal-826816461-line-3)">67.3</text><text class="terminal-826816461-r1" x="268.4" y="93.2" textLength="146.4" clip-path="url(#terminal-826816461-line-3)">%&#160;&#160;|&#160;&#160;Avg:&#160;&#160;</text><text class="terminal-826816461-r2" x="414.8" y="93.2" textLength="48.8" clip-path="url(#terminal-826816461-line-3)">65.1</text><text class="terminal-826816461-r1" x="463.6" y="93.2" textLength="158.6" clip-path="url(#terminal-826816461-line-3)">%&#160;&#160;|&#160;&#160;Peak:&#160;&#160;</text><text class="terminal-826816461-r2" x="622.2" y="93.2" textLength="48.8" clip-path="url(#terminal-826816461-line-3)">78.4</text><text class="terminal-826816461-r1" x="671" y="93.2" textLength="146.4" clip-path="url(#terminal-826816461-line-3)">%&#160;&#160;|&#160;&#160;Low:&#160;&#160;</text><text class="terminal-826816461-r2" x="817.4" y="93.2" textLength="48.8" clip-path="url(#terminal-826816461-line-3)">58.2</text><text class="terminal-826816461-r1" x="866.2" y="93.2" textLength="12.2" clip-path="url(#terminal-826816461-line-3)">%</text><text class="terminal-826816461-r1" x="1220" y="93.2" textLength="12.2" clip-path="url(#terminal-826816461-line-3)">
->>>>>>> f9bf929 (images fixup)
-=======
-    <g class="terminal-3868132101-matrix">
-    <text class="terminal-3868132101-r1" x="1220" y="20" textLength="12.2" clip-path="url(#terminal-3868132101-line-0)">
-</text><text class="terminal-3868132101-r2" x="0" y="44.4" textLength="280.6" clip-path="url(#terminal-3868132101-line-1)">CloudWatch&#160;Metrics&#160;for&#160;</text><text class="terminal-3868132101-r3" x="280.6" y="44.4" textLength="158.6" clip-path="url(#terminal-3868132101-line-1)">&#x27;api-service&#x27;</text><text class="terminal-3868132101-r2" x="451.4" y="44.4" textLength="12.2" clip-path="url(#terminal-3868132101-line-1)">(</text><text class="terminal-3868132101-r2" x="463.6" y="44.4" textLength="61" clip-path="url(#terminal-3868132101-line-1)">Last&#160;</text><text class="terminal-3868132101-r2" x="524.6" y="44.4" textLength="12.2" clip-path="url(#terminal-3868132101-line-1)">1</text><text class="terminal-3868132101-r2" x="536.8" y="44.4" textLength="61" clip-path="url(#terminal-3868132101-line-1)">&#160;hour</text><text class="terminal-3868132101-r2" x="597.8" y="44.4" textLength="12.2" clip-path="url(#terminal-3868132101-line-1)">)</text><text class="terminal-3868132101-r1" x="1220" y="44.4" textLength="12.2" clip-path="url(#terminal-3868132101-line-1)">
-</text><text class="terminal-3868132101-r4" x="0" y="68.8" textLength="976" clip-path="url(#terminal-3868132101-line-2)">================================================================================</text><text class="terminal-3868132101-r1" x="1220" y="68.8" textLength="12.2" clip-path="url(#terminal-3868132101-line-2)">
-</text><text class="terminal-3868132101-r1" x="0" y="93.2" textLength="610" clip-path="url(#terminal-3868132101-line-3)">┏━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━┓</text><text class="terminal-3868132101-r1" x="1220" y="93.2" textLength="12.2" clip-path="url(#terminal-3868132101-line-3)">
-</text><text class="terminal-3868132101-r1" x="0" y="117.6" textLength="12.2" clip-path="url(#terminal-3868132101-line-4)">┃</text><text class="terminal-3868132101-r5" x="24.4" y="117.6" textLength="219.6" clip-path="url(#terminal-3868132101-line-4)">Metric&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-3868132101-r1" x="256.2" y="117.6" textLength="12.2" clip-path="url(#terminal-3868132101-line-4)">┃</text><text class="terminal-3868132101-r5" x="280.6" y="117.6" textLength="85.4" clip-path="url(#terminal-3868132101-line-4)">Current</text><text class="terminal-3868132101-r1" x="378.2" y="117.6" textLength="12.2" clip-path="url(#terminal-3868132101-line-4)">┃</text><text class="terminal-3868132101-r5" x="402.6" y="117.6" textLength="85.4" clip-path="url(#terminal-3868132101-line-4)">Average</text><text class="terminal-3868132101-r1" x="500.2" y="117.6" textLength="12.2" clip-path="url(#terminal-3868132101-line-4)">┃</text><text class="terminal-3868132101-r5" x="524.6" y="117.6" textLength="61" clip-path="url(#terminal-3868132101-line-4)">Peak&#160;</text><text class="terminal-3868132101-r1" x="597.8" y="117.6" textLength="12.2" clip-path="url(#terminal-3868132101-line-4)">┃</text><text class="terminal-3868132101-r1" x="1220" y="117.6" textLength="12.2" clip-path="url(#terminal-3868132101-line-4)">
-</text><text class="terminal-3868132101-r1" x="0" y="142" textLength="610" clip-path="url(#terminal-3868132101-line-5)">┡━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━┩</text><text class="terminal-3868132101-r1" x="1220" y="142" textLength="12.2" clip-path="url(#terminal-3868132101-line-5)">
-</text><text class="terminal-3868132101-r1" x="0" y="166.4" textLength="12.2" clip-path="url(#terminal-3868132101-line-6)">│</text><text class="terminal-3868132101-r6" x="24.4" y="166.4" textLength="219.6" clip-path="url(#terminal-3868132101-line-6)">CPU&#160;Utilization&#160;&#160;&#160;</text><text class="terminal-3868132101-r1" x="256.2" y="166.4" textLength="12.2" clip-path="url(#terminal-3868132101-line-6)">│</text><text class="terminal-3868132101-r7" x="280.6" y="166.4" textLength="85.4" clip-path="url(#terminal-3868132101-line-6)">23.5%&#160;&#160;</text><text class="terminal-3868132101-r1" x="378.2" y="166.4" textLength="12.2" clip-path="url(#terminal-3868132101-line-6)">│</text><text class="terminal-3868132101-r3" x="402.6" y="166.4" textLength="85.4" clip-path="url(#terminal-3868132101-line-6)">21.2%&#160;&#160;</text><text class="terminal-3868132101-r1" x="500.2" y="166.4" textLength="12.2" clip-path="url(#terminal-3868132101-line-6)">│</text><text class="terminal-3868132101-r8" x="524.6" y="166.4" textLength="61" clip-path="url(#terminal-3868132101-line-6)">45.8%</text><text class="terminal-3868132101-r1" x="597.8" y="166.4" textLength="12.2" clip-path="url(#terminal-3868132101-line-6)">│</text><text class="terminal-3868132101-r1" x="1220" y="166.4" textLength="12.2" clip-path="url(#terminal-3868132101-line-6)">
-</text><text class="terminal-3868132101-r1" x="0" y="190.8" textLength="12.2" clip-path="url(#terminal-3868132101-line-7)">│</text><text class="terminal-3868132101-r6" x="24.4" y="190.8" textLength="219.6" clip-path="url(#terminal-3868132101-line-7)">Memory&#160;Utilization</text><text class="terminal-3868132101-r1" x="256.2" y="190.8" textLength="12.2" clip-path="url(#terminal-3868132101-line-7)">│</text><text class="terminal-3868132101-r7" x="280.6" y="190.8" textLength="85.4" clip-path="url(#terminal-3868132101-line-7)">67.3%&#160;&#160;</text><text class="terminal-3868132101-r1" x="378.2" y="190.8" textLength="12.2" clip-path="url(#terminal-3868132101-line-7)">│</text><text class="terminal-3868132101-r3" x="402.6" y="190.8" textLength="85.4" clip-path="url(#terminal-3868132101-line-7)">65.1%&#160;&#160;</text><text class="terminal-3868132101-r1" x="500.2" y="190.8" textLength="12.2" clip-path="url(#terminal-3868132101-line-7)">│</text><text class="terminal-3868132101-r8" x="524.6" y="190.8" textLength="61" clip-path="url(#terminal-3868132101-line-7)">78.4%</text><text class="terminal-3868132101-r1" x="597.8" y="190.8" textLength="12.2" clip-path="url(#terminal-3868132101-line-7)">│</text><text class="terminal-3868132101-r1" x="1220" y="190.8" textLength="12.2" clip-path="url(#terminal-3868132101-line-7)">
-</text><text class="terminal-3868132101-r1" x="0" y="215.2" textLength="610" clip-path="url(#terminal-3868132101-line-8)">└────────────────────┴─────────┴─────────┴───────┘</text><text class="terminal-3868132101-r1" x="1220" y="215.2" textLength="12.2" clip-path="url(#terminal-3868132101-line-8)">
-</text><text class="terminal-3868132101-r1" x="1220" y="239.6" textLength="12.2" clip-path="url(#terminal-3868132101-line-9)">
-</text><text class="terminal-3868132101-r7" x="0" y="264" textLength="402.6" clip-path="url(#terminal-3868132101-line-10)">💡&#160;Tip:&#160;Memory&#160;consistently&#160;above&#160;</text><text class="terminal-3868132101-r2" x="414.8" y="264" textLength="24.4" clip-path="url(#terminal-3868132101-line-10)">60</text><text class="terminal-3868132101-r7" x="439.2" y="264" textLength="414.8" clip-path="url(#terminal-3868132101-line-10)">%&#160;-&#160;consider&#160;increasing&#160;allocation</text><text class="terminal-3868132101-r1" x="1220" y="264" textLength="12.2" clip-path="url(#terminal-3868132101-line-10)">
-</text><text class="terminal-3868132101-r4" x="0" y="288.4" textLength="976" clip-path="url(#terminal-3868132101-line-11)">================================================================================</text><text class="terminal-3868132101-r1" x="1220" y="288.4" textLength="12.2" clip-path="url(#terminal-3868132101-line-11)">
->>>>>>> 3662d5a (use dimmed_monokai style for screenshots)
 </text>
     </g>
     </g>
