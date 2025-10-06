@@ -370,8 +370,6 @@ class TaskUI(BaseUIComponent):
                 console.print(f"   - {change.get('old')}", style="red")
                 console.print(f"   + {change.get('new')}", style="green")
 
-        console.print()
-
 
 def _format_ports(ports: list[dict[str, Any]]) -> str:
     if not ports:
