@@ -3,7 +3,9 @@
 from datetime import datetime
 from typing import Any
 
+import boto3
 import pytest
+from moto import mock_aws
 
 from lazy_ecs.features.task.task import TaskService
 
@@ -171,3 +173,43 @@ class TestTaskHistoryService:
 
         result = _service.get_task_history("test-cluster", "web-service")
         assert result == []
+
+
+def test_get_task_history_with_more_than_100_tasks():
+    with mock_aws():
+        client = boto3.client("ecs", region_name="us-east-1")
+        client.create_cluster(clusterName="production")
+
+        client.register_task_definition(
+            family="app-task",
+            containerDefinitions=[{"name": "app", "image": "nginx", "memory": 256}],
+        )
+
+        client.create_service(
+            cluster="production",
+            serviceName="app-service",
+            taskDefinition="app-task",
+            desiredCount=150,
+        )
+
+        for _ in range(150):
+            client.run_task(
+                cluster="production",
+                taskDefinition="app-task",
+                launchType="FARGATE",
+                networkConfiguration={
+                    "awsvpcConfiguration": {
+                        "subnets": ["subnet-12345"],
+                        "assignPublicIp": "ENABLED",
+                    }
+                },
+            )
+
+        service = TaskService(client)
+        task_history = service.get_task_history("production", "app-service")
+
+        assert len(task_history) == 150
+        for task in task_history:
+            assert "task_arn" in task
+            assert "last_status" in task
+            assert "task_definition_name" in task
