@@ -53,7 +53,7 @@ class ServiceService(BaseAWSService):
             return []
 
         events = services[0].get("events", [])
-        service_events = [_create_service_event(dict(event)) for event in events]
+        service_events = [_parse_service_event(dict(event)) for event in events]
 
         return sorted(service_events, key=lambda x: x["created_at"] or datetime.min, reverse=True)
 
@@ -78,8 +78,8 @@ def _create_service_info(service: ServiceTypeDef) -> ServiceInfo:
     }
 
 
-def _create_service_event(event: dict[str, Any]) -> ServiceEvent:
-    """Create service event from AWS event description."""
+def _parse_service_event(event: dict[str, Any]) -> ServiceEvent:
+    """Parse service event from AWS event description."""
     event_id = event.get("id", "")
     created_at = event.get("createdAt")
     message = event.get("message", "")

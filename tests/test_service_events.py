@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from lazy_ecs.features.service.service import _categorize_event, _create_service_event
+from lazy_ecs.features.service.service import _categorize_event, _parse_service_event
 
 
 def test_categorize_event_deployment():
@@ -62,8 +62,8 @@ def test_categorize_event_other():
         assert _categorize_event(message) == "other"
 
 
-def test_create_service_event():
-    """Test service event creation from AWS event data."""
+def test_parse_service_event():
+    """Test service event parsing from AWS event data."""
     test_time = datetime(2024, 1, 15, 10, 30, 45)
     aws_event = {
         "id": "event-123",
@@ -71,7 +71,7 @@ def test_create_service_event():
         "message": "has started a deployment",
     }
 
-    event = _create_service_event(aws_event)
+    event = _parse_service_event(aws_event)
 
     assert event["id"] == "event-123"
     assert event["created_at"] == test_time
@@ -79,11 +79,11 @@ def test_create_service_event():
     assert event["event_type"] == "deployment"
 
 
-def test_create_service_event_minimal():
-    """Test service event creation with minimal AWS data."""
+def test_parse_service_event_minimal():
+    """Test service event parsing with minimal AWS data."""
     aws_event = {}
 
-    event = _create_service_event(aws_event)
+    event = _parse_service_event(aws_event)
 
     assert event["id"] == ""
     assert event["created_at"] is None
@@ -91,13 +91,13 @@ def test_create_service_event_minimal():
     assert event["event_type"] == "other"
 
 
-def test_create_service_event_missing_fields():
-    """Test service event creation with some missing fields."""
+def test_parse_service_event_missing_fields():
+    """Test service event parsing with some missing fields."""
     aws_event = {
         "message": "task failed to start due to resource constraints",
     }
 
-    event = _create_service_event(aws_event)
+    event = _parse_service_event(aws_event)
 
     assert event["id"] == ""
     assert event["created_at"] is None

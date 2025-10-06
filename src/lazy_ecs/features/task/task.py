@@ -63,8 +63,8 @@ class TaskService(BaseAWSService):
 
         return task, task_definition
 
-    def _list_tasks_paginated(self, cluster_name: str, service_name: str | None, desired_status: str) -> list[str]:
-        """List tasks with optional service name filtering."""
+    def _list_tasks_by_status(self, cluster_name: str, service_name: str | None, desired_status: str) -> list[str]:
+        """List tasks filtered by status and optional service name."""
         kwargs = {"cluster": cluster_name, "desiredStatus": desired_status}
         if service_name:
             kwargs["serviceName"] = service_name
@@ -74,10 +74,10 @@ class TaskService(BaseAWSService):
         """Get task history including stopped tasks with failure information."""
         task_arns = []
 
-        running_arns = self._list_tasks_paginated(cluster_name, service_name, "RUNNING")
+        running_arns = self._list_tasks_by_status(cluster_name, service_name, "RUNNING")
         task_arns.extend(running_arns)
 
-        stopped_arns = self._list_tasks_paginated(cluster_name, service_name, "STOPPED")
+        stopped_arns = self._list_tasks_by_status(cluster_name, service_name, "STOPPED")
         task_arns.extend(stopped_arns)
 
         if not task_arns:
