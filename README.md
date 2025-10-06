@@ -42,12 +42,6 @@ The AWS ECS web console is confusing to navigate, with multiple clicks through d
 
 ![Service Status](images/service-status.svg)
 
-**Task selection with auto-selection**
-
-- Automatically select single tasks; interactive picker for multiple
-- Shows desired vs actual task definition versions
-- _Why it's great:_ AWS console requires clicking through pagination; no easy way to spot version mismatches
-
 **Open in AWS console**
 
 - One-key shortcut to open current resource in browser
@@ -87,7 +81,8 @@ The AWS ECS web console is confusing to navigate, with multiple clicks through d
 
 - Lifecycle events and failure reasons
 - Automatic detection of common failures (OOM kills, timeouts, image pull failures)
-- _Why it's great:_ AWS console requires clicking into each failed task individually; no smart analysis of failure patterns
+- Shows desired vs actual task definition versions (spot outdated tasks immediately)
+- _Why it's great:_ AWS console requires clicking into each failed task individually; no smart analysis of failure patterns; no easy way to spot version mismatches
 
 ![Task History](images/task-history.svg)
 
