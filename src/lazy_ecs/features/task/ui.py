@@ -22,6 +22,22 @@ MAX_RECENT_TASKS = 10
 MAX_STATUS_DETAILS_LENGTH = 50
 SEPARATOR_WIDTH = 80
 
+_CHANGE_TYPE_DISPLAY = {
+    "image_changed": ("🐳", "Image changed for '{container}'"),
+    "env_added": ("+", "Environment variable added ({container})"),
+    "env_removed": ("-", "Environment variable removed ({container})"),
+    "env_changed": ("🔄", "Environment variable changed ({container})"),
+    "secret_changed": ("🔐", "Secret reference changed ({container})"),
+    "task_cpu_changed": ("💻", "Task CPU changed"),
+    "task_memory_changed": ("🧠", "Task Memory changed"),
+    "container_cpu_changed": ("💻", "Container CPU changed ({container})"),
+    "container_memory_changed": ("🧠", "Container Memory changed ({container})"),
+    "ports_changed": ("🔌", "Port mappings changed ({container})"),
+    "command_changed": ("⚙️ ", "Command changed ({container})"),
+    "entrypoint_changed": ("🚪", "Entrypoint changed ({container})"),
+    "volumes_changed": ("💾", "Volume mounts changed ({container})"),
+}
+
 
 class TaskUI(BaseUIComponent):
     """UI component for task selection and display."""
@@ -319,56 +335,43 @@ class TaskUI(BaseUIComponent):
         change_type = change["type"]
         container = change.get("container", "")
 
-        display_config = {
-            "image_changed": ("🐳", f"Image changed for '{container}'"),
-            "env_added": ("+", f"Environment variable added ({container})"),
-            "env_removed": ("-", f"Environment variable removed ({container})"),
-            "env_changed": ("🔄", f"Environment variable changed ({container})"),
-            "secret_changed": ("🔐", f"Secret reference changed ({container})"),
-            "task_cpu_changed": ("💻", "Task CPU changed"),
-            "task_memory_changed": ("🧠", "Task Memory changed"),
-            "container_cpu_changed": ("💻", f"Container CPU changed ({container})"),
-            "container_memory_changed": ("🧠", f"Container Memory changed ({container})"),
-            "ports_changed": ("🔌", f"Port mappings changed ({container})"),
-            "command_changed": ("⚙️ ", f"Command changed ({container})"),
-            "entrypoint_changed": ("🚪", f"Entrypoint changed ({container})"),
-            "volumes_changed": ("💾", f"Volume mounts changed ({container})"),
-        }
+        if change_type not in _CHANGE_TYPE_DISPLAY:
+            return
 
-        if change_type in display_config:
-            emoji, label = display_config[change_type]
-            console.print(f"{emoji} {label}:", style="bold yellow")
+        emoji, label_template = _CHANGE_TYPE_DISPLAY[change_type]
+        label = label_template.format(container=container) if "{container}" in label_template else label_template
+        console.print(f"{emoji} {label}:", style="bold yellow")
 
-            if "key" in change:
-                if change_type.endswith("_added"):
-                    console.print(f"   + {change['key']}={change['value']}", style="green")
-                elif change_type.endswith("_removed"):
-                    console.print(f"   - {change['key']}={change['value']}", style="red")
-                elif change_type.endswith("_changed"):
-                    if change_type == "secret_changed":
-                        console.print(f"   {change['key']}: ARN updated", style="yellow")
-                    else:
-                        console.print(f"   {change['key']}:", style="white")
-                        console.print(f"   - {change['old']}", style="red")
-                        console.print(f"   + {change['new']}", style="green")
-            elif change_type == "ports_changed":
-                if change.get("old"):
-                    console.print(f"   - {_format_ports(change['old'])}", style="red")
-                if change.get("new"):
-                    console.print(f"   + {_format_ports(change['new'])}", style="green")
-            elif change_type in ("command_changed", "entrypoint_changed"):
-                if change.get("old"):
-                    console.print(f"   - {' '.join(change['old'])}", style="red")
-                if change.get("new"):
-                    console.print(f"   + {' '.join(change['new'])}", style="green")
-            elif change_type == "volumes_changed":
-                if change.get("old"):
-                    console.print(f"   - {_format_volumes(change['old'])}", style="red")
-                if change.get("new"):
-                    console.print(f"   + {_format_volumes(change['new'])}", style="green")
-            else:
-                console.print(f"   - {change.get('old')}", style="red")
-                console.print(f"   + {change.get('new')}", style="green")
+        if "key" in change:
+            if change_type.endswith("_added"):
+                console.print(f"   + {change['key']}={change['value']}", style="green")
+            elif change_type.endswith("_removed"):
+                console.print(f"   - {change['key']}={change['value']}", style="red")
+            elif change_type.endswith("_changed"):
+                if change_type == "secret_changed":
+                    console.print(f"   {change['key']}: ARN updated", style="yellow")
+                else:
+                    console.print(f"   {change['key']}:", style="white")
+                    console.print(f"   - {change['old']}", style="red")
+                    console.print(f"   + {change['new']}", style="green")
+        elif change_type == "ports_changed":
+            if change.get("old"):
+                console.print(f"   - {_format_ports(change['old'])}", style="red")
+            if change.get("new"):
+                console.print(f"   + {_format_ports(change['new'])}", style="green")
+        elif change_type in ("command_changed", "entrypoint_changed"):
+            if change.get("old"):
+                console.print(f"   - {' '.join(change['old'])}", style="red")
+            if change.get("new"):
+                console.print(f"   + {' '.join(change['new'])}", style="green")
+        elif change_type == "volumes_changed":
+            if change.get("old"):
+                console.print(f"   - {_format_volumes(change['old'])}", style="red")
+            if change.get("new"):
+                console.print(f"   + {_format_volumes(change['new'])}", style="green")
+        else:
+            console.print(f"   - {change.get('old')}", style="red")
+            console.print(f"   + {change.get('new')}", style="green")
 
 
 def _format_ports(ports: list[dict[str, Any]]) -> str:
