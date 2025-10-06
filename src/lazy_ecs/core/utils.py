@@ -8,7 +8,7 @@ import sys
 import threading
 from collections.abc import Iterator
 from contextlib import contextmanager, suppress
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from rich.console import Console
 from rich.spinner import Spinner
@@ -78,6 +78,12 @@ def show_spinner() -> Iterator[None]:
     spinner = Spinner("dots", style="cyan")
     with console.status(spinner):
         yield
+
+
+def batch_items(items: list[Any], batch_size: int) -> Iterator[list[Any]]:
+    """Split a list into batches of specified size."""
+    for i in range(0, len(items), batch_size):
+        yield items[i : i + batch_size]
 
 
 def paginate_aws_list(
