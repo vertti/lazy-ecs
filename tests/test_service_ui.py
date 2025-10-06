@@ -7,7 +7,7 @@ import pytest
 
 from lazy_ecs.features.service.actions import ServiceActions
 from lazy_ecs.features.service.service import ServiceService
-from lazy_ecs.features.service.ui import ServiceUI, _get_event_type_style
+from lazy_ecs.features.service.ui import ServiceUI
 
 
 @pytest.fixture
@@ -205,15 +205,6 @@ def test_display_service_events_no_events(mock_print, service_ui):
 
     service_ui.service_service.get_service_events.assert_called_once_with("test-cluster", "web-api")
     mock_print.assert_called_once_with("No events found for service 'web-api'", style="blue")
-
-
-def test_get_event_type_style():
-    """Test event type style mapping."""
-    assert _get_event_type_style("deployment") == "blue"
-    assert _get_event_type_style("scaling") == "yellow"
-    assert _get_event_type_style("failure") == "red"
-    assert _get_event_type_style("other") == "white"
-    assert _get_event_type_style("unknown") == "white"  # Default case
 
 
 @patch("lazy_ecs.features.service.ui.console.print")

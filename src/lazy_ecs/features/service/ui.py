@@ -87,7 +87,8 @@ class ServiceUI(BaseUIComponent):
             time_str = created_at.strftime("%m/%d %H:%M") if created_at else "Unknown"
 
             event_type = event["event_type"]
-            type_style = _get_event_type_style(event_type)
+            type_styles = {"deployment": "blue", "scaling": "yellow", "failure": "red", "other": "white"}
+            type_style = type_styles.get(event_type, "white")
             type_display = f"[{type_style}]{event_type.title()}[/{type_style}]"
 
             message = event["message"]
@@ -118,13 +119,3 @@ class ServiceUI(BaseUIComponent):
         console.print(f"\n[bold cyan]Metrics for service '{service_name}' (last hour):[/bold cyan]")
         for line in lines:
             console.print(line)
-
-
-def _get_event_type_style(event_type: str) -> str:
-    event_styles = {
-        "deployment": "blue",
-        "scaling": "yellow",
-        "failure": "red",
-        "other": "white",
-    }
-    return event_styles.get(event_type, "white")
