@@ -1,5 +1,8 @@
 # lazy-ecs
 
+[![PyPI version](https://img.shields.io/pypi/v/lazy-ecs)](https://pypi.org/project/lazy-ecs/)
+[![Python versions](https://img.shields.io/pypi/pyversions/lazy-ecs)](https://pypi.org/project/lazy-ecs/)
+[![License](https://img.shields.io/pypi/l/lazy-ecs)](https://github.com/vertti/lazy-ecs/blob/main/LICENSE)
 [![Coverage Status](https://coveralls.io/repos/github/vertti/lazy-ecs/badge.svg?branch=main)](https://coveralls.io/github/vertti/lazy-ecs?branch=main)
 
 A CLI tool for navigating AWS ECS clusters interactively.
