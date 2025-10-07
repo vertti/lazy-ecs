@@ -1,6 +1,8 @@
 import sys
 from unittest.mock import Mock, patch
 
+import pytest
+
 from lazy_ecs import _create_aws_client, main
 
 
@@ -133,3 +135,10 @@ def test_create_aws_client_with_profile():
         assert args[0] == "ecs"
         assert "config" in kwargs
         assert result == mock_client
+
+
+def test_version_flag():
+    with patch.object(sys, "argv", ["lazy-ecs", "--version"]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 0

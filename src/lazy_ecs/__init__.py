@@ -1,4 +1,5 @@
 import argparse
+from importlib.metadata import PackageNotFoundError, version
 from typing import TYPE_CHECKING
 
 import boto3
@@ -15,12 +16,18 @@ from .aws_service import ECSService
 from .core.app import navigate_clusters
 from .ui import ECSNavigator
 
+try:
+    __version__ = version("lazy-ecs")
+except PackageNotFoundError:
+    __version__ = "dev"
+
 console = Console()
 
 
 def main() -> None:
     """Interactive AWS ECS navigation tool."""
     parser = argparse.ArgumentParser(description="Interactive AWS ECS cluster navigator")
+    parser.add_argument("--version", action="version", version=f"lazy-ecs {__version__}")
     parser.add_argument("--profile", help="AWS profile to use for authentication", type=str, default=None)
     args = parser.parse_args()
 
