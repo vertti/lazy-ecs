@@ -38,8 +38,8 @@ Documentation = "https://github.com/vertti/lazy-ecs#readme"
 [project.scripts]
 lazy-ecs = "lazy_ecs:main"
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
   "pytest==8.4.2",
   "pytest-cov==7.0.0",
   "pytest-mock==3.15.0",
@@ -48,6 +48,7 @@ dev-dependencies = [
   "pre-commit==4.3.0",
   "pyrefly==0.32.0",
   "boto3-stubs[ecs,logs,sts,cloudwatch]==1.40.30",
+  "coveralls>=4.0.1",
 ]
 
 [tool.ruff]
@@ -143,6 +144,7 @@ addopts = [
   "--cov=src/lazy_ecs",
   "--cov-report=term-missing",
   "--cov-report=html",
+  "--cov-report=lcov",
 ]
 
 [build-system]
