@@ -1,5 +1,7 @@
 # lazy-ecs
 
+[![Coverage Status](https://coveralls.io/repos/github/vertti/lazy-ecs/badge.svg?branch=main)](https://coveralls.io/github/vertti/lazy-ecs?branch=main)
+
 A CLI tool for navigating AWS ECS clusters interactively.
 
 ![lazy-ecs demo](images/lazy-ecs-demo.jpg)
