@@ -26,6 +26,14 @@ if TYPE_CHECKING:
     from ..task.task import TaskService
 
 
+def build_log_group_arn(region: str, account_id: str, log_group: str) -> str:
+    return f"arn:aws:logs:{region}:{account_id}:log-group:{log_group}"
+
+
+def build_log_stream_name(stream_prefix: str, container_name: str, task_id: str) -> str:
+    return f"{stream_prefix}/{container_name}/{task_id}"
+
+
 class ContainerService(BaseAWSService):
     """Service for ECS container operations."""
 
@@ -90,7 +98,7 @@ class ContainerService(BaseAWSService):
         if not log_group:
             return None
 
-        log_stream = f"{stream_prefix}/{container_name}/{context.task_id}"
+        log_stream = build_log_stream_name(stream_prefix, container_name, context.task_id)
 
         return {"log_group": log_group, "log_stream": log_stream}
 
@@ -146,7 +154,7 @@ class ContainerService(BaseAWSService):
         )
         if not region or not aws_account_id:
             return
-        log_group_arn = f"arn:aws:logs:{region}:{aws_account_id}:log-group:{log_group}"
+        log_group_arn = build_log_group_arn(region, aws_account_id, log_group)
         response = self.logs_client.start_live_tail(
             logGroupIdentifiers=[log_group_arn],
             logStreamNames=[log_stream],
