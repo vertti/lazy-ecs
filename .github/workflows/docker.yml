@@ -3,13 +3,6 @@ name: Build and Push Docker Image
 on:
   release:
     types: [published]
-  push:
-    branches:
-      - main
-    paths:
-      - "Dockerfile"
-      - "src/**"
-      - "pyproject.toml"
   workflow_dispatch:
 
 env:
@@ -53,7 +46,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name == 'release' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
