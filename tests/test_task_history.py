@@ -117,63 +117,36 @@ class TestTaskHistoryParsing:
         assert "✅" in result
         assert "completed successfully" in result.lower()
 
-    def test_analyze_timeout_failure(self):
-        result = TaskService._analyze_container_failure(
-            "web-api", 137, "Task killed", "TaskFailedToStart", "Task timed out"
-        )
-        assert "⏰" in result
-        assert "timeout" in result.lower()
+    @pytest.mark.parametrize(
+        ("exit_code", "reason", "expected_emoji", "expected_text"),
+        [
+            (137, "Task killed", "⏰", "timeout"),
+            (139, None, "💥", "segmentation fault"),
+            (143, None, "🛑", "gracefully stopped"),
+            (1, "Application crashed", "❌", "application error"),
+            (42, "Unknown error", "🔴", "exit code 42"),
+        ],
+    )
+    def test_analyze_container_failure_exit_codes(self, exit_code, reason, expected_emoji, expected_text):
+        result = TaskService._analyze_container_failure("container", exit_code, reason, None, None)
+        assert expected_emoji in result
+        assert expected_text in result.lower()
 
-    def test_analyze_segfault_failure(self):
-        result = TaskService._analyze_container_failure("worker", 139, None, None, None)
-        assert "💥" in result
-        assert "segmentation fault" in result.lower()
-
-    def test_analyze_sigterm_graceful_stop(self):
-        result = TaskService._analyze_container_failure("web", 143, None, None, None)
-        assert "🛑" in result
-        assert "gracefully stopped" in result.lower()
-
-    def test_analyze_application_error(self):
-        result = TaskService._analyze_container_failure("api", 1, "Application crashed", None, None)
-        assert "❌" in result
-        assert "application error" in result.lower()
-
-    def test_analyze_generic_container_failure(self):
-        result = TaskService._analyze_container_failure("web", 42, "Unknown error", None, None)
-        assert "🔴" in result
-        assert "exit code 42" in result
-        assert "Unknown error" in result
-
-    def test_analyze_task_failure_cannot_pull_image(self):
-        result = TaskService._analyze_task_failure("TaskFailedToStart", "CannotPullContainerError: image not found")
-        assert "📦" in result
-        assert "pull container image" in result.lower()
-
-    def test_analyze_task_failure_insufficient_resources(self):
-        result = TaskService._analyze_task_failure("TaskFailedToStart", "ResourcesNotAvailable: insufficient memory")
-        assert "⚠️" in result
-        assert "insufficient resources" in result.lower()
-
-    def test_analyze_task_failure_generic_failed_to_start(self):
-        result = TaskService._analyze_task_failure("TaskFailedToStart", "Some other reason")
-        assert "🚫" in result
-        assert "failed to start" in result.lower()
-
-    def test_analyze_task_stopped_by_scheduler(self):
-        result = TaskService._analyze_task_failure("ServiceSchedulerInitiated", "Service scaling")
-        assert "🔄" in result
-        assert "service scheduler" in result.lower()
-
-    def test_analyze_task_spot_interruption(self):
-        result = TaskService._analyze_task_failure("SpotInterruption", "EC2 spot instance reclaimed")
-        assert "💸" in result
-        assert "spot instance interruption" in result.lower()
-
-    def test_analyze_task_user_initiated(self):
-        result = TaskService._analyze_task_failure("UserInitiated", "Stopped by admin")
-        assert "👤" in result
-        assert "manually stopped" in result.lower()
+    @pytest.mark.parametrize(
+        ("stop_code", "reason", "expected_emoji", "expected_text"),
+        [
+            ("TaskFailedToStart", "CannotPullContainerError: image not found", "📦", "pull container image"),
+            ("TaskFailedToStart", "ResourcesNotAvailable: insufficient memory", "⚠️", "insufficient resources"),
+            ("TaskFailedToStart", "Some other reason", "🚫", "failed to start"),
+            ("ServiceSchedulerInitiated", "Service scaling", "🔄", "service scheduler"),
+            ("SpotInterruption", "EC2 spot instance reclaimed", "💸", "spot instance interruption"),
+            ("UserInitiated", "Stopped by admin", "👤", "manually stopped"),
+        ],
+    )
+    def test_analyze_task_failure_stop_codes(self, stop_code, reason, expected_emoji, expected_text):
+        result = TaskService._analyze_task_failure(stop_code, reason)
+        assert expected_emoji in result
+        assert expected_text in result.lower()
 
     def test_get_task_failure_analysis_for_running_task(self):
         task_history = {

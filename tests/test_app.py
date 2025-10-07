@@ -9,6 +9,7 @@ from lazy_ecs.core.app import (
     get_container_action_handlers,
     get_service_action_handlers,
     get_task_action_handlers,
+    handle_task_features,
     handle_task_selection,
     navigate_services,
 )
@@ -178,22 +179,14 @@ def test_handle_task_features_returns_true_on_back():
     mock_navigator = Mock()
     mock_navigator.select_task_feature.return_value = "navigation:back"
 
-    from lazy_ecs.core.app import handle_task_features
-
-    result = handle_task_features(mock_navigator, "cluster", "task-arn", None, "service")
-
-    assert result is True
+    assert handle_task_features(mock_navigator, "cluster", "task-arn", None, "service") is True
 
 
 def test_handle_task_features_returns_false_on_exit():
     mock_navigator = Mock()
     mock_navigator.select_task_feature.return_value = "navigation:exit"
 
-    from lazy_ecs.core.app import handle_task_features
-
-    result = handle_task_features(mock_navigator, "cluster", "task-arn", None, "service")
-
-    assert result is False
+    assert handle_task_features(mock_navigator, "cluster", "task-arn", None, "service") is False
 
 
 def test_handle_task_features_dispatches_container_action():
@@ -201,8 +194,6 @@ def test_handle_task_features_dispatches_container_action():
     mock_navigator.select_task_feature.side_effect = ["container_action:show_env:web", "navigation:back"]
 
     with patch("lazy_ecs.core.app.dispatch_container_action", return_value=True) as mock_dispatch:
-        from lazy_ecs.core.app import handle_task_features
-
         result = handle_task_features(mock_navigator, "cluster", "task-arn", None, "service")
 
         mock_dispatch.assert_called_once_with(mock_navigator, "cluster", "task-arn", "web", "show_env")
@@ -215,8 +206,6 @@ def test_handle_task_features_dispatches_task_action():
     task_details = {"taskArn": "arn:task"}
 
     with patch("lazy_ecs.core.app.dispatch_task_action", return_value=True) as mock_dispatch:
-        from lazy_ecs.core.app import handle_task_features
-
         result = handle_task_features(mock_navigator, "cluster", "task-arn", task_details, "service")  # type: ignore[arg-type]
 
         mock_dispatch.assert_called_once_with(

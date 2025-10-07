@@ -9,12 +9,10 @@ from lazy_ecs.ui import ECSNavigator
 
 @pytest.fixture
 def mock_ecs_service() -> Mock:
-    """Create a mock ECS service."""
     return Mock()
 
 
 def test_navigator_initialization(mock_ecs_service) -> None:
-    """Test that ECSNavigator properly initializes all UI components."""
     navigator = ECSNavigator(mock_ecs_service)
 
     assert navigator._cluster_ui is not None
@@ -24,7 +22,6 @@ def test_navigator_initialization(mock_ecs_service) -> None:
 
 
 def test_select_cluster_delegates_to_cluster_ui(mock_ecs_service) -> None:
-    """Test that select_cluster delegates to ClusterUI."""
     navigator = ECSNavigator(mock_ecs_service)
     navigator._cluster_ui.select_cluster = Mock(return_value="production")
 
@@ -35,7 +32,6 @@ def test_select_cluster_delegates_to_cluster_ui(mock_ecs_service) -> None:
 
 
 def test_select_service_delegates_to_service_ui(mock_ecs_service) -> None:
-    """Test that select_service delegates to ServiceUI."""
     navigator = ECSNavigator(mock_ecs_service)
     navigator._service_ui.select_service = Mock(return_value="service:web-api")
 
@@ -46,7 +42,6 @@ def test_select_service_delegates_to_service_ui(mock_ecs_service) -> None:
 
 
 def test_select_service_action_integration(mock_ecs_service) -> None:
-    """Test that select_service_action integrates ECSService and ServiceUI."""
     mock_ecs_service.get_task_info.return_value = [{"name": "task-1", "value": "task-arn-1"}]
 
     navigator = ECSNavigator(mock_ecs_service)

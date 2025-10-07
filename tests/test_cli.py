@@ -52,7 +52,6 @@ def test_main_no_cluster_selected(
     _mock_create_cloudwatch_client,
     mock_app_console,
 ) -> None:
-    """Test main function when no cluster is selected."""
     mock_navigator = Mock()
     mock_navigator.select_cluster.return_value = None
     mock_navigator_class.return_value = mock_navigator
@@ -75,7 +74,6 @@ def test_main_aws_error(
     _mock_create_sts_client,
     _mock_create_cloudwatch_client,
 ) -> None:
-    """Test main function with AWS connection error."""
     mock_create_client.side_effect = Exception("No credentials found")
 
     with patch.object(sys, "argv", ["lazy-ecs"]):
@@ -99,7 +97,6 @@ def test_main_with_profile_argument(
     mock_create_sts_client,
     mock_create_cloudwatch_client,
 ) -> None:
-    """Test main function with --profile argument."""
     mock_navigator = Mock()
     mock_navigator.select_cluster.return_value = "production"
     mock_navigator_class.return_value = mock_navigator
@@ -114,10 +111,8 @@ def test_main_with_profile_argument(
 
 
 def test_create_aws_client_without_profile():
-    """Test _create_aws_client without profile returns default client."""
     with patch("lazy_ecs.boto3.client") as mock_client:
         _create_aws_client(None)
-        # Should be called with ECS and config for connection pooling
         assert mock_client.call_count == 1
         args, kwargs = mock_client.call_args
         assert args[0] == "ecs"
@@ -125,7 +120,6 @@ def test_create_aws_client_without_profile():
 
 
 def test_create_aws_client_with_profile():
-    """Test _create_aws_client with profile uses Session."""
     mock_session = Mock()
     mock_client = Mock()
     mock_session.client.return_value = mock_client
@@ -134,7 +128,6 @@ def test_create_aws_client_with_profile():
         result = _create_aws_client("my-profile")
 
         mock_session_class.assert_called_once_with(profile_name="my-profile")
-        # Should be called with ECS and config for connection pooling
         assert mock_session.client.call_count == 1
         args, kwargs = mock_session.client.call_args
         assert args[0] == "ecs"
