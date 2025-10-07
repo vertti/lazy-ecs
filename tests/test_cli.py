@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 from lazy_ecs import _create_aws_client, main
 
 
+@patch("lazy_ecs.core.app.console")
 @patch("lazy_ecs._create_cloudwatch_client")
 @patch("lazy_ecs._create_sts_client")
 @patch("lazy_ecs._create_logs_client")
@@ -17,6 +18,7 @@ def test_main_successful_flow(
     mock_create_logs_client,
     mock_create_sts_client,
     mock_create_cloudwatch_client,
+    mock_app_console,
 ) -> None:
     """Test main function with successful cluster selection."""
     mock_navigator = Mock()
@@ -32,9 +34,10 @@ def test_main_successful_flow(
     mock_create_cloudwatch_client.assert_called_once_with(None)
     mock_navigator.select_cluster.assert_called_once()
     mock_console.print.assert_any_call("🚀 Welcome to lazy-ecs!", style="bold cyan")
-    mock_console.print.assert_any_call("\n✅ Selected cluster: production", style="green")
+    mock_app_console.print.assert_any_call("\n✅ Selected cluster: production", style="green")
 
 
+@patch("lazy_ecs.core.app.console")
 @patch("lazy_ecs._create_cloudwatch_client")
 @patch("lazy_ecs._create_sts_client")
 @patch("lazy_ecs._create_logs_client")
@@ -42,12 +45,13 @@ def test_main_successful_flow(
 @patch("lazy_ecs.ECSNavigator")
 @patch("lazy_ecs.console")
 def test_main_no_cluster_selected(
-    mock_console,
+    _mock_console,
     mock_navigator_class,
     _mock_create_client,
     _mock_create_logs_client,
     _mock_create_sts_client,
     _mock_create_cloudwatch_client,
+    mock_app_console,
 ) -> None:
     """Test main function when no cluster is selected."""
     mock_navigator = Mock()
@@ -57,7 +61,7 @@ def test_main_no_cluster_selected(
     with patch.object(sys, "argv", ["lazy-ecs"]):
         main()
 
-    mock_console.print.assert_any_call("\n❌ No cluster selected. Goodbye!", style="yellow")
+    mock_app_console.print.assert_any_call("\n❌ No cluster selected. Goodbye!", style="yellow")
 
 
 @patch("lazy_ecs._create_cloudwatch_client")
