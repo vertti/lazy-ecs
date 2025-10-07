@@ -7,7 +7,7 @@
 
 A CLI tool for navigating AWS ECS clusters interactively.
 
-![lazy-ecs demo](images/lazy-ecs-demo.jpg)
+![lazy-ecs demo](demo/lazy-ecs-demo.gif)
 
 ## Why I Built This
 
