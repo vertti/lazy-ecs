@@ -127,17 +127,19 @@ brew install lazy-ecs
 lazy-ecs
 ```
 
-### pipx
+### pipx / uv / mise
 
-[pipx](https://pipx.pypa.io/) installs Python CLI tools in isolated environments:
+Install in an isolated environment using your preferred tool manager:
 
 ```bash
-# Install pipx if you haven't already
-python3 -m pip install --user pipx
-python3 -m pipx ensurepath
-
-# Install lazy-ecs
+# Using pipx
 pipx install lazy-ecs
+
+# Using uv
+uv tool install lazy-ecs
+
+# Using mise
+mise use pipx:lazy-ecs
 
 # Run it
 lazy-ecs
