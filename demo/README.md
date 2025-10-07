@@ -5,10 +5,11 @@ Generate animated GIF demos of lazy-ecs using asciinema recordings.
 ## Generate GIF
 
 ```bash
-# Download Noto Emoji font for emoji support
-curl -L https://github.com/googlefonts/noto-emoji/releases/download/v2.047/Noto-COLRv1.ttf -o /tmp/NotoEmoji.ttf
+# Download and extract Noto Emoji fonts (full font directory needed for emoji support)
+curl -L https://github.com/googlefonts/noto-emoji/archive/refs/tags/v2.047.tar.gz -o /tmp/noto-emoji.tar.gz
+tar -xzf /tmp/noto-emoji.tar.gz -C /tmp
 
-# Generate GIF with Docker (ensures emoji rendering)
+# Generate GIF with Docker (mount /tmp which contains the extracted fonts)
 docker run --rm -v $PWD:/data -v /tmp:/fonts \
   ghcr.io/asciinema/agg:latest \
   --font-dir /fonts \
