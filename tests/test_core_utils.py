@@ -2,7 +2,17 @@
 
 import time
 
-from lazy_ecs.core.utils import determine_service_status, extract_name_from_arn, paginate_aws_list, show_spinner
+from lazy_ecs.core.utils import (
+    batch_items,
+    determine_service_status,
+    extract_name_from_arn,
+    paginate_aws_list,
+    print_error,
+    print_info,
+    print_success,
+    print_warning,
+    show_spinner,
+)
 
 
 def test_extract_name_from_arn():
@@ -105,3 +115,50 @@ def test_paginate_aws_list_missing_key(mock_paginated_client):
     result = paginate_aws_list(mock_client, "list_clusters", "clusterArns")
 
     assert result == []
+
+
+def test_print_success(capsys):
+    print_success("Operation completed")
+    captured = capsys.readouterr()
+    assert "Operation completed" in captured.out
+
+
+def test_print_error(capsys):
+    print_error("Something went wrong")
+    captured = capsys.readouterr()
+    assert "Something went wrong" in captured.out
+
+
+def test_print_warning(capsys):
+    print_warning("Be careful")
+    captured = capsys.readouterr()
+    assert "Be careful" in captured.out
+
+
+def test_print_info(capsys):
+    print_info("Informational message")
+    captured = capsys.readouterr()
+    assert "Informational message" in captured.out
+
+
+def test_batch_items_empty_list():
+    result = list(batch_items([], 5))
+    assert result == []
+
+
+def test_batch_items_single_batch():
+    items = [1, 2, 3]
+    result = list(batch_items(items, 5))
+    assert result == [[1, 2, 3]]
+
+
+def test_batch_items_multiple_batches():
+    items = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    result = list(batch_items(items, 3))
+    assert result == [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+
+
+def test_batch_items_partial_last_batch():
+    items = [1, 2, 3, 4, 5, 6, 7]
+    result = list(batch_items(items, 3))
+    assert result == [[1, 2, 3], [4, 5, 6], [7]]
