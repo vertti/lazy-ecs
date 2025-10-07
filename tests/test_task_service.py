@@ -1,4 +1,4 @@
-"""Tests for task service error paths."""
+"""Tests for task service."""
 
 from unittest.mock import Mock
 

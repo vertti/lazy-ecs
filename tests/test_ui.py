@@ -171,10 +171,95 @@ def test_container_methods_delegate_to_container_ui(mock_ecs_service) -> None:
 
 
 def test_handle_force_deployment_delegates_to_service_ui(mock_ecs_service) -> None:
-    """Test that handle_force_deployment delegates to ServiceUI."""
     navigator = ECSNavigator(mock_ecs_service)
     navigator._service_ui.handle_force_deployment = Mock()
 
     navigator.handle_force_deployment("cluster", "service")
 
     navigator._service_ui.handle_force_deployment.assert_called_once_with("cluster", "service")
+
+
+def test_show_service_events_delegates_to_service_ui(mock_ecs_service):
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator._service_ui.display_service_events = Mock()
+
+    navigator.show_service_events("cluster", "service")
+
+    navigator._service_ui.display_service_events.assert_called_once_with("cluster", "service")
+
+
+@patch("lazy_ecs.ui.console")
+def test_show_service_metrics_with_data(_mock_console, mock_ecs_service):
+    mock_ecs_service.get_service_metrics.return_value = {"cpu": 50.0, "memory": 60.0}
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator._service_ui.display_service_metrics = Mock()
+
+    navigator.show_service_metrics("cluster", "service")
+
+    navigator._service_ui.display_service_metrics.assert_called_once_with("service", {"cpu": 50.0, "memory": 60.0})
+
+
+@patch("lazy_ecs.ui.console")
+def test_show_service_metrics_no_data(mock_console, mock_ecs_service):
+    mock_ecs_service.get_service_metrics.return_value = None
+    navigator = ECSNavigator(mock_ecs_service)
+
+    navigator.show_service_metrics("cluster", "service")
+
+    mock_console.print.assert_any_call("\n⚠️ No metrics available for service 'service'", style="yellow")
+
+
+def test_show_task_history_delegates_to_task_ui(mock_ecs_service):
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator._task_ui.display_task_history = Mock()
+
+    navigator.show_task_history("cluster", "service")
+
+    navigator._task_ui.display_task_history.assert_called_once_with("cluster", "service")
+
+
+def test_show_task_definition_comparison_with_details(mock_ecs_service):
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator._task_ui.show_task_definition_comparison = Mock()
+    task_details = {"taskArn": "arn:task"}
+
+    navigator.show_task_definition_comparison(task_details)  # type: ignore[arg-type]
+
+    navigator._task_ui.show_task_definition_comparison.assert_called_once_with(task_details)
+
+
+def test_show_task_definition_comparison_without_details(mock_ecs_service):
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator._task_ui.show_task_definition_comparison = Mock()
+
+    navigator.show_task_definition_comparison(None)
+
+    navigator._task_ui.show_task_definition_comparison.assert_not_called()
+
+
+def test_open_service_in_console(mock_ecs_service):
+    with patch("webbrowser.open") as mock_webbrowser:
+        mock_ecs_service.get_region.return_value = "us-east-1"
+        navigator = ECSNavigator(mock_ecs_service)
+
+        navigator.open_service_in_console("production", "web-api")
+
+        mock_webbrowser.assert_called_once()
+        url_arg = mock_webbrowser.call_args[0][0]
+        assert "us-east-1" in url_arg
+        assert "production" in url_arg
+        assert "web-api" in url_arg
+
+
+def test_open_task_in_console(mock_ecs_service):
+    with patch("webbrowser.open") as mock_webbrowser:
+        mock_ecs_service.get_region.return_value = "us-west-2"
+        navigator = ECSNavigator(mock_ecs_service)
+
+        navigator.open_task_in_console("staging", "task-arn-123")
+
+        mock_webbrowser.assert_called_once()
+        url_arg = mock_webbrowser.call_args[0][0]
+        assert "us-west-2" in url_arg
+        assert "staging" in url_arg
+        assert "task-arn-123" in url_arg

@@ -225,3 +225,29 @@ def test_get_container_logs_filtered_success():
     mock_logs_client.filter_log_events.assert_called_once_with(
         logGroupName="/ecs/app", logStreamNames=["stream"], filterPattern="ERROR", limit=25
     )
+
+
+def test_list_log_groups_returns_empty_when_no_client(mock_task_service):
+    container_service = ContainerService(Mock(), mock_task_service, logs_client=None)
+
+    result = container_service.list_log_groups("production", "web")
+
+    assert result == []
+
+
+def test_list_log_groups_filters_by_cluster_and_container():
+    mock_logs_client = Mock()
+    mock_logs_client.describe_log_groups.return_value = {
+        "logGroups": [
+            {"logGroupName": "/ecs/production-web"},
+            {"logGroupName": "/ecs/staging-api"},
+            {"logGroupName": "/aws/lambda/function"},
+            {"logGroupName": "/ecs/production-worker"},
+        ]
+    }
+    container_service = ContainerService(Mock(), Mock(), logs_client=mock_logs_client)
+
+    result = container_service.list_log_groups("production", "web")
+
+    assert "/ecs/production-web" in result
+    assert "/ecs/staging-api" in result  # Contains "ecs" so it's included

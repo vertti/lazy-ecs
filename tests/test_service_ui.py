@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from lazy_ecs.core.types import ServiceMetrics
 from lazy_ecs.features.service.actions import ServiceActions
 from lazy_ecs.features.service.service import ServiceService
 from lazy_ecs.features.service.ui import ServiceUI
@@ -226,3 +227,15 @@ def test_service_name_truncation_shows_end(mock_print, service_ui):
     mock_print.assert_called_once()
     # We can't easily test the exact truncation without complex argument inspection,
     # but we know the logic truncates to show the last 15 chars with "..." prefix
+
+
+@patch("lazy_ecs.features.service.ui.console")
+def test_display_service_metrics(mock_console, service_ui):
+    metrics: ServiceMetrics = {
+        "cpu": {"current": 45.5, "average": 42.0, "maximum": 78.0, "minimum": 35.0},
+        "memory": {"current": 62.3, "average": 58.0, "maximum": 85.0, "minimum": 50.0},
+    }
+
+    service_ui.display_service_metrics("web-api", metrics)
+
+    assert mock_console.print.called
