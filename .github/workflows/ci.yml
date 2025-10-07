@@ -42,5 +42,11 @@ jobs:
       - name: Run tests
         run: uv run pytest
 
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./coverage.lcov
+
       - name: Test production dependencies
         run: ./scripts/test-production-install.sh
