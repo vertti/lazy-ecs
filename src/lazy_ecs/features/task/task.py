@@ -68,7 +68,9 @@ class TaskService(BaseAWSService):
         task = tasks[0]
         task_def_arn = task["taskDefinitionArn"]
         task_def_response = self.ecs_client.describe_task_definition(taskDefinition=task_def_arn)
-        task_definition = task_def_response["taskDefinition"]
+        task_definition = task_def_response.get("taskDefinition")
+        if not task_definition:
+            return None
 
         return task, task_definition
 

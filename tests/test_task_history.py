@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import Any
+from unittest.mock import Mock
 
 import boto3
 import pytest
@@ -118,16 +119,135 @@ class TestTaskHistoryParsing:
         assert "completed successfully" in result.lower()
 
     def test_analyze_timeout_failure(self):
-        """Test analysis of timeout failure."""
         result = TaskService._analyze_container_failure(
-            "web-api",
-            137,
-            "Task killed",
-            "TaskFailedToStart",
-            "Task timed out",
+            "web-api", 137, "Task killed", "TaskFailedToStart", "Task timed out"
         )
         assert "⏰" in result
         assert "timeout" in result.lower()
+
+    def test_analyze_segfault_failure(self):
+        result = TaskService._analyze_container_failure("worker", 139, None, None, None)
+        assert "💥" in result
+        assert "segmentation fault" in result.lower()
+
+    def test_analyze_sigterm_graceful_stop(self):
+        result = TaskService._analyze_container_failure("web", 143, None, None, None)
+        assert "🛑" in result
+        assert "gracefully stopped" in result.lower()
+
+    def test_analyze_application_error(self):
+        result = TaskService._analyze_container_failure("api", 1, "Application crashed", None, None)
+        assert "❌" in result
+        assert "application error" in result.lower()
+
+    def test_analyze_generic_container_failure(self):
+        result = TaskService._analyze_container_failure("web", 42, "Unknown error", None, None)
+        assert "🔴" in result
+        assert "exit code 42" in result
+        assert "Unknown error" in result
+
+    def test_analyze_task_failure_cannot_pull_image(self):
+        result = TaskService._analyze_task_failure("TaskFailedToStart", "CannotPullContainerError: image not found")
+        assert "📦" in result
+        assert "pull container image" in result.lower()
+
+    def test_analyze_task_failure_insufficient_resources(self):
+        result = TaskService._analyze_task_failure("TaskFailedToStart", "ResourcesNotAvailable: insufficient memory")
+        assert "⚠️" in result
+        assert "insufficient resources" in result.lower()
+
+    def test_analyze_task_failure_generic_failed_to_start(self):
+        result = TaskService._analyze_task_failure("TaskFailedToStart", "Some other reason")
+        assert "🚫" in result
+        assert "failed to start" in result.lower()
+
+    def test_analyze_task_stopped_by_scheduler(self):
+        result = TaskService._analyze_task_failure("ServiceSchedulerInitiated", "Service scaling")
+        assert "🔄" in result
+        assert "service scheduler" in result.lower()
+
+    def test_analyze_task_spot_interruption(self):
+        result = TaskService._analyze_task_failure("SpotInterruption", "EC2 spot instance reclaimed")
+        assert "💸" in result
+        assert "spot instance interruption" in result.lower()
+
+    def test_analyze_task_user_initiated(self):
+        result = TaskService._analyze_task_failure("UserInitiated", "Stopped by admin")
+        assert "👤" in result
+        assert "manually stopped" in result.lower()
+
+    def test_get_task_failure_analysis_for_running_task(self):
+        task_history = {
+            "task_arn": "arn:task",
+            "task_definition_name": "app",
+            "task_definition_revision": "1",
+            "last_status": "RUNNING",
+            "desired_status": "RUNNING",
+            "stop_code": None,
+            "stopped_reason": None,
+            "created_at": None,
+            "started_at": None,
+            "stopped_at": None,
+            "containers": [],
+        }
+        service = TaskService(Mock())
+
+        result = service.get_task_failure_analysis(task_history)  # type: ignore[arg-type]
+
+        assert "✅" in result
+        assert "running" in result.lower()
+
+    def test_get_task_failure_analysis_container_failure(self):
+        task_history = {
+            "task_arn": "arn:task",
+            "task_definition_name": "app",
+            "task_definition_revision": "1",
+            "last_status": "STOPPED",
+            "desired_status": "STOPPED",
+            "stop_code": "TaskFailedToStart",
+            "stopped_reason": "Essential container exited",
+            "created_at": None,
+            "started_at": None,
+            "stopped_at": None,
+            "containers": [
+                {
+                    "name": "web",
+                    "exit_code": 1,
+                    "reason": "App crashed",
+                    "health_status": None,
+                    "last_status": "STOPPED",
+                }
+            ],
+        }
+        service = TaskService(Mock())
+
+        result = service.get_task_failure_analysis(task_history)  # type: ignore[arg-type]
+
+        assert "❌" in result
+        assert "application error" in result.lower()
+
+    def test_get_task_failure_analysis_task_level_failure(self):
+        task_history = {
+            "task_arn": "arn:task",
+            "task_definition_name": "app",
+            "task_definition_revision": "1",
+            "last_status": "STOPPED",
+            "desired_status": "STOPPED",
+            "stop_code": "TaskFailedToStart",
+            "stopped_reason": "CannotPullContainerError",
+            "created_at": None,
+            "started_at": None,
+            "stopped_at": None,
+            "containers": [
+                {"name": "web", "exit_code": None, "reason": None, "health_status": None, "last_status": "STOPPED"}
+            ],
+        }
+        service = TaskService(Mock())
+
+        result = service.get_task_failure_analysis(task_history)  # type: ignore[arg-type]
+
+        assert "📦" in result
+        assert "pull container image" in result.lower()
 
 
 class TestTaskHistoryService:
