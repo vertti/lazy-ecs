@@ -9,14 +9,7 @@ from lazy_ecs.features.task.ui import TaskUI
 
 
 @pytest.fixture
-def mock_ecs_client():
-    """Create a mock ECS client."""
-    return Mock()
-
-
-@pytest.fixture
 def task_ui(mock_ecs_client):
-    """Create a TaskUI instance with mocked service."""
     task_service = TaskService(mock_ecs_client)
     return TaskUI(task_service)
 

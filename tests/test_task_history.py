@@ -15,8 +15,7 @@ class TestTaskHistoryParsing:
     """Test parsing task history and failure information."""
 
     def test_parse_stopped_task_with_stop_code(self):
-        """Test parsing stopped task with stop code."""
-        _mock_task_data: dict[str, Any] = {
+        task_data: dict[str, Any] = {
             "taskArn": "arn:aws:ecs:us-east-1:123456789012:task/cluster/task-id",
             "lastStatus": "STOPPED",
             "desiredStatus": "STOPPED",
@@ -37,7 +36,7 @@ class TestTaskHistoryParsing:
             ],
         }
 
-        _expected_history = {
+        expected = {
             "task_arn": "arn:aws:ecs:us-east-1:123456789012:task/cluster/task-id",
             "task_definition_name": "web-api",
             "task_definition_revision": "5",
@@ -59,12 +58,12 @@ class TestTaskHistoryParsing:
             ],
         }
 
-        result = TaskService._parse_task_history(_mock_task_data)  # type: ignore
-        assert result == _expected_history
+        result = TaskService._parse_task_history(task_data)  # type: ignore
+        assert result == expected
 
     def test_parse_running_task_no_failure_info(self):
         """Test parsing running task with no failure information."""
-        _mock_task_data: dict[str, Any] = {
+        task_data: dict[str, Any] = {
             "taskArn": "arn:aws:ecs:us-east-1:123456789012:task/cluster/task-id-2",
             "lastStatus": "RUNNING",
             "desiredStatus": "RUNNING",
@@ -74,7 +73,7 @@ class TestTaskHistoryParsing:
             "containers": [{"name": "web-api", "healthStatus": "HEALTHY", "lastStatus": "RUNNING"}],
         }
 
-        _expected_history = {
+        expected = {
             "task_arn": "arn:aws:ecs:us-east-1:123456789012:task/cluster/task-id-2",
             "task_definition_name": "web-api",
             "task_definition_revision": "6",
@@ -96,8 +95,8 @@ class TestTaskHistoryParsing:
             ],
         }
 
-        result = TaskService._parse_task_history(_mock_task_data)  # type: ignore
-        assert result == _expected_history
+        result = TaskService._parse_task_history(task_data)  # type: ignore
+        assert result == expected
 
     def test_analyze_oom_kill_failure(self):
         """Test analysis of OOM kill failure."""
@@ -282,9 +281,9 @@ class TestTaskHistoryService:
 
     def test_get_task_history_includes_stopped_tasks(self, mock_ecs_client):
         """Test getting task history includes stopped tasks."""
-        _service = TaskService(mock_ecs_client)
+        service = TaskService(mock_ecs_client)
 
-        result = _service.get_task_history("test-cluster", "web-service")
+        result = service.get_task_history("test-cluster", "web-service")
         assert len(result) > 0
         assert any(task["last_status"] == "STOPPED" for task in result)
 
@@ -293,9 +292,9 @@ class TestTaskHistoryService:
         pages = [{"taskArns": []}]
         client = mock_paginated_client(pages)
 
-        _service = TaskService(client)
+        service = TaskService(client)
 
-        result = _service.get_task_history("test-cluster", "web-service")
+        result = service.get_task_history("test-cluster", "web-service")
         assert result == []
 
 

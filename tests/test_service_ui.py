@@ -12,14 +12,7 @@ from lazy_ecs.features.service.ui import ServiceUI
 
 
 @pytest.fixture
-def mock_ecs_client():
-    """Create a mock ECS client."""
-    return Mock()
-
-
-@pytest.fixture
 def service_ui(mock_ecs_client):
-    """Create a ServiceUI instance with mocked services."""
     service_service = ServiceService(mock_ecs_client)
     service_actions = ServiceActions(mock_ecs_client)
     return ServiceUI(service_service, service_actions)
@@ -140,9 +133,8 @@ def test_select_service_action_show_events(mock_select, service_ui):
     assert selected == "action:show_events"
     mock_select.assert_called_once()
 
-    # Verify that show events option is in the choices
     call_args = mock_select.call_args
-    choices = call_args[0][1]  # Second positional argument is choices
+    choices = call_args[0][1]
     show_events_choice = next((choice for choice in choices if choice.get("value") == "action:show_events"), None)
     assert show_events_choice is not None
     assert "Show service events" in show_events_choice["name"]
@@ -223,10 +215,7 @@ def test_service_name_truncation_shows_end(mock_print, service_ui):
 
     service_ui.display_service_events("test-cluster", "test-service")
 
-    # The service name should be truncated to show the end (suffix-v2)
     mock_print.assert_called_once()
-    # We can't easily test the exact truncation without complex argument inspection,
-    # but we know the logic truncates to show the last 15 chars with "..." prefix
 
 
 @patch("lazy_ecs.features.service.ui.console")

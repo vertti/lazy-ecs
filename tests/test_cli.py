@@ -20,7 +20,6 @@ def test_main_successful_flow(
     mock_create_cloudwatch_client,
     mock_app_console,
 ) -> None:
-    """Test main function with successful cluster selection."""
     mock_navigator = Mock()
     mock_navigator.select_cluster.return_value = "production"
     mock_navigator_class.return_value = mock_navigator
