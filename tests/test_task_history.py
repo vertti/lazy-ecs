@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import Any
+from unittest.mock import Mock
 
 import boto3
 import pytest
@@ -14,8 +15,7 @@ class TestTaskHistoryParsing:
     """Test parsing task history and failure information."""
 
     def test_parse_stopped_task_with_stop_code(self):
-        """Test parsing stopped task with stop code."""
-        _mock_task_data: dict[str, Any] = {
+        task_data: dict[str, Any] = {
             "taskArn": "arn:aws:ecs:us-east-1:123456789012:task/cluster/task-id",
             "lastStatus": "STOPPED",
             "desiredStatus": "STOPPED",
@@ -36,7 +36,7 @@ class TestTaskHistoryParsing:
             ],
         }
 
-        _expected_history = {
+        expected = {
             "task_arn": "arn:aws:ecs:us-east-1:123456789012:task/cluster/task-id",
             "task_definition_name": "web-api",
             "task_definition_revision": "5",
@@ -58,12 +58,12 @@ class TestTaskHistoryParsing:
             ],
         }
 
-        result = TaskService._parse_task_history(_mock_task_data)  # type: ignore
-        assert result == _expected_history
+        result = TaskService._parse_task_history(task_data)  # type: ignore
+        assert result == expected
 
     def test_parse_running_task_no_failure_info(self):
         """Test parsing running task with no failure information."""
-        _mock_task_data: dict[str, Any] = {
+        task_data: dict[str, Any] = {
             "taskArn": "arn:aws:ecs:us-east-1:123456789012:task/cluster/task-id-2",
             "lastStatus": "RUNNING",
             "desiredStatus": "RUNNING",
@@ -73,7 +73,7 @@ class TestTaskHistoryParsing:
             "containers": [{"name": "web-api", "healthStatus": "HEALTHY", "lastStatus": "RUNNING"}],
         }
 
-        _expected_history = {
+        expected = {
             "task_arn": "arn:aws:ecs:us-east-1:123456789012:task/cluster/task-id-2",
             "task_definition_name": "web-api",
             "task_definition_revision": "6",
@@ -95,8 +95,8 @@ class TestTaskHistoryParsing:
             ],
         }
 
-        result = TaskService._parse_task_history(_mock_task_data)  # type: ignore
-        assert result == _expected_history
+        result = TaskService._parse_task_history(task_data)  # type: ignore
+        assert result == expected
 
     def test_analyze_oom_kill_failure(self):
         """Test analysis of OOM kill failure."""
@@ -117,17 +117,109 @@ class TestTaskHistoryParsing:
         assert "✅" in result
         assert "completed successfully" in result.lower()
 
-    def test_analyze_timeout_failure(self):
-        """Test analysis of timeout failure."""
-        result = TaskService._analyze_container_failure(
-            "web-api",
-            137,
-            "Task killed",
-            "TaskFailedToStart",
-            "Task timed out",
-        )
-        assert "⏰" in result
-        assert "timeout" in result.lower()
+    @pytest.mark.parametrize(
+        ("exit_code", "reason", "expected_emoji", "expected_text"),
+        [
+            (137, "Task killed", "⏰", "timeout"),
+            (139, None, "💥", "segmentation fault"),
+            (143, None, "🛑", "gracefully stopped"),
+            (1, "Application crashed", "❌", "application error"),
+            (42, "Unknown error", "🔴", "exit code 42"),
+        ],
+    )
+    def test_analyze_container_failure_exit_codes(self, exit_code, reason, expected_emoji, expected_text):
+        result = TaskService._analyze_container_failure("container", exit_code, reason, None, None)
+        assert expected_emoji in result
+        assert expected_text in result.lower()
+
+    @pytest.mark.parametrize(
+        ("stop_code", "reason", "expected_emoji", "expected_text"),
+        [
+            ("TaskFailedToStart", "CannotPullContainerError: image not found", "📦", "pull container image"),
+            ("TaskFailedToStart", "ResourcesNotAvailable: insufficient memory", "⚠️", "insufficient resources"),
+            ("TaskFailedToStart", "Some other reason", "🚫", "failed to start"),
+            ("ServiceSchedulerInitiated", "Service scaling", "🔄", "service scheduler"),
+            ("SpotInterruption", "EC2 spot instance reclaimed", "💸", "spot instance interruption"),
+            ("UserInitiated", "Stopped by admin", "👤", "manually stopped"),
+        ],
+    )
+    def test_analyze_task_failure_stop_codes(self, stop_code, reason, expected_emoji, expected_text):
+        result = TaskService._analyze_task_failure(stop_code, reason)
+        assert expected_emoji in result
+        assert expected_text in result.lower()
+
+    def test_get_task_failure_analysis_for_running_task(self):
+        task_history = {
+            "task_arn": "arn:task",
+            "task_definition_name": "app",
+            "task_definition_revision": "1",
+            "last_status": "RUNNING",
+            "desired_status": "RUNNING",
+            "stop_code": None,
+            "stopped_reason": None,
+            "created_at": None,
+            "started_at": None,
+            "stopped_at": None,
+            "containers": [],
+        }
+        service = TaskService(Mock())
+
+        result = service.get_task_failure_analysis(task_history)  # type: ignore[arg-type]
+
+        assert "✅" in result
+        assert "running" in result.lower()
+
+    def test_get_task_failure_analysis_container_failure(self):
+        task_history = {
+            "task_arn": "arn:task",
+            "task_definition_name": "app",
+            "task_definition_revision": "1",
+            "last_status": "STOPPED",
+            "desired_status": "STOPPED",
+            "stop_code": "TaskFailedToStart",
+            "stopped_reason": "Essential container exited",
+            "created_at": None,
+            "started_at": None,
+            "stopped_at": None,
+            "containers": [
+                {
+                    "name": "web",
+                    "exit_code": 1,
+                    "reason": "App crashed",
+                    "health_status": None,
+                    "last_status": "STOPPED",
+                }
+            ],
+        }
+        service = TaskService(Mock())
+
+        result = service.get_task_failure_analysis(task_history)  # type: ignore[arg-type]
+
+        assert "❌" in result
+        assert "application error" in result.lower()
+
+    def test_get_task_failure_analysis_task_level_failure(self):
+        task_history = {
+            "task_arn": "arn:task",
+            "task_definition_name": "app",
+            "task_definition_revision": "1",
+            "last_status": "STOPPED",
+            "desired_status": "STOPPED",
+            "stop_code": "TaskFailedToStart",
+            "stopped_reason": "CannotPullContainerError",
+            "created_at": None,
+            "started_at": None,
+            "stopped_at": None,
+            "containers": [
+                {"name": "web", "exit_code": None, "reason": None, "health_status": None, "last_status": "STOPPED"}
+            ],
+        }
+        service = TaskService(Mock())
+
+        result = service.get_task_failure_analysis(task_history)  # type: ignore[arg-type]
+
+        assert "📦" in result
+        assert "pull container image" in result.lower()
 
 
 class TestTaskHistoryService:
@@ -162,9 +254,9 @@ class TestTaskHistoryService:
 
     def test_get_task_history_includes_stopped_tasks(self, mock_ecs_client):
         """Test getting task history includes stopped tasks."""
-        _service = TaskService(mock_ecs_client)
+        service = TaskService(mock_ecs_client)
 
-        result = _service.get_task_history("test-cluster", "web-service")
+        result = service.get_task_history("test-cluster", "web-service")
         assert len(result) > 0
         assert any(task["last_status"] == "STOPPED" for task in result)
 
@@ -173,9 +265,9 @@ class TestTaskHistoryService:
         pages = [{"taskArns": []}]
         client = mock_paginated_client(pages)
 
-        _service = TaskService(client)
+        service = TaskService(client)
 
-        result = _service.get_task_history("test-cluster", "web-service")
+        result = service.get_task_history("test-cluster", "web-service")
         assert result == []
 
 

@@ -10,11 +10,6 @@ from lazy_ecs.features.container.ui import ContainerUI
 
 
 @pytest.fixture
-def mock_ecs_client():
-    return Mock()
-
-
-@pytest.fixture
 def mock_task_service():
     return Mock()
 

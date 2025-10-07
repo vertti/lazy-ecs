@@ -43,6 +43,7 @@ jobs:
         run: uv run pytest
 
       - name: Upload coverage to Coveralls
+        if: matrix.python-version == '3.13'
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

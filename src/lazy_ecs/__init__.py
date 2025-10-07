@@ -12,9 +12,7 @@ if TYPE_CHECKING:
     from mypy_boto3_sts.client import STSClient
 
 from .aws_service import ECSService
-from .core.navigation import handle_navigation, parse_selection
-from .core.types import TaskDetails
-from .core.utils import show_spinner
+from .core.app import navigate_clusters
 from .ui import ECSNavigator
 
 console = Console()
@@ -37,7 +35,7 @@ def main() -> None:
         ecs_service = ECSService(ecs_client, sts_client, logs_client, cloudwatch_client)
         navigator = ECSNavigator(ecs_service)
 
-        _navigate_clusters(navigator, ecs_service)
+        navigate_clusters(navigator, ecs_service)
 
     except Exception as e:
         console.print(f"\n❌ Error: {e}", style="red")
@@ -86,131 +84,6 @@ def _create_cloudwatch_client(profile_name: str | None) -> "CloudWatchClient":
 
     session = boto3.Session(profile_name=profile_name) if profile_name else boto3
     return session.client("cloudwatch", config=config)
-
-
-def _navigate_clusters(navigator: ECSNavigator, ecs_service: ECSService) -> None:
-    """Handle cluster-level navigation with back support."""
-    while True:
-        selected_cluster = navigator.select_cluster()
-
-        if not selected_cluster:
-            console.print("\n❌ No cluster selected. Goodbye!", style="yellow")
-            break
-
-        console.print(f"\n✅ Selected cluster: {selected_cluster}", style="green")
-
-        if _navigate_services(navigator, ecs_service, selected_cluster):
-            continue  # Back to cluster selection
-        break  # Exit was chosen
-
-
-def _navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster_name: str) -> bool:
-    """Handle service-level navigation. Returns True if back was chosen, False if exit."""
-    service_selection = navigator.select_service(cluster_name)
-
-    # Handle navigation responses (back/exit)
-    should_continue, should_exit = handle_navigation(service_selection)
-    if not should_continue:
-        return not should_exit  # True for back, False for exit
-
-    selection_type, selected_service, _ = parse_selection(service_selection)
-    if selection_type != "service":
-        return True
-
-    console.print(f"\n✅ Selected service: {selected_service}", style="green")
-
-    while True:
-        selection = navigator.select_service_action(cluster_name, selected_service)
-
-        # Handle navigation responses
-        should_continue, should_exit = handle_navigation(selection)
-        if not should_continue:
-            return not should_exit  # True for back, False for exit
-
-        selection_type, action_name, task_arn = parse_selection(selection)
-        if selection_type == "task" and action_name == "show_details":
-            with show_spinner():
-                task_details = ecs_service.get_task_details(cluster_name, selected_service, task_arn)
-            if task_details:
-                navigator.display_task_details(task_details)
-                # Navigate to task features, handle back navigation
-                if _handle_task_features(navigator, cluster_name, task_arn, task_details, selected_service):
-                    continue  # Back to service selection
-                return False  # Exit was chosen
-            console.print(f"\n⚠️ Could not fetch task details for {task_arn}", style="yellow")
-
-        elif selection_type == "action" and action_name == "force_deployment":
-            navigator.handle_force_deployment(cluster_name, selected_service)
-            # Continue the loop to show the menu again
-
-        elif selection_type == "action" and action_name == "show_events":
-            navigator.show_service_events(cluster_name, selected_service)
-            # Continue the loop to show the menu again
-
-        elif selection_type == "action" and action_name == "show_metrics":
-            navigator.show_service_metrics(cluster_name, selected_service)
-            # Continue the loop to show the menu again
-
-        elif selection_type == "action" and action_name == "open_console":
-            navigator.open_service_in_console(cluster_name, selected_service)
-            # Continue the loop to show the menu again
-
-
-_CONTAINER_ACTIONS = {
-    "tail_logs": lambda nav, cluster, task_arn, container: nav.show_container_logs_live_tail(
-        cluster,
-        task_arn,
-        container,
-    ),
-    "show_env": lambda nav, cluster, task_arn, container: nav.show_container_environment_variables(
-        cluster,
-        task_arn,
-        container,
-    ),
-    "show_secrets": lambda nav, cluster, task_arn, container: nav.show_container_secrets(cluster, task_arn, container),
-    "show_ports": lambda nav, cluster, task_arn, container: nav.show_container_port_mappings(
-        cluster,
-        task_arn,
-        container,
-    ),
-    "show_volumes": lambda nav, cluster, task_arn, container: nav.show_container_volume_mounts(
-        cluster,
-        task_arn,
-        container,
-    ),
-}
-
-_TASK_ACTIONS = {
-    "show_history": lambda nav, cluster, service, _task_arn, _task_details: nav.show_task_history(cluster, service),
-    "show_details": lambda nav, _cluster, _service, _task_arn, task_details: nav.display_task_details(task_details),
-    "compare_definitions": lambda nav, _cluster, _service, _task_arn, task_details: nav.show_task_definition_comparison(
-        task_details,
-    ),
-    "open_console": lambda nav, cluster, _service, task_arn, _task_details: nav.open_task_in_console(cluster, task_arn),
-}
-
-
-def _handle_task_features(
-    navigator: ECSNavigator,
-    cluster_name: str,
-    task_arn: str,
-    task_details: TaskDetails | None,
-    service_name: str,
-) -> bool:
-    """Handle task feature selection and execution. Returns True if back was chosen, False if exit."""
-    while True:
-        selection = navigator.select_task_feature(task_details)
-
-        should_continue, should_exit = handle_navigation(selection)
-        if not should_continue:
-            return not should_exit
-
-        selection_type, action_name, container_name = parse_selection(selection)
-
-        if selection_type == "container_action" and action_name in _CONTAINER_ACTIONS:
-            _CONTAINER_ACTIONS[action_name](navigator, cluster_name, task_arn, container_name)
-        elif selection_type == "task_action" and action_name in _TASK_ACTIONS:
-            _TASK_ACTIONS[action_name](navigator, cluster_name, service_name, task_arn, task_details)
 
 
 if __name__ == "__main__":

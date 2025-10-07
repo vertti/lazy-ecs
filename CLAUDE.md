@@ -270,9 +270,30 @@ def test_update_service_status():
 
 ## Code Style Guidelines
 
-### Comments
+### Comments and Docstrings
 
-Remove obvious comments that repeat what the code already says. Only add comments for complex business logic or non-obvious decisions. Test names should be self-documenting, no docstrings needed.
+**CRITICAL: Remove ALL obvious docstrings that just repeat the function signature.**
+
+Functions with clear names don't need docstrings. Only add docstrings for complex business logic or non-obvious behavior.
+
+**Bad (obvious docstring):**
+
+```python
+def build_log_group_arn(region: str, account_id: str, log_group: str) -> str:
+    """Build CloudWatch log group ARN from components."""
+    return f"arn:aws:logs:{region}:{account_id}:log-group:{log_group}"
+```
+
+**Good (no docstring needed):**
+
+```python
+def build_log_group_arn(region: str, account_id: str, log_group: str) -> str:
+    return f"arn:aws:logs:{region}:{account_id}:log-group:{log_group}"
+```
+
+Test names should be self-documenting, no docstrings needed.
+
+Remove obvious comments that repeat what the code already says. Only add comments for complex business logic or non-obvious decisions.
 
 **Bad:**
 
