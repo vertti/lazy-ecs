@@ -100,14 +100,16 @@ def paginate_aws_list(
         "list_tasks",
     ],
     result_key: str,
-    **kwargs: str,
+    **kwargs: Any,  # noqa: ANN401
 ) -> list[str]:
     paginator = client.get_paginator(operation_name)  # type: ignore[no-matching-overload]
     page_iterator = paginator.paginate(**kwargs)
 
     results: list[str] = []
     for page in page_iterator:
-        results.extend(page.get(result_key, []))
+        items = page.get(result_key, [])
+        if isinstance(items, list):
+            results.extend(items)
 
     return results
 
