@@ -107,10 +107,6 @@ class ServiceUI(BaseUIComponent):
             if len(service_display) > 18:
                 service_display = "..." + service_display[-15:]
 
-            # Now we have more space for the actual message
-            if len(message) > 100:
-                message = message[:97] + "..."
-
             table.add_row(time_str, type_display, service_display, message)
 
         console.print(table)
