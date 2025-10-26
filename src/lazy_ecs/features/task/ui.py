@@ -19,7 +19,6 @@ console = Console()
 
 # Constants
 MAX_RECENT_TASKS = 10
-MAX_STATUS_DETAILS_LENGTH = 50
 SEPARATOR_WIDTH = 80
 
 _CHANGE_TYPE_DISPLAY = {
@@ -203,7 +202,7 @@ class TaskUI(BaseUIComponent):
         table.add_column("Task ID", style="yellow", width=12)
         table.add_column("Revision", style="green", width=8)
         table.add_column("Created", style="blue", width=16)
-        table.add_column("Status Details", width=40)
+        table.add_column("Status Details")
         return table
 
     def _format_task_row(self, task: TaskHistoryDetails) -> tuple[str, str, str, str, str]:
@@ -225,9 +224,6 @@ class TaskUI(BaseUIComponent):
             status_details = f"[red]{status_details}[/red]"
         else:
             status_details = f"[yellow]{status_details}[/yellow]"
-
-        if len(status_details) > MAX_STATUS_DETAILS_LENGTH:
-            status_details = status_details[:47] + "..."
 
         return status_display, task_id, revision, created_time, status_details
 
