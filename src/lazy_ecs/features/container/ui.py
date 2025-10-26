@@ -236,8 +236,7 @@ class ContainerUI(BaseUIComponent):
         sorted_vars = sorted(env_vars.items())
 
         for name, value in sorted_vars:
-            display_value = value if len(value) <= 80 else f"{value[:77]}..."
-            console.print(f"{name}={display_value}", style="white")
+            console.print(f"{name}={value}", style="white")
 
         console.print("=" * 60, style="dim")
         console.print(f"📊 Total: {len(env_vars)} environment variables", style="blue")
