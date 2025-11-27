@@ -436,7 +436,7 @@ requires-dist = [
 dev = [
     { name = "boto3-stubs", extras = ["ecs", "logs", "sts", "cloudwatch"], specifier = "==1.40.30" },
     { name = "coveralls", specifier = ">=4.0.1" },
-    { name = "moto", extras = ["ecs"], specifier = "==5.1.16" },
+    { name = "moto", extras = ["ecs"], specifier = "==5.1.17" },
     { name = "pre-commit", specifier = "==4.4.0" },
     { name = "pyrefly", specifier = "==0.39.4" },
     { name = "pytest", specifier = "==9.0.1" },
@@ -516,7 +516,7 @@ wheels = [
 
 [[package]]
 name = "moto"
-version = "5.1.16"
+version = "5.1.17"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boto3" },
@@ -529,9 +529,9 @@ dependencies = [
     { name = "werkzeug" },
     { name = "xmltodict" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/33/0e/346bdadba09fd86854fa3363892ca12f4232652c9d210b93c673c48807ea/moto-5.1.16.tar.gz", hash = "sha256:792045b345d16a8aa09068ad4a7656894e707c796f0799b438fffb738e8fae7c", size = 8229581, upload-time = "2025-11-02T21:56:40.257Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fa/bc/569983c0ccc80d2d3de0197ac2abb6b8a502872b485d09d2606c833a0d22/moto-5.1.17.tar.gz", hash = "sha256:31b832de25846529963bcb273448240cae34b9cbaff0bdae15f75c716c08a5f8", size = 8250034, upload-time = "2025-11-17T23:23:25.522Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/a5/403b7adbf9932861ff7f3b19f4f9b9b8ec0dceb1fcea0633046b7f5e9ced/moto-5.1.16-py3-none-any.whl", hash = "sha256:8e6186f20b3aa91755d186e47701fe7e47f74e625c36fdf3bd7747da68468b19", size = 6330584, upload-time = "2025-11-02T21:56:37.585Z" },
+    { url = "https://files.pythonhosted.org/packages/92/f3/1e1a1a8a8cc3cf9362cbfb12dde1673851dd632d851327236b6a4ed9dd73/moto-5.1.17-py3-none-any.whl", hash = "sha256:7c59e92f6fc50a425b718ab1d490eee570dc0cf3dc7dc3d7ab222b8f1e1cb7fc", size = 6343788, upload-time = "2025-11-17T23:23:22.956Z" },
 ]
 
 [[package]]
