@@ -1,5 +1,4 @@
 [tools]
-dprint = "latest"
-node = "latest"
-python = "latest"
-uv = "latest"
+dprint = "0.51.1"
+python = "3.13.11"
+uv = "0.9.24"
