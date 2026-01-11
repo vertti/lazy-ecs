@@ -130,7 +130,7 @@ class TaskUI(BaseUIComponent):
             f"Stop task '{task_id}' in service '{service_name}'?",
         ).ask()
 
-        if confirm:
+        if confirm is True:
             with show_spinner():
                 success, error = self.task_service.stop_task(cluster_name, task_arn)
             if success:
