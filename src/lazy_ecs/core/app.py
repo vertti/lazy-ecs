@@ -190,6 +190,9 @@ def get_task_action_handlers() -> dict[str, "Callable"]:
         "open_console": lambda nav, cluster, _service, task_arn, _task_details: nav.open_task_in_console(
             cluster, task_arn
         ),
+        "stop_task": lambda nav, cluster, service, task_arn, _task_details: nav.handle_stop_task(
+            cluster, task_arn, service
+        ),
     }
 
 

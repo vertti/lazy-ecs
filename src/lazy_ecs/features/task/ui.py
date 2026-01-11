@@ -5,13 +5,14 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+import questionary
 from rich.console import Console
 from rich.table import Table
 
 from ...core.base import BaseUIComponent
 from ...core.navigation import select_with_auto_pagination
 from ...core.types import TaskDetails, TaskHistoryDetails
-from ...core.utils import print_warning, show_spinner
+from ...core.utils import extract_task_id, print_warning, show_spinner
 from .comparison import TaskComparisonService, compare_task_definitions
 from .task import TaskService
 
@@ -119,6 +120,25 @@ class TaskUI(BaseUIComponent):
 
         console.print("=" * 80, style="dim")
 
+    def handle_stop_task(self, cluster_name: str, task_arn: str, service_name: str) -> None:
+        task_id = extract_task_id(task_arn)
+        console.print(
+            "\nNote: ECS will start a replacement task to maintain the service's desired count.",
+            style="dim",
+        )
+        confirm = questionary.confirm(
+            f"Stop task '{task_id}' in service '{service_name}'?",
+        ).ask()
+
+        if confirm is True:
+            with show_spinner():
+                success, error = self.task_service.stop_task(cluster_name, task_arn)
+            if success:
+                console.print("Task stopped successfully", style="green")
+            else:
+                error_msg = f": {error}" if error else ""
+                console.print(f"Failed to stop task{error_msg}", style="red")
+
     def select_task_feature(self, task_details: TaskDetails | None) -> str | None:
         """Present feature menu for the selected task."""
         if not task_details:
@@ -137,6 +157,7 @@ class TaskUI(BaseUIComponent):
                 {"name": "Show task history and failures", "value": "task_action:show_history"},
                 {"name": "Compare task definitions", "value": "task_action:compare_definitions"},
                 {"name": "🌐 Open in AWS console", "value": "task_action:open_console"},
+                {"name": "Stop task", "value": "task_action:stop_task"},
             ],
         )
 
