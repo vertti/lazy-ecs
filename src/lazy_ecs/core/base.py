@@ -1,18 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from rich.console import Console
 
 from .navigation import select_with_navigation
-
-if TYPE_CHECKING:
-    from mypy_boto3_ecs.client import ECSClient
-
-
-class BaseAWSService:
-    def __init__(self, ecs_client: ECSClient) -> None:
-        self.ecs_client = ecs_client
 
 
 class BaseUIComponent:

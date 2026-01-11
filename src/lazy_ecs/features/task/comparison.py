@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ...core.base import BaseAWSService
-
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
     from mypy_boto3_ecs.type_defs import TaskDefinitionTypeDef
@@ -161,9 +159,9 @@ def _compare_dicts(
             changes.append({"type": f"{change_prefix}_added", "container": container_name, "key": key, "value": value})
 
 
-class TaskComparisonService(BaseAWSService):
+class TaskComparisonService:
     def __init__(self, ecs_client: ECSClient) -> None:
-        super().__init__(ecs_client)
+        self.ecs_client = ecs_client
 
     def list_task_definition_revisions(self, family: str, limit: int = 10) -> list[dict[str, Any]]:
         response = self.ecs_client.list_task_definitions(familyPrefix=family, sort="DESC")

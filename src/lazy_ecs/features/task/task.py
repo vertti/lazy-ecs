@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any
 
 from botocore.exceptions import BotoCoreError, ClientError
 
-from ...core.base import BaseAWSService
 from ...core.types import TaskDetails, TaskHistoryDetails, TaskInfo
 from ...core.utils import batch_items, paginate_aws_list
 
@@ -13,9 +12,9 @@ if TYPE_CHECKING:
     from mypy_boto3_ecs.type_defs import TaskDefinitionTypeDef, TaskTypeDef
 
 
-class TaskService(BaseAWSService):
+class TaskService:
     def __init__(self, ecs_client: ECSClient) -> None:
-        super().__init__(ecs_client)
+        self.ecs_client = ecs_client
 
     def get_tasks(self, cluster_name: str, service_name: str) -> list[str]:
         return paginate_aws_list(

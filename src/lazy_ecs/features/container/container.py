@@ -5,7 +5,6 @@ from contextlib import suppress
 from os import environ
 from typing import TYPE_CHECKING, Any
 
-from ...core.base import BaseAWSService
 from ...core.context import ContainerContext
 from ...core.types import LogConfig
 
@@ -32,7 +31,7 @@ def build_log_stream_name(stream_prefix: str, container_name: str, task_id: str)
     return f"{stream_prefix}/{container_name}/{task_id}"
 
 
-class ContainerService(BaseAWSService):
+class ContainerService:
     def __init__(
         self,
         ecs_client: ECSClient,
@@ -40,7 +39,7 @@ class ContainerService(BaseAWSService):
         sts_client: STSClient | None = None,
         logs_client: CloudWatchLogsClient | None = None,
     ) -> None:
-        super().__init__(ecs_client)
+        self.ecs_client = ecs_client
         self.task_service = task_service
         self.sts_client = sts_client
         self.logs_client = logs_client

@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from ...core.base import BaseAWSService
 from ...core.types import ServiceEvent, ServiceInfo
 from ...core.utils import batch_items, determine_service_status, extract_name_from_arn, paginate_aws_list
 
@@ -14,9 +13,9 @@ if TYPE_CHECKING:
     from mypy_boto3_ecs.type_defs import ServiceTypeDef
 
 
-class ServiceService(BaseAWSService):
+class ServiceService:
     def __init__(self, ecs_client: ECSClient) -> None:
-        super().__init__(ecs_client)
+        self.ecs_client = ecs_client
 
     def get_services(self, cluster_name: str) -> list[str]:
         service_arns = paginate_aws_list(self.ecs_client, "list_services", "serviceArns", cluster=cluster_name)
