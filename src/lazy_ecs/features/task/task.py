@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from botocore.exceptions import BotoCoreError, ClientError
+
 from ...core.base import BaseAWSService
 from ...core.types import TaskDetails, TaskHistoryDetails, TaskInfo
 from ...core.utils import batch_items, paginate_aws_list
@@ -28,12 +30,16 @@ class TaskService(BaseAWSService):
             serviceName=service_name,
         )
 
-    def stop_task(self, cluster_name: str, task_arn: str, reason: str = "Stopped via lazy-ecs") -> bool:
+    def stop_task(
+        self, cluster_name: str, task_arn: str, reason: str = "Stopped via lazy-ecs"
+    ) -> tuple[bool, str | None]:
         try:
             self.ecs_client.stop_task(cluster=cluster_name, task=task_arn, reason=reason)
-            return True
-        except Exception:
-            return False
+            return True, None
+        except ClientError as e:
+            return False, e.response.get("Error", {}).get("Message", str(e))
+        except BotoCoreError as e:
+            return False, str(e)
 
     def get_task_info(self, cluster_name: str, service_name: str, desired_task_def_arn: str | None) -> list[TaskInfo]:
         task_arns = self.get_tasks(cluster_name, service_name)

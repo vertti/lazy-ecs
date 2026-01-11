@@ -43,9 +43,10 @@ def test_stop_task_success():
     mock_ecs_client.stop_task.return_value = {"task": {"taskArn": "arn:task"}}
     task_service = TaskService(mock_ecs_client)
 
-    result = task_service.stop_task("test-cluster", "arn:task:123")
+    success, error = task_service.stop_task("test-cluster", "arn:task:123")
 
-    assert result is True
+    assert success is True
+    assert error is None
     mock_ecs_client.stop_task.assert_called_once_with(
         cluster="test-cluster",
         task="arn:task:123",
@@ -58,9 +59,10 @@ def test_stop_task_with_custom_reason():
     mock_ecs_client.stop_task.return_value = {"task": {"taskArn": "arn:task"}}
     task_service = TaskService(mock_ecs_client)
 
-    result = task_service.stop_task("test-cluster", "arn:task:123", reason="Manual restart")
+    success, error = task_service.stop_task("test-cluster", "arn:task:123", reason="Manual restart")
 
-    assert result is True
+    assert success is True
+    assert error is None
     mock_ecs_client.stop_task.assert_called_once_with(
         cluster="test-cluster",
         task="arn:task:123",
@@ -68,11 +70,22 @@ def test_stop_task_with_custom_reason():
     )
 
 
-def test_stop_task_failure():
+def test_stop_task_client_error():
+    from botocore.exceptions import ClientError
+
     mock_ecs_client = Mock()
-    mock_ecs_client.stop_task.side_effect = Exception("Access denied")
+    mock_ecs_client.stop_task.side_effect = ClientError(
+        {"Error": {"Code": "AccessDenied", "Message": "Access denied"}},
+        "StopTask",
+    )
     task_service = TaskService(mock_ecs_client)
 
-    result = task_service.stop_task("test-cluster", "arn:task:123")
+    success, error = task_service.stop_task("test-cluster", "arn:task:123")
 
-    assert result is False
+    assert success is False
+    assert error == "Access denied"
+    mock_ecs_client.stop_task.assert_called_once_with(
+        cluster="test-cluster",
+        task="arn:task:123",
+        reason="Stopped via lazy-ecs",
+    )

@@ -169,7 +169,7 @@ def test_handle_stop_task_confirmed(mock_confirm, mock_spinner, mock_print, task
     mock_confirm.return_value.ask.return_value = True
     mock_spinner.return_value.__enter__ = Mock()
     mock_spinner.return_value.__exit__ = Mock()
-    task_ui.task_service.stop_task = Mock(return_value=True)
+    task_ui.task_service.stop_task = Mock(return_value=(True, None))
 
     task_ui.handle_stop_task(
         "test-cluster",
@@ -177,11 +177,12 @@ def test_handle_stop_task_confirmed(mock_confirm, mock_spinner, mock_print, task
         "web-api",
     )
 
+    mock_confirm.assert_called_once()
+    mock_spinner.assert_called_once()
     task_ui.task_service.stop_task.assert_called_once_with(
         "test-cluster",
         "arn:aws:ecs:us-east-1:123456789012:task/test-cluster/abc123def456",
     )
-    mock_print.assert_called()
     success_call = [c for c in mock_print.call_args_list if "stopped successfully" in str(c)]
     assert len(success_call) == 1
 
@@ -203,10 +204,10 @@ def test_handle_stop_task_failure(mock_confirm, mock_spinner, mock_print, task_u
     mock_confirm.return_value.ask.return_value = True
     mock_spinner.return_value.__enter__ = Mock()
     mock_spinner.return_value.__exit__ = Mock()
-    task_ui.task_service.stop_task = Mock(return_value=False)
+    task_ui.task_service.stop_task = Mock(return_value=(False, "Access denied"))
 
     task_ui.handle_stop_task("test-cluster", "arn:task:abc123", "web-api")
 
-    task_ui.task_service.stop_task.assert_called_once()
-    error_call = [c for c in mock_print.call_args_list if "Failed to stop" in str(c)]
+    task_ui.task_service.stop_task.assert_called_once_with("test-cluster", "arn:task:abc123")
+    error_call = [c for c in mock_print.call_args_list if "Failed to stop task: Access denied" in str(c)]
     assert len(error_call) == 1

@@ -132,11 +132,12 @@ class TaskUI(BaseUIComponent):
 
         if confirm:
             with show_spinner():
-                success = self.task_service.stop_task(cluster_name, task_arn)
+                success, error = self.task_service.stop_task(cluster_name, task_arn)
             if success:
                 console.print("Task stopped successfully", style="green")
             else:
-                console.print("Failed to stop task", style="red")
+                error_msg = f": {error}" if error else ""
+                console.print(f"Failed to stop task{error_msg}", style="red")
 
     def select_task_feature(self, task_details: TaskDetails | None) -> str | None:
         """Present feature menu for the selected task."""
