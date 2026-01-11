@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Install tools with mise
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@v3
 
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
