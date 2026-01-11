@@ -222,7 +222,6 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 
 Features listed in priority order (by ROI - implementation effort vs. usage frequency):
 
-- **Quick task failure reason** - Show failure reason inline without navigation
 - **Health check configuration** - Display health check settings and current status
 - **Export container environment** - Save environment variables to .env file
 - **Export task definition** - Save task definitions as JSON/YAML files
