@@ -14,7 +14,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Install tools with mise
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@v3
 
       - name: Install dependencies
         run: uv sync --python 3.11
