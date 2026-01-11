@@ -138,3 +138,6 @@ class ECSNavigator(BaseUIComponent):
         url = build_task_url(region, cluster_name, task_arn)
         console.print(f"\n🌐 Opening task in AWS console: {url}", style="cyan")
         webbrowser.open(url)
+
+    def handle_stop_task(self, cluster_name: str, task_arn: str, service_name: str) -> None:
+        return self._task_ui.handle_stop_task(cluster_name, task_arn, service_name)

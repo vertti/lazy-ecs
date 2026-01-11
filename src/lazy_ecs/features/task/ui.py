@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+import questionary
 from rich.console import Console
 from rich.table import Table
 
@@ -119,6 +120,24 @@ class TaskUI(BaseUIComponent):
 
         console.print("=" * 80, style="dim")
 
+    def handle_stop_task(self, cluster_name: str, task_arn: str, service_name: str) -> None:
+        task_id = task_arn.split("/")[-1][:8]
+        console.print(
+            "\nNote: ECS will start a replacement task to maintain the service's desired count.",
+            style="dim",
+        )
+        confirm = questionary.confirm(
+            f"Stop task '{task_id}' in service '{service_name}'?",
+        ).ask()
+
+        if confirm:
+            with show_spinner():
+                success = self.task_service.stop_task(cluster_name, task_arn)
+            if success:
+                console.print("Task stopped successfully", style="green")
+            else:
+                console.print("Failed to stop task", style="red")
+
     def select_task_feature(self, task_details: TaskDetails | None) -> str | None:
         """Present feature menu for the selected task."""
         if not task_details:
@@ -137,6 +156,7 @@ class TaskUI(BaseUIComponent):
                 {"name": "Show task history and failures", "value": "task_action:show_history"},
                 {"name": "Compare task definitions", "value": "task_action:compare_definitions"},
                 {"name": "🌐 Open in AWS console", "value": "task_action:open_console"},
+                {"name": "Stop task", "value": "task_action:stop_task"},
             ],
         )
 

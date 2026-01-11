@@ -28,6 +28,13 @@ class TaskService(BaseAWSService):
             serviceName=service_name,
         )
 
+    def stop_task(self, cluster_name: str, task_arn: str, reason: str = "Stopped via lazy-ecs") -> bool:
+        try:
+            self.ecs_client.stop_task(cluster=cluster_name, task=task_arn, reason=reason)
+            return True
+        except Exception:
+            return False
+
     def get_task_info(self, cluster_name: str, service_name: str, desired_task_def_arn: str | None) -> list[TaskInfo]:
         task_arns = self.get_tasks(cluster_name, service_name)
         if not task_arns:

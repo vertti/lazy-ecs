@@ -141,4 +141,72 @@ def test_select_task_feature_with_many_containers(mock_select, task_ui):
 
     call_args = mock_select.call_args
     choices = call_args[0][1]
-    assert len(choices) == 54  # 4 task actions (details, history, compare, console) + 10 containers * 5 actions each
+    assert (
+        len(choices) == 55
+    )  # 5 task actions (details, history, compare, console, stop) + 10 containers * 5 actions each
+
+
+@patch("lazy_ecs.features.task.ui.select_with_auto_pagination")
+def test_select_task_feature_includes_stop_task(mock_select, task_ui):
+    task_details = {"containers": [{"name": "web-api"}]}
+    mock_select.return_value = "task_action:stop_task"
+
+    result = task_ui.select_task_feature(task_details)
+
+    call_args = mock_select.call_args
+    choices = call_args[0][1]
+
+    stop_task_choices = [c for c in choices if c["value"] == "task_action:stop_task"]
+    assert len(stop_task_choices) == 1
+    assert stop_task_choices[0]["name"] == "Stop task"
+    assert result == "task_action:stop_task"
+
+
+@patch("lazy_ecs.features.task.ui.console.print")
+@patch("lazy_ecs.features.task.ui.show_spinner")
+@patch("lazy_ecs.features.task.ui.questionary.confirm")
+def test_handle_stop_task_confirmed(mock_confirm, mock_spinner, mock_print, task_ui):
+    mock_confirm.return_value.ask.return_value = True
+    mock_spinner.return_value.__enter__ = Mock()
+    mock_spinner.return_value.__exit__ = Mock()
+    task_ui.task_service.stop_task = Mock(return_value=True)
+
+    task_ui.handle_stop_task(
+        "test-cluster",
+        "arn:aws:ecs:us-east-1:123456789012:task/test-cluster/abc123def456",
+        "web-api",
+    )
+
+    task_ui.task_service.stop_task.assert_called_once_with(
+        "test-cluster",
+        "arn:aws:ecs:us-east-1:123456789012:task/test-cluster/abc123def456",
+    )
+    mock_print.assert_called()
+    success_call = [c for c in mock_print.call_args_list if "stopped successfully" in str(c)]
+    assert len(success_call) == 1
+
+
+@patch("lazy_ecs.features.task.ui.questionary.confirm")
+def test_handle_stop_task_cancelled(mock_confirm, task_ui):
+    mock_confirm.return_value.ask.return_value = False
+    task_ui.task_service.stop_task = Mock()
+
+    task_ui.handle_stop_task("test-cluster", "arn:task:123", "web-api")
+
+    task_ui.task_service.stop_task.assert_not_called()
+
+
+@patch("lazy_ecs.features.task.ui.console.print")
+@patch("lazy_ecs.features.task.ui.show_spinner")
+@patch("lazy_ecs.features.task.ui.questionary.confirm")
+def test_handle_stop_task_failure(mock_confirm, mock_spinner, mock_print, task_ui):
+    mock_confirm.return_value.ask.return_value = True
+    mock_spinner.return_value.__enter__ = Mock()
+    mock_spinner.return_value.__exit__ = Mock()
+    task_ui.task_service.stop_task = Mock(return_value=False)
+
+    task_ui.handle_stop_task("test-cluster", "arn:task:abc123", "web-api")
+
+    task_ui.task_service.stop_task.assert_called_once()
+    error_call = [c for c in mock_print.call_args_list if "Failed to stop" in str(c)]
+    assert len(error_call) == 1

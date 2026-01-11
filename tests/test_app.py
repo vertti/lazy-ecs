@@ -33,7 +33,8 @@ def test_get_task_action_handlers_returns_all_actions():
     assert "show_details" in handlers
     assert "compare_definitions" in handlers
     assert "open_console" in handlers
-    assert len(handlers) == 4
+    assert "stop_task" in handlers
+    assert len(handlers) == 5
 
 
 def test_get_service_action_handlers_returns_all_actions():
