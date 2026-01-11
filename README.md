@@ -220,26 +220,26 @@ lazy-ecs will automatically use the standard AWS credentials chain:
 
 ## Roadmap
 
-Features listed in priority order:
+Features listed in priority order (by ROI - implementation effort vs. usage frequency):
 
-1. **Resource usage vs limits** - Show allocated vs actual CPU/memory with right-sizing recommendations
-2. **Export task definition** - Save task definitions as JSON/YAML files
-3. **Task placement details** - Display placement constraints and actual host placement
-4. **Health check configuration** - Display health check settings and current status
-5. **Download logs to file** - Export CloudWatch logs for offline analysis
-6. **Sparkline visualization** - Unicode trend indicators for metrics
-7. **Service deployment history** - Timeline of deployments with rollback options
-8. **Security groups** - Display networking and security configuration
-9. **Auto-scaling configuration** - Display scaling policies and current metrics
-10. **Load balancer health** - Display target group health and routing
-11. **Quick task failure reason** - Show failure reason inline without navigation
-12. **Export container environment** - Save environment variables to .env file
-13. **Multi-region support** - Work with ECS across AWS regions
-14. **Service update (image tag)** - Deploy new image version from CLI
-15. **Service update (environment)** - Update environment variables
-16. **Multi-cluster support** - Compare resources across clusters
-17. **Port forwarding** - Direct local connection to container ports
-18. **Stop/restart single task** - Force restart individual tasks
+1. **Stop/restart single task** - Force restart individual tasks
+2. **Quick task failure reason** - Show failure reason inline without navigation
+3. **Health check configuration** - Display health check settings and current status
+4. **Export container environment** - Save environment variables to .env file
+5. **Export task definition** - Save task definitions as JSON/YAML files
+6. **Download logs to file** - Export CloudWatch logs for offline analysis
+7. **Load balancer health** - Display target group health and routing
+8. **Resource usage vs limits** - Show allocated vs actual CPU/memory with right-sizing recommendations
+9. **Service update (image tag)** - Deploy new image version from CLI
+10. **Service update (environment)** - Update environment variables
+11. **Security groups** - Display networking and security configuration
+12. **Auto-scaling configuration** - Display scaling policies and current metrics
+13. **Task placement details** - Display placement constraints and actual host placement
+14. **Port forwarding** - Direct local connection to container ports
+15. **Service deployment history** - Timeline of deployments with rollback options
+16. **Sparkline visualization** - Unicode trend indicators for metrics
+17. **Multi-region support** - Work with ECS across AWS regions
+18. **Multi-cluster support** - Compare resources across clusters
 
 ## Development
 
