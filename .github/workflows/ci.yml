@@ -16,10 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          enable-cache: true
+      - name: Install tools with mise
+        uses: jdx/mise-action@v2
 
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
@@ -31,7 +29,7 @@ jobs:
         run: uv run ruff format --check
 
       - name: Check markdown/yaml formatting
-        uses: dprint/check@v2.2
+        run: dprint check
 
       - name: Run linting
         run: uv run ruff check
