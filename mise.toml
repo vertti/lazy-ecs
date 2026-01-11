@@ -1,4 +1,5 @@
 [tools]
+dprint = "latest"
 node = "latest"
 python = "latest"
 uv = "latest"

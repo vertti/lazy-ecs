@@ -13,13 +13,11 @@ jobs:
       - name: Checkout main repository
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
+      - name: Install tools with mise
+        uses: jdx/mise-action@v2
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v2
+      - name: Install dependencies
+        run: uv sync --python 3.11
 
       - name: Build package
         run: |
