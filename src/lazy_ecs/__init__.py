@@ -25,7 +25,6 @@ console = Console()
 
 
 def main() -> None:
-    """Interactive AWS ECS navigation tool."""
     parser = argparse.ArgumentParser(description="Interactive AWS ECS cluster navigator")
     parser.add_argument("--version", action="version", version=f"lazy-ecs {__version__}")
     parser.add_argument("--profile", help="AWS profile to use for authentication", type=str, default=None)
@@ -50,7 +49,6 @@ def main() -> None:
 
 
 def _create_aws_client(profile_name: str | None) -> "ECSClient":
-    """Create optimized AWS ECS client with connection pooling."""
     config = Config(
         max_pool_connections=5,
         retries={"max_attempts": 2, "mode": "adaptive"},
@@ -61,7 +59,6 @@ def _create_aws_client(profile_name: str | None) -> "ECSClient":
 
 
 def _create_logs_client(profile_name: str | None) -> "CloudWatchLogsClient":
-    """Create optimized CloudWatch Logs client with connection pooling."""
     config = Config(
         max_pool_connections=5,
         retries={"max_attempts": 2, "mode": "adaptive"},
@@ -72,7 +69,6 @@ def _create_logs_client(profile_name: str | None) -> "CloudWatchLogsClient":
 
 
 def _create_sts_client(profile_name: str | None) -> "STSClient":
-    """Create optimized STS client with connection pooling."""
     config = Config(
         max_pool_connections=5,
         retries={"max_attempts": 2, "mode": "adaptive"},
@@ -83,7 +79,6 @@ def _create_sts_client(profile_name: str | None) -> "STSClient":
 
 
 def _create_cloudwatch_client(profile_name: str | None) -> "CloudWatchClient":
-    """Create optimized CloudWatch client with connection pooling."""
     config = Config(
         max_pool_connections=5,
         retries={"max_attempts": 2, "mode": "adaptive"},

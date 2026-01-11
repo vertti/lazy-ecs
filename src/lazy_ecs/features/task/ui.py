@@ -1,5 +1,3 @@
-"""UI components for task operations."""
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -40,15 +38,12 @@ _CHANGE_TYPE_DISPLAY = {
 
 
 class TaskUI(BaseUIComponent):
-    """UI component for task selection and display."""
-
     def __init__(self, task_service: TaskService, comparison_service: TaskComparisonService | None = None) -> None:
         super().__init__()
         self.task_service = task_service
         self.comparison_service = comparison_service
 
     def select_task(self, cluster_name: str, service_name: str, desired_task_def_arn: str | None) -> str:
-        """Interactive task selection."""
         available_tasks = self.task_service.get_task_info(cluster_name, service_name, desired_task_def_arn)
 
         if not available_tasks:
@@ -70,7 +65,6 @@ class TaskUI(BaseUIComponent):
         return ""
 
     def display_task_details(self, task_details: TaskDetails | None) -> None:
-        """Display comprehensive task details."""
         if not task_details:
             return
 
@@ -140,7 +134,6 @@ class TaskUI(BaseUIComponent):
                 console.print(f"Failed to stop task{error_msg}", style="red")
 
     def select_task_feature(self, task_details: TaskDetails | None) -> str | None:
-        """Present feature menu for the selected task."""
         if not task_details:
             return None
 
@@ -156,7 +149,7 @@ class TaskUI(BaseUIComponent):
                 {"name": "Show task details", "value": "task_action:show_details"},
                 {"name": "Show task history and failures", "value": "task_action:show_history"},
                 {"name": "Compare task definitions", "value": "task_action:compare_definitions"},
-                {"name": "🌐 Open in AWS console", "value": "task_action:open_console"},
+                {"name": "Open in AWS console", "value": "task_action:open_console"},
                 {"name": "Stop task", "value": "task_action:stop_task"},
             ],
         )
@@ -191,7 +184,6 @@ class TaskUI(BaseUIComponent):
         return select_with_auto_pagination("Select a feature for this task:", choices, "Back to service selection")
 
     def display_task_history(self, cluster_name: str, service_name: str) -> None:
-        """Display task history with failure analysis."""
         console.print(f"\nTask History for service '{service_name}'", style="bold cyan")
         console.print("=" * SEPARATOR_WIDTH, style="dim")
 
@@ -254,7 +246,6 @@ class TaskUI(BaseUIComponent):
         console.print(f"\nSummary: {running_count} running, {failed_count} stopped/failed", style="dim")
 
     def display_failure_analysis(self, task_history: TaskHistoryDetails) -> None:
-        """Display detailed failure analysis for a specific task."""
         console.print("\nFailure Analysis", style="bold red")
         console.print("=" * 60, style="dim")
 
@@ -269,11 +260,9 @@ class TaskUI(BaseUIComponent):
         if stopped_at:
             console.print(f"Stopped: {stopped_at.strftime('%Y-%m-%d %H:%M:%S UTC')}", style="white")
 
-        # Display failure analysis
         analysis = self.task_service.get_task_failure_analysis(task_history)
         console.print(f"\n{analysis}", style="white")
 
-        # Show container details if failed
         failed_containers = [
             c for c in task_history["containers"] if c["exit_code"] is not None and c["exit_code"] != 0
         ]
@@ -287,7 +276,6 @@ class TaskUI(BaseUIComponent):
         console.print("=" * 60, style="dim")
 
     def show_task_definition_comparison(self, task_details: TaskDetails) -> None:
-        """Show task definition comparison interface."""
         if not self.comparison_service:
             console.print("❌ Comparison service not available", style="red")
             return
@@ -338,7 +326,6 @@ class TaskUI(BaseUIComponent):
         target: dict[str, Any],
         changes: list[dict[str, Any]],
     ) -> None:
-        """Display comparison results between two task definitions."""
         console.print(
             f"\n📊 Comparing: {source['family']}:v{source['revision']} → v{target['revision']}",
             style="bold cyan",

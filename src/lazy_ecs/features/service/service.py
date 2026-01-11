@@ -1,5 +1,3 @@
-"""Service operations for ECS."""
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -17,8 +15,6 @@ if TYPE_CHECKING:
 
 
 class ServiceService(BaseAWSService):
-    """Service for ECS service operations."""
-
     def __init__(self, ecs_client: ECSClient) -> None:
         super().__init__(ecs_client)
 
@@ -59,7 +55,6 @@ class ServiceService(BaseAWSService):
 
 
 def _create_service_info(service: ServiceTypeDef) -> ServiceInfo:
-    """Create service info from AWS service description."""
     service_name = service["serviceName"]
     running_count = service.get("runningCount", 0)
     desired_count = service.get("desiredCount", 0)
@@ -79,7 +74,6 @@ def _create_service_info(service: ServiceTypeDef) -> ServiceInfo:
 
 
 def _parse_service_event(event: dict[str, Any]) -> ServiceEvent:
-    """Parse service event from AWS event description."""
     event_id = event.get("id", "")
     created_at = event.get("createdAt")
     message = event.get("message", "")
@@ -95,7 +89,6 @@ def _parse_service_event(event: dict[str, Any]) -> ServiceEvent:
 
 
 def _categorize_event(message: str) -> str:
-    """Categorize service event based on message content."""
     message_lower = message.lower()
 
     if any(term in message_lower for term in ["failed", "error", "unhealthy", "unable"]):

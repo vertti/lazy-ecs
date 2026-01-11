@@ -1,5 +1,3 @@
-"""UI components for cluster operations."""
-
 from __future__ import annotations
 
 from rich.console import Console
@@ -13,8 +11,6 @@ console = Console()
 
 
 class ClusterUI(BaseUIComponent):
-    """UI component for cluster selection and display."""
-
     def __init__(self, cluster_service: ClusterService) -> None:
         super().__init__()
         self.cluster_service = cluster_service

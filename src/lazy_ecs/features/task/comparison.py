@@ -1,5 +1,3 @@
-"""Task definition comparison functionality."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -12,7 +10,6 @@ if TYPE_CHECKING:
 
 
 def normalize_task_definition(raw_task_def: dict[str, Any] | TaskDefinitionTypeDef) -> dict[str, Any]:
-    """Normalize task definition by extracting relevant fields and removing AWS metadata."""
     normalized: dict[str, Any] = {
         "family": raw_task_def["family"],
         "revision": raw_task_def["revision"],
@@ -50,19 +47,16 @@ def normalize_task_definition(raw_task_def: dict[str, Any] | TaskDefinitionTypeD
 
 
 def _extract_environment(container_def: dict[str, Any]) -> dict[str, str]:
-    """Extract environment variables as a dict."""
     env_list = container_def.get("environment", [])
     return {item["name"]: item["value"] for item in env_list}
 
 
 def _extract_secrets(container_def: dict[str, Any]) -> dict[str, str]:
-    """Extract secrets references as a dict."""
     secrets_list = container_def.get("secrets", [])
     return {item["name"]: item["valueFrom"] for item in secrets_list}
 
 
 def compare_task_definitions(source: dict[str, Any], target: dict[str, Any]) -> list[dict[str, Any]]:
-    """Compare two normalized task definitions and return list of changes."""
     changes: list[dict[str, Any]] = []
 
     _compare_task_level_resources(source, target, changes)
@@ -76,7 +70,6 @@ def _compare_task_level_resources(
     target: dict[str, Any],
     changes: list[dict[str, Any]],
 ) -> None:
-    """Compare task-level CPU and memory."""
     if source.get("taskCpu") != target.get("taskCpu"):
         changes.append(
             {
@@ -101,7 +94,6 @@ def _compare_containers(
     target_containers: list[dict[str, Any]],
     changes: list[dict[str, Any]],
 ) -> None:
-    """Compare containers between two task definitions."""
     source_by_name = {c["name"]: c for c in source_containers}
     target_by_name = {c["name"]: c for c in target_containers}
 
@@ -170,8 +162,6 @@ def _compare_dicts(
 
 
 class TaskComparisonService(BaseAWSService):
-    """Service for task definition comparison operations."""
-
     def __init__(self, ecs_client: ECSClient) -> None:
         super().__init__(ecs_client)
 

@@ -1,5 +1,3 @@
-"""Task operations for ECS."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -16,8 +14,6 @@ if TYPE_CHECKING:
 
 
 class TaskService(BaseAWSService):
-    """Service for ECS task operations."""
-
     def __init__(self, ecs_client: ECSClient) -> None:
         super().__init__(ecs_client)
 
@@ -88,14 +84,12 @@ class TaskService(BaseAWSService):
         return task, task_definition
 
     def _list_tasks_by_status(self, cluster_name: str, service_name: str | None, desired_status: str) -> list[str]:
-        """List tasks filtered by status and optional service name."""
         kwargs = {"cluster": cluster_name, "desiredStatus": desired_status}
         if service_name:
             kwargs["serviceName"] = service_name
         return paginate_aws_list(self.ecs_client, "list_tasks", "taskArns", **kwargs)
 
     def get_task_history(self, cluster_name: str, service_name: str | None = None) -> list[TaskHistoryDetails]:
-        """Get task history including stopped tasks with failure information."""
         task_arns = []
 
         running_arns = self._list_tasks_by_status(cluster_name, service_name, "RUNNING")
@@ -116,7 +110,6 @@ class TaskService(BaseAWSService):
         return [self._parse_task_history(task) for task in all_tasks]
 
     def get_task_failure_analysis(self, task_history: TaskHistoryDetails) -> str:
-        """Analyze task failure and provide human-readable explanation."""
         if task_history["last_status"] == "RUNNING":
             return "✅ Task is currently running"
 
@@ -137,12 +130,10 @@ class TaskService(BaseAWSService):
                     stopped_reason,
                 )
 
-        # No container failures, analyze task-level issues
         return self._analyze_task_failure(stop_code, stopped_reason)
 
     @staticmethod
     def _parse_task_history(task: TaskTypeDef) -> TaskHistoryDetails:
-        """Parse task data into TaskHistoryDetails structure."""
         task_arn = task["taskArn"]
         task_def_arn = task["taskDefinitionArn"]
         task_def_family = task_def_arn.split("/")[-1].split(":")[0]
@@ -182,7 +173,6 @@ class TaskService(BaseAWSService):
         _stop_code: str | None,
         _stopped_reason: str | None,
     ) -> str:
-        """Analyze container-level failure."""
         if exit_code == 137:
             if container_reason and "OutOfMemoryError" in container_reason:
                 return f"🔴 Container '{container_name}' killed due to out of memory (OOM)"
@@ -198,7 +188,6 @@ class TaskService(BaseAWSService):
 
     @staticmethod
     def _analyze_task_failure(stop_code: str | None, stopped_reason: str | None) -> str:
-        """Analyze task-level failure."""
         if not stop_code and not stopped_reason:
             return "✅ Task completed successfully"
 
@@ -301,7 +290,6 @@ def _build_task_details(
     task_definition: TaskDefinitionTypeDef,
     is_desired_version: bool,
 ) -> TaskDetails:
-    """Build comprehensive task details dictionary."""
     task_arn = task["taskArn"]
     task_def_arn = task["taskDefinitionArn"]
     task_def_family = task_def_arn.split("/")[-1].split(":")[0]

@@ -1,5 +1,3 @@
-"""UI components for service operations."""
-
 from __future__ import annotations
 
 import questionary
@@ -18,15 +16,12 @@ console = Console()
 
 
 class ServiceUI(BaseUIComponent):
-    """UI component for service selection and display."""
-
     def __init__(self, service_service: ServiceService, service_actions: ServiceActions) -> None:
         super().__init__()
         self.service_service = service_service
         self.service_actions = service_actions
 
     def select_service(self, cluster_name: str) -> str | None:
-        """Interactive service selection with status information and navigation."""
         with show_spinner():
             service_info = self.service_service.get_service_info(cluster_name)
 
@@ -56,7 +51,6 @@ class ServiceUI(BaseUIComponent):
         )
 
     def handle_force_deployment(self, cluster_name: str, service_name: str) -> None:
-        """Handle force deployment confirmation and execution."""
         confirm = questionary.confirm(
             f"Force new deployment for service '{service_name}' in cluster '{cluster_name}'?",
         ).ask()
@@ -70,7 +64,6 @@ class ServiceUI(BaseUIComponent):
                 console.print(f"❌ Failed to trigger deployment for '{service_name}'", style="red")
 
     def display_service_events(self, cluster_name: str, service_name: str) -> None:
-        """Display service events in a Rich table."""
         with show_spinner():
             events = self.service_service.get_service_events(cluster_name, service_name)
 
@@ -95,7 +88,6 @@ class ServiceUI(BaseUIComponent):
 
             message = event["message"]
 
-            # Extract service name from message and clean it up
             service_display = ""
             if message.startswith("(service ") and ") " in message:
                 service_end = message.find(") ")
@@ -112,7 +104,6 @@ class ServiceUI(BaseUIComponent):
         console.print(table)
 
     def display_service_metrics(self, service_name: str, metrics: ServiceMetrics) -> None:
-        """Display service metrics."""
         lines = format_metrics_display(metrics)
         console.print(f"\n[bold cyan]Metrics for service '{service_name}' (last hour):[/bold cyan]")
         for line in lines:

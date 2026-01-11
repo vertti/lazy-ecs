@@ -1,5 +1,3 @@
-"""Main application logic for lazy-ecs CLI."""
-
 from typing import TYPE_CHECKING
 
 from rich.console import Console
@@ -17,7 +15,6 @@ console = Console()
 
 
 def navigate_clusters(navigator: ECSNavigator, ecs_service: ECSService) -> None:
-    """Handle cluster-level navigation with back support."""
     while True:
         selected_cluster = navigator.select_cluster()
 
@@ -33,10 +30,9 @@ def navigate_clusters(navigator: ECSNavigator, ecs_service: ECSService) -> None:
 
 
 def navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster_name: str) -> bool:
-    """Handle service-level navigation. Returns True if back was chosen, False if exit."""
+    """Returns True if back was chosen, False if exit."""
     service_selection = navigator.select_service(cluster_name)
 
-    # Handle navigation responses (back/exit)
     should_continue, should_exit = handle_navigation(service_selection)
     if not should_continue:
         return not should_exit  # True for back, False for exit
@@ -50,7 +46,6 @@ def navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster_
     while True:
         selection = navigator.select_service_action(cluster_name, selected_service)
 
-        # Handle navigation responses
         should_continue, should_exit = handle_navigation(selection)
         if not should_continue:
             return not should_exit  # True for back, False for exit
@@ -73,7 +68,7 @@ def handle_task_selection(
     service_name: str,
     task_arn: str,
 ) -> bool:
-    """Handle task selection and navigation. Returns True if back was chosen, False if exit."""
+    """Returns True if back was chosen, False if exit."""
     with show_spinner():
         task_details = ecs_service.get_task_details(cluster_name, service_name, task_arn)
 
@@ -86,7 +81,6 @@ def handle_task_selection(
 
 
 def dispatch_service_action(navigator: ECSNavigator, cluster_name: str, service_name: str, action_name: str) -> None:
-    """Dispatch service action to appropriate handler."""
     service_actions = get_service_action_handlers()
     if action_name in service_actions:
         service_actions[action_name](navigator, cluster_name, service_name)
@@ -99,7 +93,7 @@ def handle_task_features(
     task_details: TaskDetails | None,
     service_name: str,
 ) -> bool:
-    """Handle task feature selection and execution. Returns True if back was chosen, False if exit."""
+    """Returns True if back was chosen, False if exit."""
     while True:
         selection = navigator.select_task_feature(task_details)
 
@@ -122,7 +116,6 @@ def dispatch_container_action(
     container_name: str,
     action_name: str,
 ) -> bool:
-    """Dispatch container action to appropriate handler. Returns True if action was found and executed."""
     container_actions = get_container_action_handlers()
     if action_name in container_actions:
         container_actions[action_name](navigator, cluster_name, task_arn, container_name)
@@ -138,7 +131,6 @@ def dispatch_task_action(
     task_details: TaskDetails | None,
     action_name: str,
 ) -> bool:
-    """Dispatch task action to appropriate handler. Returns True if action was found and executed."""
     task_actions = get_task_action_handlers()
     if action_name in task_actions:
         task_actions[action_name](navigator, cluster_name, service_name, task_arn, task_details)
@@ -147,7 +139,6 @@ def dispatch_task_action(
 
 
 def get_container_action_handlers() -> dict[str, "Callable"]:
-    """Get mapping of container action names to their handlers."""
     return {
         "tail_logs": lambda nav, cluster, task_arn, container: nav.show_container_logs_live_tail(
             cluster,
@@ -176,7 +167,6 @@ def get_container_action_handlers() -> dict[str, "Callable"]:
 
 
 def get_task_action_handlers() -> dict[str, "Callable"]:
-    """Get mapping of task action names to their handlers."""
     return {
         "show_history": lambda nav, cluster, service, _task_arn, _task_details: nav.show_task_history(cluster, service),
         "show_details": lambda nav, _cluster, _service, _task_arn, task_details: nav.display_task_details(task_details),
@@ -197,7 +187,6 @@ def get_task_action_handlers() -> dict[str, "Callable"]:
 
 
 def get_service_action_handlers() -> dict[str, "Callable"]:
-    """Get mapping of service action names to their handlers."""
     return {
         "force_deployment": lambda nav, cluster, service: nav.handle_force_deployment(cluster, service),
         "show_events": lambda nav, cluster, service: nav.show_service_events(cluster, service),

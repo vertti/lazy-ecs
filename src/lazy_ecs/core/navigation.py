@@ -1,5 +1,3 @@
-"""Navigation utilities for UI components."""
-
 from __future__ import annotations
 
 import questionary
@@ -12,7 +10,7 @@ PAGINATION_THRESHOLD = 30
 
 
 def parse_selection(selected: str | None) -> tuple[str, str, str]:
-    """Parse selection into (type, value, extra). Returns ('unknown', selected, '') if no colon."""
+    """Returns (type, value, extra). Returns ('unknown', selected, '') if no colon."""
     if not selected or ":" not in selected:
         return ("unknown", selected or "", "")
 
@@ -23,7 +21,7 @@ def parse_selection(selected: str | None) -> tuple[str, str, str]:
 
 
 def handle_navigation(selected: str | None) -> tuple[bool, bool]:
-    """Handle navigation. Returns (should_continue, should_exit)."""
+    """Returns (should_continue, should_exit)."""
     console = Console()
     if not selected:
         console.print("\n👋 Goodbye!", style="cyan")
@@ -41,7 +39,6 @@ def handle_navigation(selected: str | None) -> tuple[bool, bool]:
 
 
 def get_questionary_style() -> questionary.Style:
-    """Consistent questionary styling across all prompts."""
     return questionary.Style(
         [
             ("qmark", "fg:cyan bold"),
@@ -55,7 +52,6 @@ def get_questionary_style() -> questionary.Style:
 
 
 def add_navigation_choices(choices: list[dict[str, str]], back_text: str) -> list[dict[str, str]]:
-    """Add navigation choices to existing choices list and return new list."""
     return [
         *choices,
         {"name": f"⬅️ {back_text}", "value": "navigation:back"},
@@ -64,58 +60,43 @@ def add_navigation_choices(choices: list[dict[str, str]], back_text: str) -> lis
 
 
 def add_navigation_choices_with_shortcuts(choices: list[dict[str, str]], back_text: str | None) -> list:
-    """Add navigation choices with shortcut keys to existing choices list."""
     nav_choices = []
 
-    # Add original choices
     for choice in choices:
         nav_choices.append(questionary.Choice(choice["name"], choice["value"]))
 
-    # Add back choice with 'b' shortcut only if back_text is provided
     if back_text:
         nav_choices.append(questionary.Choice(f"⬅️ {back_text} (b)", "navigation:back", shortcut_key="b"))
 
-    # Add exit choice with 'q' shortcut
     nav_choices.append(questionary.Choice("❌ Exit (q)", "navigation:exit", shortcut_key="q"))
 
     return nav_choices
 
 
 def select_with_navigation(prompt: str, choices: list[dict[str, str]], back_text: str | None) -> str | None:
-    """Standard selection with back/exit navigation and ESC key support."""
-    # Use the shortcut version for 'b' and 'q' keys
     nav_choices = add_navigation_choices_with_shortcuts(choices, back_text)
-
-    # Create a questionary select question
     question = questionary.select(prompt, choices=nav_choices, style=get_questionary_style(), use_shortcuts=True)
 
-    # Add ESC key binding by accessing the underlying application
+    # Add ESC key binding for back navigation
     if hasattr(question, "application"):
         # Add custom key binding for ESC key
         custom_bindings = KeyBindings()
 
         @custom_bindings.add(Keys.Escape, eager=True)
         def _(event: KeyPressEvent) -> None:
-            """Handle ESC key press by simulating 'b' + Enter key sequence."""
-            # Feed 'b' and Enter to the key processor without calling process_keys
             from prompt_toolkit.key_binding.key_processor import KeyPress
 
-            # Feed both 'b' and Enter keys to the input queue
             b_key = KeyPress("b", "")
             enter_key = KeyPress(Keys.ControlM, "")  # Enter key
             event.app.key_processor.feed(b_key)
             event.app.key_processor.feed(enter_key)
 
-        # Get the existing bindings and merge them
         if hasattr(question.application, "key_bindings") and question.application.key_bindings:
-            # Create a new key bindings object that includes both
             merged_bindings = KeyBindings()
 
-            # Add existing bindings
             for binding in question.application.key_bindings.bindings:
                 merged_bindings.bindings.append(binding)
 
-            # Add our custom ESC binding
             for binding in custom_bindings.bindings:
                 merged_bindings.bindings.append(binding)
 
@@ -130,7 +111,6 @@ def select_with_pagination(
     back_text: str | None,
     page_size: int = 25,
 ) -> str | None:
-    """Selection with pagination for large lists."""
     total_items = len(choices)
     total_pages = (total_items + page_size - 1) // page_size
     current_page = 0
@@ -185,9 +165,6 @@ def select_with_auto_pagination(
     back_text: str | None,
     threshold: int = PAGINATION_THRESHOLD,
 ) -> str | None:
-    """Select with automatic pagination based on choice count.
-
-    Uses keyboard shortcuts for small lists (≤threshold), pagination for large lists (>threshold).
-    """
+    """Uses keyboard shortcuts for small lists, pagination for large lists."""
     select_fn = select_with_pagination if len(choices) > threshold else select_with_navigation
     return select_fn(prompt, choices, back_text)

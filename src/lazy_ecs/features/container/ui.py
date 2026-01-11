@@ -1,5 +1,3 @@
-"""UI components for container operations."""
-
 from __future__ import annotations
 
 import queue
@@ -22,15 +20,12 @@ LOG_POLL_INTERVAL = 0.01  # seconds
 
 
 class ContainerUI(BaseUIComponent):
-    """UI component for container display."""
-
     def __init__(self, container_service: ContainerService) -> None:
         super().__init__()
         self.container_service = container_service
 
     @staticmethod
     def _drain_queue(q: queue.Queue[Any]) -> None:
-        """Drain all items from a queue without blocking."""
         while not q.empty():
             try:
                 q.get_nowait()
@@ -38,7 +33,6 @@ class ContainerUI(BaseUIComponent):
                 break
 
     def show_logs_live_tail(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
-        """Display recent logs then continue streaming in real time for a container with interactive filtering."""
         log_config = self.container_service.get_log_config(cluster_name, task_arn, container_name)
         if not log_config:
             print_error(f"Could not find log configuration for container '{container_name}'")
@@ -88,11 +82,7 @@ class ContainerUI(BaseUIComponent):
         filter_pattern: str,
         lines: int,
     ) -> Action | None:
-        """Display historical logs then tail new logs with optional filtering.
-
-        Returns the action taken by the user.
-        """
-        # Show filter status
+        """Returns the action taken by the user."""
         if filter_pattern:
             console.print(f"\n🔍 Active filter: {filter_pattern}", style="yellow")
 
@@ -142,7 +132,6 @@ class ContainerUI(BaseUIComponent):
                     raise
 
         def log_reader() -> None:
-            """Read logs in separate thread to avoid blocking."""
             log_generator = None
             try:
                 log_generator = self.container_service.get_live_container_logs_tail(
@@ -157,7 +146,6 @@ class ContainerUI(BaseUIComponent):
             except Exception:
                 pass  # Iterator exhausted or error
             finally:
-                # Ensure generator is properly closed
                 if log_generator and hasattr(log_generator, "close"):
                     with suppress(Exception):
                         log_generator.close()
@@ -173,7 +161,6 @@ class ContainerUI(BaseUIComponent):
 
         try:
             while True:
-                # Check for keyboard input first (more responsive)
                 try:
                     key = key_queue.get_nowait()
                     if key:
@@ -190,7 +177,6 @@ class ContainerUI(BaseUIComponent):
                 except queue.Empty:
                     pass
 
-                # Check for new log events (non-blocking)
                 try:
                     event = log_queue.get_nowait()
                     if event is None:
@@ -207,8 +193,7 @@ class ContainerUI(BaseUIComponent):
                             seen_logs.add(log_event.key)
                             console.print(log_event.format())
                 except queue.Empty:
-                    # No new logs, just wait a bit
-                    time.sleep(LOG_POLL_INTERVAL)  # Small delay to avoid busy-waiting
+                    time.sleep(LOG_POLL_INTERVAL)
         except KeyboardInterrupt:
             console.print("\n🛑 Interrupted.", style="yellow")
             action = Action.STOP

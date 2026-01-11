@@ -1,5 +1,3 @@
-"""Cluster operations for ECS."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -12,8 +10,6 @@ if TYPE_CHECKING:
 
 
 class ClusterService(BaseAWSService):
-    """Service for ECS cluster operations."""
-
     def __init__(self, ecs_client: ECSClient) -> None:
         super().__init__(ecs_client)
 
