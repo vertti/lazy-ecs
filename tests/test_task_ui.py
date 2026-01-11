@@ -184,7 +184,7 @@ def test_handle_stop_task_confirmed(mock_confirm, mock_spinner, mock_print, task
         "test-cluster",
         "arn:aws:ecs:us-east-1:123456789012:task/test-cluster/abc123def456",
     )
-    success_call = [c for c in mock_print.call_args_list if "stopped successfully" in str(c)]
+    success_call = [c for c in mock_print.call_args_list if c.args and "stopped successfully" in c.args[0]]
     assert len(success_call) == 1
 
 
@@ -211,5 +211,5 @@ def test_handle_stop_task_failure(mock_confirm, mock_spinner, mock_print, task_u
     task_ui.handle_stop_task("test-cluster", "arn:task:abc123", "web-api")
 
     task_ui.task_service.stop_task.assert_called_once_with("test-cluster", "arn:task:abc123")
-    error_call = [c for c in mock_print.call_args_list if "Failed to stop task: Access denied" in str(c)]
+    error_call = [c for c in mock_print.call_args_list if c.args and "Failed to stop task: Access denied" in c.args[0]]
     assert len(error_call) == 1
