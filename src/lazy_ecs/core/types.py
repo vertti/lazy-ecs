@@ -22,6 +22,7 @@ class TaskInfo(TypedDict):
     revision: str
     images: list[str]
     created_at: datetime | None
+    failure_reason: str | None
 
 
 class TaskDetails(TypedDict):

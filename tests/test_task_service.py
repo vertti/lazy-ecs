@@ -2,7 +2,13 @@
 
 from unittest.mock import Mock
 
-from lazy_ecs.features.task.task import TaskService
+from lazy_ecs.features.task.task import (
+    TaskService,
+    _create_task_info,
+    _get_brief_exit_reason,
+    _get_brief_failure_reason,
+    _get_brief_stop_reason,
+)
 
 
 def test_get_task_details_returns_none_when_no_tasks():
@@ -89,3 +95,99 @@ def test_stop_task_client_error():
         task="arn:task:123",
         reason="Stopped via lazy-ecs",
     )
+
+
+# Brief failure reason tests
+
+
+def test_get_brief_exit_reason_oom():
+    assert _get_brief_exit_reason(137) == "OOM/timeout"
+
+
+def test_get_brief_exit_reason_segfault():
+    assert _get_brief_exit_reason(139) == "segfault"
+
+
+def test_get_brief_exit_reason_sigterm():
+    assert _get_brief_exit_reason(143) == "SIGTERM"
+
+
+def test_get_brief_exit_reason_app_error():
+    assert _get_brief_exit_reason(1) == "app error"
+
+
+def test_get_brief_exit_reason_unknown():
+    assert _get_brief_exit_reason(42) == "exit 42"
+
+
+def test_get_brief_stop_reason_failed_to_start():
+    assert _get_brief_stop_reason("TaskFailedToStart") == "failed to start"
+
+
+def test_get_brief_stop_reason_scheduler():
+    assert _get_brief_stop_reason("ServiceSchedulerInitiated") == "scheduler stopped"
+
+
+def test_get_brief_stop_reason_spot():
+    assert _get_brief_stop_reason("SpotInterruption") == "spot interrupted"
+
+
+def test_get_brief_stop_reason_user():
+    assert _get_brief_stop_reason("UserInitiated") == "user stopped"
+
+
+def test_get_brief_stop_reason_unknown():
+    assert _get_brief_stop_reason("SomeOtherCode") == "someothercode"
+
+
+def test_get_brief_stop_reason_none():
+    assert _get_brief_stop_reason(None) is None
+
+
+def test_get_brief_failure_reason_running_task():
+    task = {"lastStatus": "RUNNING", "containers": []}
+    assert _get_brief_failure_reason(task) is None
+
+
+def test_get_brief_failure_reason_oom():
+    task = {"lastStatus": "STOPPED", "containers": [{"exitCode": 137}]}
+    assert _get_brief_failure_reason(task) == "OOM/timeout"
+
+
+def test_get_brief_failure_reason_app_error():
+    task = {"lastStatus": "STOPPED", "containers": [{"exitCode": 1}]}
+    assert _get_brief_failure_reason(task) == "app error"
+
+
+def test_get_brief_failure_reason_failed_to_start():
+    task = {"lastStatus": "STOPPED", "containers": [], "stopCode": "TaskFailedToStart"}
+    assert _get_brief_failure_reason(task) == "failed to start"
+
+
+def test_get_brief_failure_reason_container_success():
+    task = {"lastStatus": "STOPPED", "containers": [{"exitCode": 0}], "stopCode": "UserInitiated"}
+    assert _get_brief_failure_reason(task) == "user stopped"
+
+
+def test_create_task_info_includes_failure_reason():
+    task = {
+        "taskArn": "arn:aws:ecs:us-east-1:123:task/cluster/abc123def456",
+        "taskDefinitionArn": "arn:aws:ecs:us-east-1:123:task-definition/web:5",
+        "lastStatus": "STOPPED",
+        "containers": [{"exitCode": 137, "image": "nginx:latest"}],
+    }
+    info = _create_task_info(task, None)
+    assert "OOM/timeout" in info["name"]
+    assert info["failure_reason"] == "OOM/timeout"
+
+
+def test_create_task_info_no_failure_for_running():
+    task = {
+        "taskArn": "arn:aws:ecs:us-east-1:123:task/cluster/abc123def456",
+        "taskDefinitionArn": "arn:aws:ecs:us-east-1:123:task-definition/web:5",
+        "lastStatus": "RUNNING",
+        "containers": [{"image": "nginx:latest"}],
+    }
+    info = _create_task_info(task, None)
+    assert info["failure_reason"] is None
+    assert "OOM" not in info["name"]

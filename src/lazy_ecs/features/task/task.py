@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from botocore.exceptions import BotoCoreError, ClientError
 
@@ -220,8 +220,43 @@ class TaskService(BaseAWSService):
         return f"🔴 Task stopped {code_text}{reason_text}"
 
 
-def _create_task_info(task: TaskTypeDef, desired_task_def_arn: str | None) -> TaskInfo:
-    """Create task info from AWS task description."""
+def _get_brief_exit_reason(exit_code: int) -> str:
+    reasons = {
+        137: "OOM/timeout",
+        139: "segfault",
+        143: "SIGTERM",
+        1: "app error",
+    }
+    return reasons.get(exit_code, f"exit {exit_code}")
+
+
+def _get_brief_stop_reason(stop_code: str | None) -> str | None:
+    if not stop_code:
+        return None
+    reasons = {
+        "TaskFailedToStart": "failed to start",
+        "ServiceSchedulerInitiated": "scheduler stopped",
+        "SpotInterruption": "spot interrupted",
+        "UserInitiated": "user stopped",
+    }
+    return reasons.get(stop_code, stop_code.lower())
+
+
+def _get_brief_failure_reason(task: TaskTypeDef | dict[str, Any]) -> str | None:
+    last_status = task.get("lastStatus", "")
+    if last_status == "RUNNING":
+        return None
+
+    for container in task.get("containers", []):
+        exit_code = container.get("exitCode")
+        if exit_code is not None and exit_code != 0:
+            return _get_brief_exit_reason(exit_code)
+
+    stop_code = task.get("stopCode")
+    return _get_brief_stop_reason(stop_code)
+
+
+def _create_task_info(task: TaskTypeDef | dict[str, Any], desired_task_def_arn: str | None) -> TaskInfo:
     task_arn = task["taskArn"]
     task_def_arn = task["taskDefinitionArn"]
     is_desired = task_def_arn == desired_task_def_arn
@@ -240,11 +275,14 @@ def _create_task_info(task: TaskTypeDef, desired_task_def_arn: str | None) -> Ta
                 container_images.append(image.split(":")[-1])
 
     image_display = ", ".join(container_images) if container_images else "unknown"
+    failure_reason = _get_brief_failure_reason(task)
 
     status_icon = "✅" if is_desired else "🔴"
     time_str = created_at.strftime("%H:%M:%S") if created_at else "unknown"
 
     display_name = f"{status_icon} v{revision} {task_def_family} ({task_id}) - {image_display} - {time_str}"
+    if failure_reason:
+        display_name = f"{display_name} - {failure_reason}"
 
     return {
         "name": display_name,
@@ -254,6 +292,7 @@ def _create_task_info(task: TaskTypeDef, desired_task_def_arn: str | None) -> Ta
         "revision": revision,
         "images": container_images,
         "created_at": created_at,
+        "failure_reason": failure_reason,
     }
 
 
