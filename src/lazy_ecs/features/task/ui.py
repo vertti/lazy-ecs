@@ -12,7 +12,7 @@ from rich.table import Table
 from ...core.base import BaseUIComponent
 from ...core.navigation import select_with_auto_pagination
 from ...core.types import TaskDetails, TaskHistoryDetails
-from ...core.utils import print_warning, show_spinner
+from ...core.utils import extract_task_id, print_warning, show_spinner
 from .comparison import TaskComparisonService, compare_task_definitions
 from .task import TaskService
 
@@ -121,7 +121,7 @@ class TaskUI(BaseUIComponent):
         console.print("=" * 80, style="dim")
 
     def handle_stop_task(self, cluster_name: str, task_arn: str, service_name: str) -> None:
-        task_id = task_arn.split("/")[-1][:8]
+        task_id = extract_task_id(task_arn)
         console.print(
             "\nNote: ECS will start a replacement task to maintain the service's desired count.",
             style="dim",

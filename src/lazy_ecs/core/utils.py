@@ -45,6 +45,11 @@ def extract_name_from_arn(arn: str) -> str:
     return arn.split("/")[-1]
 
 
+def extract_task_id(task_arn: str, length: int = 8) -> str:
+    """Extract short task ID from task ARN for display."""
+    return task_arn.split("/")[-1][:length]
+
+
 def determine_service_status(running_count: int, desired_count: int, pending_count: int) -> tuple[str, str]:
     """Determine service status icon and text."""
     if running_count == desired_count and pending_count == 0:
