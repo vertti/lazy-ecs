@@ -45,7 +45,7 @@ dev = [
   "pytest-cov==7.0.0",
   "pytest-mock==3.15.1",
   "moto[ecs]==5.1.18",
-  "ruff==0.14.7",
+  "ruff==0.14.10",
   "pre-commit==4.5.0",
   "pyrefly==0.44.2",
   "boto3-stubs[ecs,logs,sts,cloudwatch]==1.40.30",
