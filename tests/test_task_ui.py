@@ -187,8 +187,9 @@ def test_handle_stop_task_confirmed(mock_confirm, mock_spinner, mock_print, task
     assert len(success_call) == 1
 
 
+@patch("lazy_ecs.features.task.ui.console.print")
 @patch("lazy_ecs.features.task.ui.questionary.confirm")
-def test_handle_stop_task_cancelled(mock_confirm, task_ui):
+def test_handle_stop_task_cancelled(mock_confirm, _mock_print, task_ui):
     mock_confirm.return_value.ask.return_value = False
     task_ui.task_service.stop_task = Mock()
 
