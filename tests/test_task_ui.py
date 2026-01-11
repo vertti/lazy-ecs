@@ -141,9 +141,10 @@ def test_select_task_feature_with_many_containers(mock_select, task_ui):
 
     call_args = mock_select.call_args
     choices = call_args[0][1]
-    task_action_count = 5  # details, history, compare, console, stop
-    per_container_action_count = 5  # tail_logs, show_env, show_secrets, show_ports, show_volumes
-    assert len(choices) == task_action_count + (len(containers) * per_container_action_count)
+    task_action_count = sum(1 for c in choices if c["value"].startswith("task_action:"))
+    container_action_count = sum(1 for c in choices if c["value"].startswith("container_action:"))
+    assert len(choices) == task_action_count + container_action_count
+    assert container_action_count == len(containers) * 5  # 5 actions per container
 
 
 @patch("lazy_ecs.features.task.ui.select_with_auto_pagination")
