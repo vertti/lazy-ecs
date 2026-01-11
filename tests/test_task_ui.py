@@ -141,9 +141,9 @@ def test_select_task_feature_with_many_containers(mock_select, task_ui):
 
     call_args = mock_select.call_args
     choices = call_args[0][1]
-    assert (
-        len(choices) == 55
-    )  # 5 task actions (details, history, compare, console, stop) + 10 containers * 5 actions each
+    task_action_count = 5  # details, history, compare, console, stop
+    per_container_action_count = 5  # tail_logs, show_env, show_secrets, show_ports, show_volumes
+    assert len(choices) == task_action_count + (len(containers) * per_container_action_count)
 
 
 @patch("lazy_ecs.features.task.ui.select_with_auto_pagination")
