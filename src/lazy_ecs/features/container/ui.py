@@ -19,6 +19,27 @@ SEPARATOR_WIDTH = 80
 LOG_POLL_INTERVAL = 0.01  # seconds
 
 
+def _parse_secret_source(value_from: str) -> tuple[str, str]:
+    """Returns (source_type, display_name). source_type is empty if unknown."""
+    if "secretsmanager" in value_from:
+        parts = value_from.split(":")
+        if len(parts) >= 7:
+            secret_name = parts[6]
+            if len(parts) > 7:
+                secret_name += f"-{parts[7]}"
+            return ("Secrets Manager", secret_name)
+        return ("Secrets Manager", value_from)
+
+    if ":parameter/" in value_from:
+        param_name = value_from.split(":parameter/", 1)[1]
+        return ("Parameter Store", param_name)
+
+    if "ssm" in value_from or "parameter" in value_from:
+        return ("Parameter Store", value_from)
+
+    return ("", value_from)
+
+
 class ContainerUI:
     def __init__(self, container_service: ContainerService) -> None:
         self.container_service = container_service
@@ -248,23 +269,11 @@ class ContainerUI:
         sorted_secrets = sorted(secrets.items())
 
         for name, value_from in sorted_secrets:
-            if "secretsmanager" in value_from:
-                parts = value_from.split(":")
-                if len(parts) >= 7:
-                    secret_name = parts[6]
-                    if len(parts) > 7:
-                        secret_name += f"-{parts[7]}"
-                    console.print(f"{name} → Secrets Manager: {secret_name}", style="magenta")
-                else:
-                    console.print(f"{name} → Secrets Manager: {value_from}", style="magenta")
-            elif "ssm" in value_from or "parameter" in value_from:
-                if ":parameter/" in value_from:
-                    param_name = value_from.split(":parameter/", 1)[1]
-                    console.print(f"{name} → Parameter Store: {param_name}", style="magenta")
-                else:
-                    console.print(f"{name} → Parameter Store: {value_from}", style="magenta")
+            source_type, display_name = _parse_secret_source(value_from)
+            if source_type:
+                console.print(f"{name} → {source_type}: {display_name}", style="magenta")
             else:
-                console.print(f"{name} → {value_from}", style="magenta")
+                console.print(f"{name} → {display_name}", style="magenta")
 
         console.print("=" * 60, style="dim")
         console.print(f"🔒 Total: {len(secrets)} secrets configured", style="magenta")
