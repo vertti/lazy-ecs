@@ -12,6 +12,12 @@ if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
     from mypy_boto3_ecs.type_defs import ServiceTypeDef
 
+EVENT_CATEGORY_KEYWORDS: dict[str, list[str]] = {
+    "failure": ["failed", "error", "unhealthy", "unable"],
+    "deployment": ["deployment", "deploy", "started", "stopped", "updated", "registered", "deregistered", "targets"],
+    "scaling": ["scaling", "scale", "capacity", "desired count", "steady state", "running tasks"],
+}
+
 
 class ServiceService:
     def __init__(self, ecs_client: ECSClient) -> None:
@@ -89,17 +95,7 @@ def _parse_service_event(event: dict[str, Any]) -> ServiceEvent:
 
 def _categorize_event(message: str) -> str:
     message_lower = message.lower()
-
-    if any(term in message_lower for term in ["failed", "error", "unhealthy", "unable"]):
-        return "failure"
-    if any(
-        term in message_lower
-        for term in ["deployment", "deploy", "started", "stopped", "updated", "registered", "deregistered", "targets"]
-    ):
-        return "deployment"
-    if any(
-        term in message_lower
-        for term in ["scaling", "scale", "capacity", "desired count", "steady state", "running tasks"]
-    ):
-        return "scaling"
+    for category, keywords in EVENT_CATEGORY_KEYWORDS.items():
+        if any(term in message_lower for term in keywords):
+            return category
     return "other"
