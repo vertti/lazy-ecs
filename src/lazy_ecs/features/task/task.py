@@ -11,6 +11,14 @@ if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
     from mypy_boto3_ecs.type_defs import TaskDefinitionTypeDef, TaskTypeDef
 
+# Exit code mapping: exit_code -> (brief_reason, emoji, description)
+EXIT_CODE_INFO: dict[int, tuple[str, str, str]] = {
+    137: ("OOM/timeout", "⏰", "killed after timeout (exit code 137)"),
+    139: ("segfault", "💥", "crashed with segmentation fault (exit code 139)"),
+    143: ("SIGTERM", "🛑", "gracefully stopped (SIGTERM)"),
+    1: ("app error", "❌", "application error (exit code 1)"),
+}
+
 
 class TaskService:
     def __init__(self, ecs_client: ECSClient) -> None:
@@ -172,16 +180,14 @@ class TaskService:
         _stop_code: str | None,
         _stopped_reason: str | None,
     ) -> str:
-        if exit_code == 137:
-            if container_reason and "OutOfMemoryError" in container_reason:
-                return f"🔴 Container '{container_name}' killed due to out of memory (OOM)"
-            return f"⏰ Container '{container_name}' killed after timeout (exit code 137)"
-        if exit_code == 139:
-            return f"💥 Container '{container_name}' crashed with segmentation fault (exit code 139)"
-        if exit_code == 143:
-            return f"🛑 Container '{container_name}' gracefully stopped (SIGTERM)"
-        if exit_code == 1:
-            return f"❌ Container '{container_name}' application error (exit code 1)"
+        # Special case for OOM with explicit reason
+        if exit_code == 137 and container_reason and "OutOfMemoryError" in container_reason:
+            return f"🔴 Container '{container_name}' killed due to out of memory (OOM)"
+
+        if exit_code in EXIT_CODE_INFO:
+            _, emoji, description = EXIT_CODE_INFO[exit_code]
+            return f"{emoji} Container '{container_name}' {description}"
+
         reason_text = f" - {container_reason}" if container_reason else ""
         return f"🔴 Container '{container_name}' failed with exit code {exit_code}{reason_text}"
 
@@ -209,13 +215,10 @@ class TaskService:
 
 
 def _get_brief_exit_reason(exit_code: int) -> str:
-    reasons = {
-        137: "OOM/timeout",
-        139: "segfault",
-        143: "SIGTERM",
-        1: "app error",
-    }
-    return reasons.get(exit_code, f"exit {exit_code}")
+    if exit_code in EXIT_CODE_INFO:
+        brief_reason, _, _ = EXIT_CODE_INFO[exit_code]
+        return brief_reason
+    return f"exit {exit_code}"
 
 
 def _get_brief_stop_reason(stop_code: str | None) -> str | None:
