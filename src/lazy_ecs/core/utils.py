@@ -47,6 +47,14 @@ def extract_task_id(task_arn: str, length: int = 8) -> str:
     return task_id[:length] if length > 0 else task_id
 
 
+def extract_task_def_family(task_def_arn: str) -> str:
+    return task_def_arn.split("/")[-1].split(":")[0]
+
+
+def extract_task_def_revision(task_def_arn: str) -> str:
+    return task_def_arn.split(":")[-1]
+
+
 def determine_service_status(running_count: int, desired_count: int, pending_count: int) -> tuple[str, str]:
     if running_count == desired_count and pending_count == 0:
         return "✅", "HEALTHY"

@@ -5,7 +5,13 @@ from typing import TYPE_CHECKING, Any
 from botocore.exceptions import BotoCoreError, ClientError
 
 from ...core.types import TaskDetails, TaskHistoryDetails, TaskInfo
-from ...core.utils import batch_items, paginate_aws_list
+from ...core.utils import (
+    batch_items,
+    extract_task_def_family,
+    extract_task_def_revision,
+    extract_task_id,
+    paginate_aws_list,
+)
 
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
@@ -143,8 +149,8 @@ class TaskService:
     def _parse_task_history(task: TaskTypeDef) -> TaskHistoryDetails:
         task_arn = task["taskArn"]
         task_def_arn = task["taskDefinitionArn"]
-        task_def_family = task_def_arn.split("/")[-1].split(":")[0]
-        task_def_revision = task_def_arn.split(":")[-1]
+        task_def_family = extract_task_def_family(task_def_arn)
+        task_def_revision = extract_task_def_revision(task_def_arn)
 
         containers = []
         for container in task.get("containers", []):
@@ -252,9 +258,9 @@ def _create_task_info(task: TaskTypeDef | dict[str, Any], desired_task_def_arn: 
     task_def_arn = task["taskDefinitionArn"]
     is_desired = task_def_arn == desired_task_def_arn
 
-    task_id = task_arn.split("/")[-1][:8]
-    task_def_family = task_def_arn.split("/")[-1].split(":")[0]
-    revision = task_def_arn.split(":")[-1]
+    task_id = extract_task_id(task_arn)
+    task_def_family = extract_task_def_family(task_def_arn)
+    revision = extract_task_def_revision(task_def_arn)
 
     created_at = task.get("createdAt")
 
@@ -294,8 +300,8 @@ def _build_task_details(
 ) -> TaskDetails:
     task_arn = task["taskArn"]
     task_def_arn = task["taskDefinitionArn"]
-    task_def_family = task_def_arn.split("/")[-1].split(":")[0]
-    task_def_revision = task_def_arn.split(":")[-1]
+    task_def_family = extract_task_def_family(task_def_arn)
+    task_def_revision = extract_task_def_revision(task_def_arn)
 
     containers = []
     for container_def in task_definition["containerDefinitions"]:
