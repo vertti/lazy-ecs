@@ -7,7 +7,6 @@ import questionary
 from rich.console import Console
 from rich.table import Table
 
-from ...core.base import BaseUIComponent
 from ...core.navigation import select_with_auto_pagination
 from ...core.types import TaskDetails, TaskHistoryDetails
 from ...core.utils import extract_task_id, print_warning, show_spinner
@@ -37,9 +36,8 @@ _CHANGE_TYPE_DISPLAY = {
 }
 
 
-class TaskUI(BaseUIComponent):
+class TaskUI:
     def __init__(self, task_service: TaskService, comparison_service: TaskComparisonService | None = None) -> None:
-        super().__init__()
         self.task_service = task_service
         self.comparison_service = comparison_service
 

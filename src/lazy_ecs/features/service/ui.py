@@ -4,7 +4,6 @@ import questionary
 from rich.console import Console
 from rich.table import Table
 
-from ...core.base import BaseUIComponent
 from ...core.navigation import select_with_auto_pagination
 from ...core.types import ServiceMetrics, TaskInfo
 from ...core.utils import show_spinner
@@ -15,9 +14,8 @@ from .service import ServiceService
 console = Console()
 
 
-class ServiceUI(BaseUIComponent):
+class ServiceUI:
     def __init__(self, service_service: ServiceService, service_actions: ServiceActions) -> None:
-        super().__init__()
         self.service_service = service_service
         self.service_actions = service_actions
 

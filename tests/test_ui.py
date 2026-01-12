@@ -57,7 +57,7 @@ def test_select_service_action_integration(mock_ecs_service) -> None:
     )
 
 
-@patch("lazy_ecs.core.base.select_with_navigation")
+@patch("lazy_ecs.ui.select_with_navigation")
 def test_select_task_integration(mock_select, mock_ecs_service) -> None:
     """Test that select_task integrates with ECSService properly."""
     mock_ecs_service.get_task_info.return_value = [

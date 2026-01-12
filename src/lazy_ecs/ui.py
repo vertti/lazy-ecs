@@ -3,7 +3,7 @@ from __future__ import annotations
 from rich.console import Console
 
 from .aws_service import ECSService
-from .core.base import BaseUIComponent
+from .core.navigation import select_with_navigation
 from .core.types import TaskDetails
 from .core.utils import show_spinner
 from .features.cluster.cluster import ClusterService
@@ -16,9 +16,8 @@ from .features.task.ui import TaskUI
 console = Console()
 
 
-class ECSNavigator(BaseUIComponent):
+class ECSNavigator:
     def __init__(self, ecs_service: ECSService) -> None:
-        super().__init__()
         self.ecs_service = ecs_service
         cluster_service = ClusterService(ecs_service.ecs_client)
         self._cluster_ui = ClusterUI(cluster_service)
@@ -48,7 +47,7 @@ class ECSNavigator(BaseUIComponent):
 
         choices = [{"name": info["name"], "value": info["value"]} for info in task_info]
 
-        selected = self.select_with_nav("Select a task:", choices, "Back to service selection")
+        selected = select_with_navigation("Select a task:", choices, "Back to service selection")
 
         return selected or ""
 

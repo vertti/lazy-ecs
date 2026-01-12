@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from rich.console import Console
 
-from ...core.base import BaseUIComponent
 from ...core.navigation import handle_navigation, select_with_auto_pagination
 from ...core.utils import show_spinner
 from .cluster import ClusterService
@@ -10,9 +9,8 @@ from .cluster import ClusterService
 console = Console()
 
 
-class ClusterUI(BaseUIComponent):
+class ClusterUI:
     def __init__(self, cluster_service: ClusterService) -> None:
-        super().__init__()
         self.cluster_service = cluster_service
 
     def select_cluster(self) -> str:

@@ -8,7 +8,6 @@ from typing import Any, cast
 
 from rich.console import Console
 
-from ...core.base import BaseUIComponent
 from ...core.utils import print_error, show_spinner, wait_for_keypress
 from .container import ContainerService
 from .models import Action, LogEvent
@@ -19,9 +18,8 @@ SEPARATOR_WIDTH = 80
 LOG_POLL_INTERVAL = 0.01  # seconds
 
 
-class ContainerUI(BaseUIComponent):
+class ContainerUI:
     def __init__(self, container_service: ContainerService) -> None:
-        super().__init__()
         self.container_service = container_service
 
     @staticmethod
