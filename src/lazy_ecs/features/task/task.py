@@ -1,25 +1,34 @@
-"""Task operations for ECS."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
 from botocore.exceptions import BotoCoreError, ClientError
 
-from ...core.base import BaseAWSService
 from ...core.types import TaskDetails, TaskHistoryDetails, TaskInfo
-from ...core.utils import batch_items, paginate_aws_list
+from ...core.utils import (
+    batch_items,
+    extract_task_def_family,
+    extract_task_def_revision,
+    extract_task_id,
+    paginate_aws_list,
+)
 
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
     from mypy_boto3_ecs.type_defs import TaskDefinitionTypeDef, TaskTypeDef
 
+# Exit code mapping: exit_code -> (brief_reason, emoji, description)
+EXIT_CODE_INFO: dict[int, tuple[str, str, str]] = {
+    137: ("SIGKILL", "💀", "killed by SIGKILL (OOM, manual kill, or timeout)"),
+    139: ("segfault", "💥", "crashed with segmentation fault (exit code 139)"),
+    143: ("SIGTERM", "🛑", "gracefully stopped (SIGTERM)"),
+    1: ("app error", "❌", "application error (exit code 1)"),
+}
 
-class TaskService(BaseAWSService):
-    """Service for ECS task operations."""
 
+class TaskService:
     def __init__(self, ecs_client: ECSClient) -> None:
-        super().__init__(ecs_client)
+        self.ecs_client = ecs_client
 
     def get_tasks(self, cluster_name: str, service_name: str) -> list[str]:
         return paginate_aws_list(
@@ -88,14 +97,12 @@ class TaskService(BaseAWSService):
         return task, task_definition
 
     def _list_tasks_by_status(self, cluster_name: str, service_name: str | None, desired_status: str) -> list[str]:
-        """List tasks filtered by status and optional service name."""
         kwargs = {"cluster": cluster_name, "desiredStatus": desired_status}
         if service_name:
             kwargs["serviceName"] = service_name
         return paginate_aws_list(self.ecs_client, "list_tasks", "taskArns", **kwargs)
 
     def get_task_history(self, cluster_name: str, service_name: str | None = None) -> list[TaskHistoryDetails]:
-        """Get task history including stopped tasks with failure information."""
         task_arns = []
 
         running_arns = self._list_tasks_by_status(cluster_name, service_name, "RUNNING")
@@ -116,7 +123,6 @@ class TaskService(BaseAWSService):
         return [self._parse_task_history(task) for task in all_tasks]
 
     def get_task_failure_analysis(self, task_history: TaskHistoryDetails) -> str:
-        """Analyze task failure and provide human-readable explanation."""
         if task_history["last_status"] == "RUNNING":
             return "✅ Task is currently running"
 
@@ -137,16 +143,14 @@ class TaskService(BaseAWSService):
                     stopped_reason,
                 )
 
-        # No container failures, analyze task-level issues
         return self._analyze_task_failure(stop_code, stopped_reason)
 
     @staticmethod
     def _parse_task_history(task: TaskTypeDef) -> TaskHistoryDetails:
-        """Parse task data into TaskHistoryDetails structure."""
         task_arn = task["taskArn"]
         task_def_arn = task["taskDefinitionArn"]
-        task_def_family = task_def_arn.split("/")[-1].split(":")[0]
-        task_def_revision = task_def_arn.split(":")[-1]
+        task_def_family = extract_task_def_family(task_def_arn)
+        task_def_revision = extract_task_def_revision(task_def_arn)
 
         containers = []
         for container in task.get("containers", []):
@@ -182,23 +186,19 @@ class TaskService(BaseAWSService):
         _stop_code: str | None,
         _stopped_reason: str | None,
     ) -> str:
-        """Analyze container-level failure."""
-        if exit_code == 137:
-            if container_reason and "OutOfMemoryError" in container_reason:
-                return f"🔴 Container '{container_name}' killed due to out of memory (OOM)"
-            return f"⏰ Container '{container_name}' killed after timeout (exit code 137)"
-        if exit_code == 139:
-            return f"💥 Container '{container_name}' crashed with segmentation fault (exit code 139)"
-        if exit_code == 143:
-            return f"🛑 Container '{container_name}' gracefully stopped (SIGTERM)"
-        if exit_code == 1:
-            return f"❌ Container '{container_name}' application error (exit code 1)"
+        # Special case for OOM with explicit reason
+        if exit_code == 137 and container_reason and "OutOfMemoryError" in container_reason:
+            return f"🔴 Container '{container_name}' killed due to out of memory (OOM)"
+
+        if exit_code in EXIT_CODE_INFO:
+            _, emoji, description = EXIT_CODE_INFO[exit_code]
+            return f"{emoji} Container '{container_name}' {description}"
+
         reason_text = f" - {container_reason}" if container_reason else ""
         return f"🔴 Container '{container_name}' failed with exit code {exit_code}{reason_text}"
 
     @staticmethod
     def _analyze_task_failure(stop_code: str | None, stopped_reason: str | None) -> str:
-        """Analyze task-level failure."""
         if not stop_code and not stopped_reason:
             return "✅ Task completed successfully"
 
@@ -221,13 +221,10 @@ class TaskService(BaseAWSService):
 
 
 def _get_brief_exit_reason(exit_code: int) -> str:
-    reasons = {
-        137: "OOM/timeout",
-        139: "segfault",
-        143: "SIGTERM",
-        1: "app error",
-    }
-    return reasons.get(exit_code, f"exit {exit_code}")
+    if exit_code in EXIT_CODE_INFO:
+        brief_reason, _, _ = EXIT_CODE_INFO[exit_code]
+        return brief_reason
+    return f"exit {exit_code}"
 
 
 def _get_brief_stop_reason(stop_code: str | None) -> str | None:
@@ -261,9 +258,9 @@ def _create_task_info(task: TaskTypeDef | dict[str, Any], desired_task_def_arn: 
     task_def_arn = task["taskDefinitionArn"]
     is_desired = task_def_arn == desired_task_def_arn
 
-    task_id = task_arn.split("/")[-1][:8]
-    task_def_family = task_def_arn.split("/")[-1].split(":")[0]
-    revision = task_def_arn.split(":")[-1]
+    task_id = extract_task_id(task_arn)
+    task_def_family = extract_task_def_family(task_def_arn)
+    revision = extract_task_def_revision(task_def_arn)
 
     created_at = task.get("createdAt")
 
@@ -301,11 +298,10 @@ def _build_task_details(
     task_definition: TaskDefinitionTypeDef,
     is_desired_version: bool,
 ) -> TaskDetails:
-    """Build comprehensive task details dictionary."""
     task_arn = task["taskArn"]
     task_def_arn = task["taskDefinitionArn"]
-    task_def_family = task_def_arn.split("/")[-1].split(":")[0]
-    task_def_revision = task_def_arn.split(":")[-1]
+    task_def_family = extract_task_def_family(task_def_arn)
+    task_def_revision = extract_task_def_revision(task_def_arn)
 
     containers = []
     for container_def in task_definition["containerDefinitions"]:

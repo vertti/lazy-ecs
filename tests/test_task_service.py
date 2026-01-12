@@ -100,8 +100,8 @@ def test_stop_task_client_error():
 # Brief failure reason tests
 
 
-def test_get_brief_exit_reason_oom():
-    assert _get_brief_exit_reason(137) == "OOM/timeout"
+def test_get_brief_exit_reason_sigkill():
+    assert _get_brief_exit_reason(137) == "SIGKILL"
 
 
 def test_get_brief_exit_reason_segfault():
@@ -149,9 +149,9 @@ def test_get_brief_failure_reason_running_task():
     assert _get_brief_failure_reason(task) is None
 
 
-def test_get_brief_failure_reason_oom():
+def test_get_brief_failure_reason_sigkill():
     task = {"lastStatus": "STOPPED", "containers": [{"exitCode": 137}]}
-    assert _get_brief_failure_reason(task) == "OOM/timeout"
+    assert _get_brief_failure_reason(task) == "SIGKILL"
 
 
 def test_get_brief_failure_reason_app_error():
@@ -177,8 +177,8 @@ def test_create_task_info_includes_failure_reason():
         "containers": [{"exitCode": 137, "image": "nginx:latest"}],
     }
     info = _create_task_info(task, None)
-    assert "OOM/timeout" in info["name"]
-    assert info["failure_reason"] == "OOM/timeout"
+    assert "SIGKILL" in info["name"]
+    assert info["failure_reason"] == "SIGKILL"
 
 
 def test_create_task_info_no_failure_for_running():

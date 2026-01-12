@@ -1,5 +1,3 @@
-"""CloudWatch metrics operations for ECS services."""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -18,7 +16,6 @@ def get_service_metrics(
     service_name: str,
     hours: int = 1,
 ) -> ServiceMetrics | None:
-    """Fetch CPU and Memory utilization metrics for an ECS service from CloudWatch."""
     utc_now = datetime.now(tz=UTC)
     start_time = utc_now - timedelta(hours=hours)
     end_time = utc_now
@@ -48,7 +45,6 @@ def get_service_metrics(
 
 
 def format_metrics_display(metrics: ServiceMetrics) -> list[str]:
-    """Format service metrics into human-readable display lines."""
     lines = []
 
     cpu = metrics["cpu"]
@@ -77,7 +73,6 @@ def _get_metric_statistics(
     start_time: datetime,
     end_time: datetime,
 ) -> MetricStatistics | None:
-    """Fetch statistics for a single metric."""
     response = cloudwatch_client.get_metric_statistics(
         Namespace="AWS/ECS",
         MetricName=metric_name,

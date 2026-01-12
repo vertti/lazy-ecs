@@ -1,5 +1,3 @@
-"""Data models for container operations."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -9,15 +7,12 @@ from typing import Any
 
 
 class Action(Enum):
-    """Actions for log tailing interaction."""
-
     STOP = "s"
     FILTER = "f"
     CLEAR = "c"
 
     @classmethod
     def from_key(cls, key: str) -> Action | None:
-        """Convert keyboard key to action."""
         for action in cls:
             if action.value == key:
                 return action
@@ -26,8 +21,6 @@ class Action(Enum):
 
 @dataclass
 class LogEvent:
-    """Represents a log event from CloudWatch."""
-
     timestamp: int | None
     message: str
     event_id: str | None = None

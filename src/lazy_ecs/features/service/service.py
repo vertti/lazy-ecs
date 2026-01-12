@@ -1,11 +1,8 @@
-"""Service operations for ECS."""
-
 from __future__ import annotations
 
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from ...core.base import BaseAWSService
 from ...core.types import ServiceEvent, ServiceInfo
 from ...core.utils import batch_items, determine_service_status, extract_name_from_arn, paginate_aws_list
 
@@ -15,12 +12,16 @@ if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
     from mypy_boto3_ecs.type_defs import ServiceTypeDef
 
+EVENT_CATEGORY_KEYWORDS: dict[str, list[str]] = {
+    "failure": ["failed", "error", "unhealthy", "unable"],
+    "deployment": ["deployment", "deploy", "started", "stopped", "updated", "registered", "deregistered", "targets"],
+    "scaling": ["scaling", "scale", "capacity", "desired count", "steady state", "running tasks"],
+}
 
-class ServiceService(BaseAWSService):
-    """Service for ECS service operations."""
 
+class ServiceService:
     def __init__(self, ecs_client: ECSClient) -> None:
-        super().__init__(ecs_client)
+        self.ecs_client = ecs_client
 
     def get_services(self, cluster_name: str) -> list[str]:
         service_arns = paginate_aws_list(self.ecs_client, "list_services", "serviceArns", cluster=cluster_name)
@@ -59,7 +60,6 @@ class ServiceService(BaseAWSService):
 
 
 def _create_service_info(service: ServiceTypeDef) -> ServiceInfo:
-    """Create service info from AWS service description."""
     service_name = service["serviceName"]
     running_count = service.get("runningCount", 0)
     desired_count = service.get("desiredCount", 0)
@@ -79,7 +79,6 @@ def _create_service_info(service: ServiceTypeDef) -> ServiceInfo:
 
 
 def _parse_service_event(event: dict[str, Any]) -> ServiceEvent:
-    """Parse service event from AWS event description."""
     event_id = event.get("id", "")
     created_at = event.get("createdAt")
     message = event.get("message", "")
@@ -95,19 +94,8 @@ def _parse_service_event(event: dict[str, Any]) -> ServiceEvent:
 
 
 def _categorize_event(message: str) -> str:
-    """Categorize service event based on message content."""
     message_lower = message.lower()
-
-    if any(term in message_lower for term in ["failed", "error", "unhealthy", "unable"]):
-        return "failure"
-    if any(
-        term in message_lower
-        for term in ["deployment", "deploy", "started", "stopped", "updated", "registered", "deregistered", "targets"]
-    ):
-        return "deployment"
-    if any(
-        term in message_lower
-        for term in ["scaling", "scale", "capacity", "desired count", "steady state", "running tasks"]
-    ):
-        return "scaling"
+    for category, keywords in EVENT_CATEGORY_KEYWORDS.items():
+        if any(term in message_lower for term in keywords):
+            return category
     return "other"

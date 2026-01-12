@@ -1,5 +1,3 @@
-"""Container operations for ECS."""
-
 from __future__ import annotations
 
 from collections.abc import Generator
@@ -7,7 +5,6 @@ from contextlib import suppress
 from os import environ
 from typing import TYPE_CHECKING, Any
 
-from ...core.base import BaseAWSService
 from ...core.context import ContainerContext
 from ...core.types import LogConfig
 
@@ -34,9 +31,7 @@ def build_log_stream_name(stream_prefix: str, container_name: str, task_id: str)
     return f"{stream_prefix}/{container_name}/{task_id}"
 
 
-class ContainerService(BaseAWSService):
-    """Service for ECS container operations."""
-
+class ContainerService:
     def __init__(
         self,
         ecs_client: ECSClient,
@@ -44,20 +39,18 @@ class ContainerService(BaseAWSService):
         sts_client: STSClient | None = None,
         logs_client: CloudWatchLogsClient | None = None,
     ) -> None:
-        super().__init__(ecs_client)
+        self.ecs_client = ecs_client
         self.task_service = task_service
         self.sts_client = sts_client
         self.logs_client = logs_client
 
     def get_container_context(self, cluster_name: str, task_arn: str, container_name: str) -> ContainerContext | None:
-        """Create a rich container context for operations."""
         result = self.task_service.get_task_and_definition(cluster_name, task_arn)
         if not result:
             return None
 
         _task, task_definition = result
 
-        # Find the container definition
         for container_def in task_definition["containerDefinitions"]:
             if container_def["name"] == container_name:
                 return ContainerContext(
@@ -128,7 +121,6 @@ class ContainerService(BaseAWSService):
         filter_pattern: str,
         lines: int = 50,
     ) -> list[FilteredLogEventTypeDef]:
-        """Get container logs with CloudWatch filter pattern applied."""
         if not self.logs_client:
             return []
         response = self.logs_client.filter_log_events(
@@ -145,7 +137,6 @@ class ContainerService(BaseAWSService):
         log_stream: str,
         event_filter_pattern: str = "",
     ) -> Generator[StartLiveTailResponseStreamTypeDef | LiveTailSessionLogEventTypeDef]:
-        """Get container logs in real time from CloudWatch."""
         if not self.logs_client:
             return
         region = self.ecs_client.meta.region_name
@@ -171,7 +162,6 @@ class ContainerService(BaseAWSService):
                 else:
                     yield event
         finally:
-            # Properly close the response stream
             if hasattr(response_stream, "close"):
                 with suppress(Exception):
                     response_stream.close()
@@ -200,7 +190,6 @@ class ContainerService(BaseAWSService):
         if not mount_points:
             return []
 
-        # Build volume lookup map from task definition volumes
         volumes_map = {}
         for volume in context.task_definition.get("volumes", []):
             volume_name = volume["name"]
@@ -208,7 +197,6 @@ class ContainerService(BaseAWSService):
             host_path = host_config.get("sourcePath") if host_config else None
             volumes_map[volume_name] = host_path
 
-        # Build volume mounts with resolved host paths
         volume_mounts = []
         for mount_point in mount_points:
             source_volume = mount_point["sourceVolume"]

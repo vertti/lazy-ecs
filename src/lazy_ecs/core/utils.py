@@ -1,5 +1,3 @@
-"""Utility functions for lazy-ecs."""
-
 from __future__ import annotations
 
 import atexit
@@ -41,18 +39,23 @@ console = Console()
 
 
 def extract_name_from_arn(arn: str) -> str:
-    """Extract resource name from AWS ARN."""
     return arn.split("/")[-1]
 
 
 def extract_task_id(task_arn: str, length: int = 8) -> str:
-    """Extract short task ID from task ARN for display."""
     task_id = task_arn.rsplit("/", 1)[-1]
     return task_id[:length] if length > 0 else task_id
 
 
+def extract_task_def_family(task_def_arn: str) -> str:
+    return task_def_arn.split("/")[-1].split(":")[0]
+
+
+def extract_task_def_revision(task_def_arn: str) -> str:
+    return task_def_arn.split(":")[-1]
+
+
 def determine_service_status(running_count: int, desired_count: int, pending_count: int) -> tuple[str, str]:
-    """Determine service status icon and text."""
     if running_count == desired_count and pending_count == 0:
         return "✅", "HEALTHY"
     if running_count < desired_count:
@@ -80,14 +83,12 @@ def print_info(message: str) -> None:
 
 @contextmanager
 def show_spinner() -> Iterator[None]:
-    """Context manager that shows a spinner while running operations."""
     spinner = Spinner("dots", style="cyan")
     with console.status(spinner):
         yield
 
 
 def batch_items(items: list[Any], batch_size: int) -> Iterator[list[Any]]:
-    """Split a list into batches of specified size."""
     for i in range(0, len(items), batch_size):
         yield items[i : i + batch_size]
 
@@ -121,11 +122,7 @@ def paginate_aws_list(
 
 
 def wait_for_keypress(stop_event: threading.Event) -> str | None:
-    """Wait for a single keypress in a non-blocking manner.
-
-    Returns the key pressed, or None if stop_event is set.
-    This runs in a separate thread to allow checking for keypresses without blocking.
-    """
+    """Returns the key pressed, or None if stop_event is set."""
     if HAS_TERMIOS and sys.stdin.isatty():
         # Unix/Linux/macOS with terminal support
         fd = sys.stdin.fileno()

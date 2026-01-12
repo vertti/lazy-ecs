@@ -1,5 +1,3 @@
-"""UI components for container operations."""
-
 from __future__ import annotations
 
 import queue
@@ -10,7 +8,7 @@ from typing import Any, cast
 
 from rich.console import Console
 
-from ...core.base import BaseUIComponent
+from ...core.context import ContainerContext
 from ...core.utils import print_error, show_spinner, wait_for_keypress
 from .container import ContainerService
 from .models import Action, LogEvent
@@ -21,16 +19,41 @@ SEPARATOR_WIDTH = 80
 LOG_POLL_INTERVAL = 0.01  # seconds
 
 
-class ContainerUI(BaseUIComponent):
-    """UI component for container display."""
+def _parse_secret_source(value_from: str) -> tuple[str, str]:
+    """Returns (source_type, display_name). source_type is empty if unknown."""
+    if "secretsmanager" in value_from:
+        parts = value_from.split(":")
+        if len(parts) >= 7:
+            secret_name = parts[6]
+            if len(parts) > 7:
+                secret_name += f"-{parts[7]}"
+            return ("Secrets Manager", secret_name)
+        return ("Secrets Manager", value_from)
 
+    if ":parameter/" in value_from:
+        param_name = value_from.split(":parameter/", 1)[1]
+        return ("Parameter Store", param_name)
+
+    if "ssm" in value_from or "parameter" in value_from:
+        return ("Parameter Store", value_from)
+
+    return ("", value_from)
+
+
+class ContainerUI:
     def __init__(self, container_service: ContainerService) -> None:
-        super().__init__()
         self.container_service = container_service
+
+    def _get_context(self, cluster_name: str, task_arn: str, container_name: str) -> ContainerContext | None:
+        with show_spinner():
+            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        if not context:
+            print_error(f"Could not find container '{container_name}'")
+            return None
+        return context
 
     @staticmethod
     def _drain_queue(q: queue.Queue[Any]) -> None:
-        """Drain all items from a queue without blocking."""
         while not q.empty():
             try:
                 q.get_nowait()
@@ -38,7 +61,6 @@ class ContainerUI(BaseUIComponent):
                 break
 
     def show_logs_live_tail(self, cluster_name: str, task_arn: str, container_name: str, lines: int = 50) -> None:
-        """Display recent logs then continue streaming in real time for a container with interactive filtering."""
         log_config = self.container_service.get_log_config(cluster_name, task_arn, container_name)
         if not log_config:
             print_error(f"Could not find log configuration for container '{container_name}'")
@@ -88,11 +110,7 @@ class ContainerUI(BaseUIComponent):
         filter_pattern: str,
         lines: int,
     ) -> Action | None:
-        """Display historical logs then tail new logs with optional filtering.
-
-        Returns the action taken by the user.
-        """
-        # Show filter status
+        """Returns the action taken by the user."""
         if filter_pattern:
             console.print(f"\n🔍 Active filter: {filter_pattern}", style="yellow")
 
@@ -142,7 +160,6 @@ class ContainerUI(BaseUIComponent):
                     raise
 
         def log_reader() -> None:
-            """Read logs in separate thread to avoid blocking."""
             log_generator = None
             try:
                 log_generator = self.container_service.get_live_container_logs_tail(
@@ -157,7 +174,6 @@ class ContainerUI(BaseUIComponent):
             except Exception:
                 pass  # Iterator exhausted or error
             finally:
-                # Ensure generator is properly closed
                 if log_generator and hasattr(log_generator, "close"):
                     with suppress(Exception):
                         log_generator.close()
@@ -173,7 +189,6 @@ class ContainerUI(BaseUIComponent):
 
         try:
             while True:
-                # Check for keyboard input first (more responsive)
                 try:
                     key = key_queue.get_nowait()
                     if key:
@@ -190,7 +205,6 @@ class ContainerUI(BaseUIComponent):
                 except queue.Empty:
                     pass
 
-                # Check for new log events (non-blocking)
                 try:
                     event = log_queue.get_nowait()
                     if event is None:
@@ -207,8 +221,7 @@ class ContainerUI(BaseUIComponent):
                             seen_logs.add(log_event.key)
                             console.print(log_event.format())
                 except queue.Empty:
-                    # No new logs, just wait a bit
-                    time.sleep(LOG_POLL_INTERVAL)  # Small delay to avoid busy-waiting
+                    time.sleep(LOG_POLL_INTERVAL)
         except KeyboardInterrupt:
             console.print("\n🛑 Interrupted.", style="yellow")
             action = Action.STOP
@@ -218,10 +231,8 @@ class ContainerUI(BaseUIComponent):
         return action
 
     def show_container_environment_variables(self, cluster_name: str, task_arn: str, container_name: str) -> None:
-        with show_spinner():
-            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        context = self._get_context(cluster_name, task_arn, container_name)
         if not context:
-            print_error(f"Could not find container '{container_name}'")
             return
 
         env_vars = self.container_service.get_environment_variables(context)
@@ -242,10 +253,8 @@ class ContainerUI(BaseUIComponent):
         console.print(f"📊 Total: {len(env_vars)} environment variables", style="blue")
 
     def show_container_secrets(self, cluster_name: str, task_arn: str, container_name: str) -> None:
-        with show_spinner():
-            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        context = self._get_context(cluster_name, task_arn, container_name)
         if not context:
-            print_error(f"Could not find container '{container_name}'")
             return
 
         secrets = self.container_service.get_secrets(context)
@@ -260,32 +269,18 @@ class ContainerUI(BaseUIComponent):
         sorted_secrets = sorted(secrets.items())
 
         for name, value_from in sorted_secrets:
-            if "secretsmanager" in value_from:
-                parts = value_from.split(":")
-                if len(parts) >= 7:
-                    secret_name = parts[6]
-                    if len(parts) > 7:
-                        secret_name += f"-{parts[7]}"
-                    console.print(f"{name} → Secrets Manager: {secret_name}", style="magenta")
-                else:
-                    console.print(f"{name} → Secrets Manager: {value_from}", style="magenta")
-            elif "ssm" in value_from or "parameter" in value_from:
-                if ":parameter/" in value_from:
-                    param_name = value_from.split(":parameter/", 1)[1]
-                    console.print(f"{name} → Parameter Store: {param_name}", style="magenta")
-                else:
-                    console.print(f"{name} → Parameter Store: {value_from}", style="magenta")
+            source_type, display_name = _parse_secret_source(value_from)
+            if source_type:
+                console.print(f"{name} → {source_type}: {display_name}", style="magenta")
             else:
-                console.print(f"{name} → {value_from}", style="magenta")
+                console.print(f"{name} → {display_name}", style="magenta")
 
         console.print("=" * 60, style="dim")
         console.print(f"🔒 Total: {len(secrets)} secrets configured", style="magenta")
 
     def show_container_port_mappings(self, cluster_name: str, task_arn: str, container_name: str) -> None:
-        with show_spinner():
-            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        context = self._get_context(cluster_name, task_arn, container_name)
         if not context:
-            print_error(f"Could not find container '{container_name}'")
             return
 
         port_mappings = self.container_service.get_port_mappings(context)
@@ -307,10 +302,8 @@ class ContainerUI(BaseUIComponent):
         console.print(f"🔗 Total: {len(port_mappings)} port mappings", style="blue")
 
     def show_container_volume_mounts(self, cluster_name: str, task_arn: str, container_name: str) -> None:
-        with show_spinner():
-            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        context = self._get_context(cluster_name, task_arn, container_name)
         if not context:
-            print_error(f"Could not find container '{container_name}'")
             return
 
         volume_mounts = self.container_service.get_volume_mounts(context)
