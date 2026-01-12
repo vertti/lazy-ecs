@@ -120,7 +120,7 @@ class TestTaskHistoryParsing:
     @pytest.mark.parametrize(
         ("exit_code", "reason", "expected_emoji", "expected_text"),
         [
-            (137, "Task killed", "⏰", "timeout"),
+            (137, "Task killed", "💀", "sigkill"),
             (139, None, "💥", "segmentation fault"),
             (143, None, "🛑", "gracefully stopped"),
             (1, "Application crashed", "❌", "application error"),

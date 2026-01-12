@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 # Exit code mapping: exit_code -> (brief_reason, emoji, description)
 EXIT_CODE_INFO: dict[int, tuple[str, str, str]] = {
-    137: ("OOM/timeout", "⏰", "killed after timeout (exit code 137)"),
+    137: ("SIGKILL", "💀", "killed by SIGKILL (OOM, manual kill, or timeout)"),
     139: ("segfault", "💥", "crashed with segmentation fault (exit code 139)"),
     143: ("SIGTERM", "🛑", "gracefully stopped (SIGTERM)"),
     1: ("app error", "❌", "application error (exit code 1)"),
