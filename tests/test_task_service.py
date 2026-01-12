@@ -100,7 +100,7 @@ def test_stop_task_client_error():
 # Brief failure reason tests
 
 
-def test_get_brief_exit_reason_oom():
+def test_get_brief_exit_reason_sigkill():
     assert _get_brief_exit_reason(137) == "SIGKILL"
 
 
@@ -149,7 +149,7 @@ def test_get_brief_failure_reason_running_task():
     assert _get_brief_failure_reason(task) is None
 
 
-def test_get_brief_failure_reason_oom():
+def test_get_brief_failure_reason_sigkill():
     task = {"lastStatus": "STOPPED", "containers": [{"exitCode": 137}]}
     assert _get_brief_failure_reason(task) == "SIGKILL"
 
