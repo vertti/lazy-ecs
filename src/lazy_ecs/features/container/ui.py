@@ -8,6 +8,7 @@ from typing import Any, cast
 
 from rich.console import Console
 
+from ...core.context import ContainerContext
 from ...core.utils import print_error, show_spinner, wait_for_keypress
 from .container import ContainerService
 from .models import Action, LogEvent
@@ -21,6 +22,14 @@ LOG_POLL_INTERVAL = 0.01  # seconds
 class ContainerUI:
     def __init__(self, container_service: ContainerService) -> None:
         self.container_service = container_service
+
+    def _get_context(self, cluster_name: str, task_arn: str, container_name: str) -> ContainerContext | None:
+        with show_spinner():
+            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        if not context:
+            print_error(f"Could not find container '{container_name}'")
+            return None
+        return context
 
     @staticmethod
     def _drain_queue(q: queue.Queue[Any]) -> None:
@@ -201,10 +210,8 @@ class ContainerUI:
         return action
 
     def show_container_environment_variables(self, cluster_name: str, task_arn: str, container_name: str) -> None:
-        with show_spinner():
-            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        context = self._get_context(cluster_name, task_arn, container_name)
         if not context:
-            print_error(f"Could not find container '{container_name}'")
             return
 
         env_vars = self.container_service.get_environment_variables(context)
@@ -225,10 +232,8 @@ class ContainerUI:
         console.print(f"📊 Total: {len(env_vars)} environment variables", style="blue")
 
     def show_container_secrets(self, cluster_name: str, task_arn: str, container_name: str) -> None:
-        with show_spinner():
-            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        context = self._get_context(cluster_name, task_arn, container_name)
         if not context:
-            print_error(f"Could not find container '{container_name}'")
             return
 
         secrets = self.container_service.get_secrets(context)
@@ -265,10 +270,8 @@ class ContainerUI:
         console.print(f"🔒 Total: {len(secrets)} secrets configured", style="magenta")
 
     def show_container_port_mappings(self, cluster_name: str, task_arn: str, container_name: str) -> None:
-        with show_spinner():
-            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        context = self._get_context(cluster_name, task_arn, container_name)
         if not context:
-            print_error(f"Could not find container '{container_name}'")
             return
 
         port_mappings = self.container_service.get_port_mappings(context)
@@ -290,10 +293,8 @@ class ContainerUI:
         console.print(f"🔗 Total: {len(port_mappings)} port mappings", style="blue")
 
     def show_container_volume_mounts(self, cluster_name: str, task_arn: str, container_name: str) -> None:
-        with show_spinner():
-            context = self.container_service.get_container_context(cluster_name, task_arn, container_name)
+        context = self._get_context(cluster_name, task_arn, container_name)
         if not context:
-            print_error(f"Could not find container '{container_name}'")
             return
 
         volume_mounts = self.container_service.get_volume_mounts(context)
