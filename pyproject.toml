@@ -26,7 +26,7 @@ classifiers = [
 ]
 dependencies = [
   "questionary==2.1.1",
-  "boto3==1.42.25",
+  "boto3==1.42.26",
   "rich==14.2.0",
 ]
 
