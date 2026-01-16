@@ -4,5 +4,11 @@
   "ignorePresets": ["helpers:pinGitHubActionDigests"],
   "mode": "full",
   "prHourlyLimit": 10,
-  "labels": ["dependencies"]
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "groupName": "boto3",
+      "matchPackageNames": ["boto3", "boto3-stubs"]
+    }
+  ]
 }
