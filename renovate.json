@@ -9,6 +9,16 @@
     {
       "groupName": "boto3",
       "matchPackageNames": ["boto3", "boto3-stubs"]
+    },
+    {
+      "groupName": "uv",
+      "matchManagers": ["pip_requirements", "pep621"],
+      "matchPackageNames": ["uv"]
+    },
+    {
+      "groupName": "uv",
+      "matchManagers": ["docker-compose", "dockerfile"],
+      "matchPackageNames": ["ghcr.io/astral-sh/uv"]
     }
   ]
 }
