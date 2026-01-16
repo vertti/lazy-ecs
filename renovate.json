@@ -12,12 +12,12 @@
     },
     {
       "groupName": "uv",
-      "matchManagers": ["pip_requirements", "pep621"],
+      "matchManagers": ["mise"],
       "matchPackageNames": ["uv"]
     },
     {
       "groupName": "uv",
-      "matchManagers": ["docker-compose", "dockerfile"],
+      "matchManagers": ["dockerfile"],
       "matchPackageNames": ["ghcr.io/astral-sh/uv"]
     }
   ]
