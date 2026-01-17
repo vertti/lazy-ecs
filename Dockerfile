@@ -1,5 +1,5 @@
 # Build stage
-FROM python:3.13-slim@sha256:47b6eb1efcabc908e264051140b99d08ebb37fd2b0bf62273e2c9388911490c1 as builder
+FROM python:3.13-slim@sha256:51e1a0a317fdb6e170dc791bbeae63fac5272c82f43958ef74a34e170c6f8b18 as builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -20,7 +20,7 @@ COPY src ./src
 RUN uv build --wheel
 
 # Runtime stage
-FROM python:3.13-slim@sha256:47b6eb1efcabc908e264051140b99d08ebb37fd2b0bf62273e2c9388911490c1
+FROM python:3.13-slim@sha256:51e1a0a317fdb6e170dc791bbeae63fac5272c82f43958ef74a34e170c6f8b18
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
