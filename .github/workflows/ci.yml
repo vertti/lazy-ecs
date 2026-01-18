@@ -40,12 +40,13 @@ jobs:
       - name: Run tests
         run: uv run pytest
 
-      - name: Upload coverage to Coveralls
+      - name: Upload coverage to Codecov
         if: matrix.python-version == '3.13'
-        uses: coverallsapp/github-action@v2
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ./coverage.lcov
+          files: ./coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Test production dependencies
         run: ./scripts/test-production-install.sh
