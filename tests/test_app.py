@@ -3,16 +3,42 @@
 from unittest.mock import Mock, patch
 
 from lazy_ecs.core.app import (
+    dispatch_cluster_action,
     dispatch_container_action,
     dispatch_service_action,
     dispatch_task_action,
+    get_cluster_action_handlers,
     get_container_action_handlers,
     get_service_action_handlers,
     get_task_action_handlers,
     handle_task_features,
     handle_task_selection,
+    navigate_clusters,
     navigate_services,
 )
+
+
+def test_get_cluster_action_handlers_returns_all_actions():
+    handlers = get_cluster_action_handlers()
+
+    assert "open_console" in handlers
+    assert len(handlers) == 1
+
+
+def test_dispatch_cluster_action_calls_handler_for_valid_action():
+    mock_navigator = Mock()
+
+    dispatch_cluster_action(mock_navigator, "cluster", "open_console")
+
+    mock_navigator.open_cluster_in_console.assert_called_once_with("cluster")
+
+
+def test_dispatch_cluster_action_ignores_invalid_action():
+    mock_navigator = Mock()
+
+    dispatch_cluster_action(mock_navigator, "cluster", "invalid_action")
+
+    assert not mock_navigator.method_calls
 
 
 def test_get_container_action_handlers_returns_all_actions():
@@ -95,6 +121,36 @@ def test_dispatch_service_action_ignores_invalid_action():
     dispatch_service_action(mock_navigator, "cluster", "service", "invalid_action")
 
     assert not mock_navigator.method_calls
+
+
+@patch("lazy_ecs.core.app.console")
+def test_navigate_clusters_opens_console_then_browses_services(_mock_console):
+    mock_navigator = Mock()
+    mock_navigator.select_cluster.side_effect = ["production", ""]
+    mock_navigator.select_cluster_action.side_effect = [
+        "cluster_action:open_console:production",
+        "cluster_action:browse_services:production",
+    ]
+    mock_ecs_service = Mock()
+
+    with patch("lazy_ecs.core.app.navigate_services", return_value=True) as mock_navigate_services:
+        navigate_clusters(mock_navigator, mock_ecs_service)
+
+    mock_navigator.open_cluster_in_console.assert_called_once_with("production")
+    mock_navigate_services.assert_called_once_with(mock_navigator, mock_ecs_service, "production")
+
+
+@patch("lazy_ecs.core.app.console")
+def test_navigate_clusters_exit_from_cluster_action(_mock_console):
+    mock_navigator = Mock()
+    mock_navigator.select_cluster.return_value = "production"
+    mock_navigator.select_cluster_action.return_value = "navigation:exit"
+    mock_ecs_service = Mock()
+
+    with patch("lazy_ecs.core.app.navigate_services") as mock_navigate_services:
+        navigate_clusters(mock_navigator, mock_ecs_service)
+
+    mock_navigate_services.assert_not_called()
 
 
 def test_navigate_services_returns_true_on_back():

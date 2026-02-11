@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from rich.console import Console
 
-from ...core.navigation import handle_navigation, select_with_auto_pagination
+from ...core.navigation import handle_navigation, select_with_auto_pagination, select_with_navigation
 from ...core.utils import show_spinner
 from .cluster import ClusterService
 
@@ -30,3 +30,15 @@ class ClusterUI:
             return ""
 
         return selected or ""
+
+    def select_cluster_action(self, cluster_name: str) -> str | None:
+        choices = [
+            {"name": "📂 Browse services", "value": f"cluster_action:browse_services:{cluster_name}"},
+            {"name": "🌐 Open in AWS console", "value": f"cluster_action:open_console:{cluster_name}"},
+        ]
+
+        return select_with_navigation(
+            f"Select action for cluster '{cluster_name}':",
+            choices,
+            "Back to cluster selection",
+        )

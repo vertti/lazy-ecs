@@ -29,6 +29,9 @@ class ECSNavigator:
     def select_cluster(self) -> str:
         return self._cluster_ui.select_cluster()
 
+    def select_cluster_action(self, cluster_name: str) -> str | None:
+        return self._cluster_ui.select_cluster_action(cluster_name)
+
     def select_service(self, cluster_name: str) -> str | None:
         return self._service_ui.select_service(cluster_name)
 
@@ -106,6 +109,16 @@ class ECSNavigator:
         region = self.ecs_service.get_region()
         url = build_service_url(region, cluster_name, service_name)
         console.print(f"\n🌐 Opening service in AWS console: {url}", style="cyan")
+        webbrowser.open(url)
+
+    def open_cluster_in_console(self, cluster_name: str) -> None:
+        import webbrowser
+
+        from .core.aws_console import build_cluster_url
+
+        region = self.ecs_service.get_region()
+        url = build_cluster_url(region, cluster_name)
+        console.print(f"\n🌐 Opening cluster in AWS console: {url}", style="cyan")
         webbrowser.open(url)
 
     def open_task_in_console(self, cluster_name: str, task_arn: str) -> None:

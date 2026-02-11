@@ -31,6 +31,16 @@ def test_select_cluster_delegates_to_cluster_ui(mock_ecs_service) -> None:
     navigator._cluster_ui.select_cluster.assert_called_once()
 
 
+def test_select_cluster_action_delegates_to_cluster_ui(mock_ecs_service) -> None:
+    navigator = ECSNavigator(mock_ecs_service)
+    navigator._cluster_ui.select_cluster_action = Mock(return_value="cluster_action:open_console:production")
+
+    result = navigator.select_cluster_action("production")
+
+    assert result == "cluster_action:open_console:production"
+    navigator._cluster_ui.select_cluster_action.assert_called_once_with("production")
+
+
 def test_select_service_delegates_to_service_ui(mock_ecs_service) -> None:
     navigator = ECSNavigator(mock_ecs_service)
     navigator._service_ui.select_service = Mock(return_value="service:web-api")
@@ -244,6 +254,19 @@ def test_open_service_in_console(mock_ecs_service):
         assert "us-east-1" in url_arg
         assert "production" in url_arg
         assert "web-api" in url_arg
+
+
+def test_open_cluster_in_console(mock_ecs_service):
+    with patch("webbrowser.open") as mock_webbrowser:
+        mock_ecs_service.get_region.return_value = "us-east-1"
+        navigator = ECSNavigator(mock_ecs_service)
+
+        navigator.open_cluster_in_console("production")
+
+        mock_webbrowser.assert_called_once()
+        url_arg = mock_webbrowser.call_args[0][0]
+        assert "us-east-1" in url_arg
+        assert "production" in url_arg
 
 
 def test_open_task_in_console(mock_ecs_service):
