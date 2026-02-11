@@ -72,3 +72,9 @@ def test_select_cluster_action_open_console(mock_select, cluster_service_with_ma
 
     assert result == "cluster_action:open_console:cluster-001"
     mock_select.assert_called_once()
+    prompt, choices, back_label = mock_select.call_args[0]
+    assert prompt == "Select action for cluster 'cluster-001':"
+    assert len(choices) == 2
+    assert choices[0]["value"] == "cluster_action:browse_services:cluster-001"
+    assert choices[1]["value"] == "cluster_action:open_console:cluster-001"
+    assert back_label == "Back to cluster selection"

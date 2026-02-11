@@ -126,10 +126,11 @@ def test_dispatch_service_action_ignores_invalid_action():
 @patch("lazy_ecs.core.app.console")
 def test_navigate_clusters_opens_console_then_browses_services(_mock_console):
     mock_navigator = Mock()
-    mock_navigator.select_cluster.side_effect = ["production", ""]
+    mock_navigator.select_cluster.side_effect = ["production"]
     mock_navigator.select_cluster_action.side_effect = [
         "cluster_action:open_console:production",
         "cluster_action:browse_services:production",
+        "navigation:exit",
     ]
     mock_ecs_service = Mock()
 
@@ -138,6 +139,7 @@ def test_navigate_clusters_opens_console_then_browses_services(_mock_console):
 
     mock_navigator.open_cluster_in_console.assert_called_once_with("production")
     mock_navigate_services.assert_called_once_with(mock_navigator, mock_ecs_service, "production")
+    mock_navigator.select_cluster.assert_called_once()
 
 
 @patch("lazy_ecs.core.app.console")

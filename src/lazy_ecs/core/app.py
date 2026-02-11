@@ -39,7 +39,7 @@ def navigate_clusters(navigator: ECSNavigator, ecs_service: ECSService) -> None:
 
             if action_name == "browse_services":
                 if navigate_services(navigator, ecs_service, cluster_name):
-                    break
+                    continue
                 return
 
             dispatch_cluster_action(navigator, cluster_name, action_name)

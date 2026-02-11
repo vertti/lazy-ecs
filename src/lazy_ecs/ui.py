@@ -101,35 +101,32 @@ class ECSNavigator:
         if task_details:
             self._task_ui.show_task_definition_comparison(task_details)
 
-    def open_service_in_console(self, cluster_name: str, service_name: str) -> None:
+    def _open_in_console(self, label: str, url: str) -> None:
         import webbrowser
 
+        console.print(f"\n🌐 Opening {label} in AWS console: {url}", style="cyan")
+        webbrowser.open(url)
+
+    def open_service_in_console(self, cluster_name: str, service_name: str) -> None:
         from .core.aws_console import build_service_url
 
         region = self.ecs_service.get_region()
         url = build_service_url(region, cluster_name, service_name)
-        console.print(f"\n🌐 Opening service in AWS console: {url}", style="cyan")
-        webbrowser.open(url)
+        self._open_in_console("service", url)
 
     def open_cluster_in_console(self, cluster_name: str) -> None:
-        import webbrowser
-
         from .core.aws_console import build_cluster_url
 
         region = self.ecs_service.get_region()
         url = build_cluster_url(region, cluster_name)
-        console.print(f"\n🌐 Opening cluster in AWS console: {url}", style="cyan")
-        webbrowser.open(url)
+        self._open_in_console("cluster", url)
 
     def open_task_in_console(self, cluster_name: str, task_arn: str) -> None:
-        import webbrowser
-
         from .core.aws_console import build_task_url
 
         region = self.ecs_service.get_region()
         url = build_task_url(region, cluster_name, task_arn)
-        console.print(f"\n🌐 Opening task in AWS console: {url}", style="cyan")
-        webbrowser.open(url)
+        self._open_in_console("task", url)
 
     def handle_stop_task(self, cluster_name: str, task_arn: str, service_name: str) -> None:
         return self._task_ui.handle_stop_task(cluster_name, task_arn, service_name)
