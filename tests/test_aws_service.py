@@ -787,7 +787,7 @@ def test_force_new_deployment_success() -> None:
     service = ECSService(client)
     result = service.force_new_deployment("production", "web-service")
 
-    assert result is True
+    assert result == (True, None)
 
 
 @mock_aws
@@ -796,9 +796,11 @@ def test_force_new_deployment_service_not_found() -> None:
     client.create_cluster(clusterName="production")
 
     service = ECSService(client)
-    result = service.force_new_deployment("production", "nonexistent-service")
+    success, error = service.force_new_deployment("production", "nonexistent-service")
 
-    assert result is False
+    assert success is False
+    assert error is not None
+    assert "ServiceNotFoundException" in error
 
 
 @pytest.fixture
