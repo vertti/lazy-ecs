@@ -70,6 +70,7 @@ def _create_service_info(service: ServiceTypeDef) -> ServiceInfo:
     display_name = f"{icon} {service_name} ({running_count}/{desired_count})"
 
     return {
+        "service_name": service_name,
         "name": display_name,
         "status": status,
         "running_count": running_count,

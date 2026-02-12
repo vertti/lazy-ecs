@@ -23,6 +23,7 @@ def test_select_service_with_services(mock_select, service_ui):
     service_ui.service_service.get_service_info = Mock(
         return_value=[
             {
+                "service_name": "web-api",
                 "name": "✅ web-api (2/2)",
                 "status": "HEALTHY",
                 "running_count": 2,
@@ -37,6 +38,8 @@ def test_select_service_with_services(mock_select, service_ui):
 
     assert selected == "service:web-api"
     mock_select.assert_called_once()
+    choices = mock_select.call_args[0][1]
+    assert choices[0]["value"] == "service:web-api"
 
 
 @patch("lazy_ecs.features.service.ui.select_with_auto_pagination")
@@ -45,6 +48,7 @@ def test_select_service_with_many_services(mock_select, service_ui):
     for i in range(100):
         service_info.append(
             {
+                "service_name": f"service-{i}",
                 "name": f"✅ service-{i} (1/1)",
                 "status": "HEALTHY",
                 "running_count": 1,
@@ -63,6 +67,7 @@ def test_select_service_with_many_services(mock_select, service_ui):
     call_args = mock_select.call_args
     choices = call_args[0][1]
     assert len(choices) == 100
+    assert choices[50]["value"] == "service:service-50"
 
 
 def test_select_service_no_services(service_ui):
@@ -80,6 +85,7 @@ def test_select_service_navigation_back(mock_select, service_ui):
     service_ui.service_service.get_service_info = Mock(
         return_value=[
             {
+                "service_name": "web-api",
                 "name": "✅ web-api (2/2)",
                 "status": "HEALTHY",
                 "running_count": 2,

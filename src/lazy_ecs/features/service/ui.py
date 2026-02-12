@@ -27,7 +27,7 @@ class ServiceUI:
             console.print(f"❌ No services found in cluster '{cluster_name}'", style="red")
             return "navigation:back"
 
-        choices = [{"name": info["name"], "value": f"service:{info['name'].split(' ')[1]}"} for info in service_info]
+        choices = [{"name": info["name"], "value": f"service:{info['service_name']}"} for info in service_info]
 
         return select_with_auto_pagination("Select a service:", choices, "Back to cluster selection")
 
