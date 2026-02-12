@@ -264,6 +264,7 @@ def test_get_service_info(ecs_client_with_services) -> None:
 
     assert len(service_info) == 2
     for info in service_info:
+        assert "service_name" in info
         assert "name" in info
         assert "status" in info
         assert "running_count" in info

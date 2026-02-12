@@ -5,6 +5,7 @@ from typing import Any, TypedDict
 
 
 class ServiceInfo(TypedDict):
+    service_name: str
     name: str
     status: str
     running_count: int
