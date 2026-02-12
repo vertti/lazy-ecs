@@ -198,12 +198,10 @@ def get_task_action_handlers() -> dict[str, "Callable"]:
     return {
         "show_history": lambda nav, cluster, service, _task_arn, _task_details: nav.show_task_history(cluster, service),
         "show_details": lambda nav, _cluster, _service, _task_arn, task_details: nav.display_task_details(task_details),
-        "compare_definitions": lambda nav,
-        _cluster,
-        _service,
-        _task_arn,
-        task_details: nav.show_task_definition_comparison(
-            task_details,
+        "compare_definitions": lambda nav, _cluster, _service, _task_arn, task_details: (
+            nav.show_task_definition_comparison(
+                task_details,
+            )
         ),
         "open_console": lambda nav, cluster, _service, task_arn, _task_details: nav.open_task_in_console(
             cluster, task_arn

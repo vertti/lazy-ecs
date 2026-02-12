@@ -39,7 +39,7 @@ console = Console()
 
 
 def extract_name_from_arn(arn: str) -> str:
-    return arn.split("/")[-1]
+    return arn.rsplit("/", maxsplit=1)[-1]
 
 
 def extract_task_id(task_arn: str, length: int = 8) -> str:
@@ -48,11 +48,11 @@ def extract_task_id(task_arn: str, length: int = 8) -> str:
 
 
 def extract_task_def_family(task_def_arn: str) -> str:
-    return task_def_arn.split("/")[-1].split(":")[0]
+    return task_def_arn.rsplit("/", maxsplit=1)[-1].split(":")[0]
 
 
 def extract_task_def_revision(task_def_arn: str) -> str:
-    return task_def_arn.split(":")[-1]
+    return task_def_arn.rsplit(":", maxsplit=1)[-1]
 
 
 def determine_service_status(running_count: int, desired_count: int, pending_count: int) -> tuple[str, str]:

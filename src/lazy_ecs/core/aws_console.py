@@ -16,5 +16,5 @@ def build_task_url(region: str, cluster_name: str, task_arn: str) -> str:
 
 def _extract_task_id(task_arn: str) -> str:
     if task_arn.startswith("arn:aws:ecs:"):
-        return task_arn.split("/")[-1]
+        return task_arn.rsplit("/", maxsplit=1)[-1]
     return task_arn
