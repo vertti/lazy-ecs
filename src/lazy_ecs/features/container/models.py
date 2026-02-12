@@ -28,7 +28,7 @@ class LogEvent:
     @property
     def key(self) -> tuple[Any, ...] | str:
         """Get unique key for deduplication."""
-        return self.event_id if self.event_id else (self.timestamp, self.message)
+        return self.event_id or (self.timestamp, self.message)
 
     def format(self) -> str:
         """Format the log event for display."""

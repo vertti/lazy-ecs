@@ -194,7 +194,7 @@ class TaskUI:
 
         sorted_history = sorted(
             task_history,
-            key=lambda t: t["created_at"] if t["created_at"] else datetime.min,
+            key=lambda t: t["created_at"] or datetime.min,
             reverse=True,
         )
         recent_tasks = sorted_history[:MAX_RECENT_TASKS]
