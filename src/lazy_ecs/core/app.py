@@ -24,9 +24,31 @@ def navigate_clusters(navigator: ECSNavigator, ecs_service: ECSService) -> None:
 
         console.print(f"\n✅ Selected cluster: {selected_cluster}", style="green")
 
-        if navigate_services(navigator, ecs_service, selected_cluster):
-            continue  # Back to cluster selection
-        break  # Exit was chosen
+        while True:
+            cluster_action = navigator.select_cluster_action(selected_cluster)
+
+            should_continue, should_exit = handle_navigation(cluster_action)
+            if not should_continue:
+                if should_exit:
+                    return
+                break
+
+            selection_type, action_name, cluster_name = parse_selection(cluster_action)
+            if selection_type != "cluster_action":
+                continue
+
+            if action_name == "browse_services":
+                if navigate_services(navigator, ecs_service, cluster_name):
+                    continue
+                return
+
+            dispatch_cluster_action(navigator, cluster_name, action_name)
+
+
+def dispatch_cluster_action(navigator: ECSNavigator, cluster_name: str, action_name: str) -> None:
+    cluster_actions = get_cluster_action_handlers()
+    if action_name in cluster_actions:
+        cluster_actions[action_name](navigator, cluster_name)
 
 
 def navigate_services(navigator: ECSNavigator, ecs_service: ECSService, cluster_name: str) -> bool:
@@ -163,6 +185,12 @@ def get_container_action_handlers() -> dict[str, "Callable"]:
             task_arn,
             container,
         ),
+    }
+
+
+def get_cluster_action_handlers() -> dict[str, "Callable"]:
+    return {
+        "open_console": lambda nav, cluster: nav.open_cluster_in_console(cluster),
     }
 
 

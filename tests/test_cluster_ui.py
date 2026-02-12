@@ -61,3 +61,20 @@ def test_select_cluster_navigation_exit(mock_select, cluster_service_with_many_c
     result = cluster_ui.select_cluster()
 
     assert result == ""
+
+
+@patch("lazy_ecs.features.cluster.ui.select_with_navigation")
+def test_select_cluster_action_open_console(mock_select, cluster_service_with_many_clusters):
+    mock_select.return_value = "cluster_action:open_console:cluster-001"
+
+    cluster_ui = ClusterUI(cluster_service_with_many_clusters)
+    result = cluster_ui.select_cluster_action("cluster-001")
+
+    assert result == "cluster_action:open_console:cluster-001"
+    mock_select.assert_called_once()
+    prompt, choices, back_label = mock_select.call_args[0]
+    assert prompt == "Select action for cluster 'cluster-001':"
+    assert len(choices) == 2
+    assert choices[0]["value"] == "cluster_action:browse_services:cluster-001"
+    assert choices[1]["value"] == "cluster_action:open_console:cluster-001"
+    assert back_label == "Back to cluster selection"
