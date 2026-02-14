@@ -182,6 +182,19 @@ def test_handle_force_deployment_failure_shows_reason(mock_confirm, mock_print, 
 
 
 @patch("lazy_ecs.features.service.ui.console.print")
+@patch("lazy_ecs.features.service.ui.questionary.confirm")
+def test_handle_force_deployment_failure_without_reason(mock_confirm, mock_print, service_ui):
+    mock_confirm.return_value.ask.return_value = True
+    service_ui.service_actions.force_new_deployment = Mock(return_value=(False, None))
+
+    service_ui.handle_force_deployment("test-cluster", "web-api")
+
+    mock_print.assert_any_call("❌ Failed to trigger deployment for 'web-api'", style="red")
+    reason_calls = [call for call in mock_print.call_args_list if call.args and str(call.args[0]).startswith("Reason:")]
+    assert reason_calls == []
+
+
+@patch("lazy_ecs.features.service.ui.console.print")
 def test_display_service_events_with_events(mock_print, service_ui):
     """Test displaying service events with event data."""
     mock_events = [
