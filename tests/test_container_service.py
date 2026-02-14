@@ -1,10 +1,16 @@
 """Tests for container service functions."""
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
+from botocore.exceptions import ClientError
 
-from lazy_ecs.features.container.container import ContainerService, build_log_group_arn, build_log_stream_name
+from lazy_ecs.features.container.container import (
+    ContainerService,
+    LiveTailError,
+    build_log_group_arn,
+    build_log_stream_name,
+)
 
 
 @pytest.fixture
@@ -225,6 +231,54 @@ def test_get_container_logs_filtered_success():
     mock_logs_client.filter_log_events.assert_called_once_with(
         logGroupName="/ecs/app", logStreamNames=["stream"], filterPattern="ERROR", limit=25
     )
+
+
+def test_get_live_container_logs_tail_raises_when_logs_client_missing(mock_task_service):
+    mock_ecs_client = Mock()
+    mock_ecs_client.meta.region_name = "us-east-1"
+    container_service = ContainerService(mock_ecs_client, mock_task_service, logs_client=None)
+
+    with pytest.raises(LiveTailError, match="CloudWatch Logs client is not configured"):
+        list(container_service.get_live_container_logs_tail("/ecs/app", "stream"))
+
+
+def test_get_live_container_logs_tail_raises_when_account_id_missing(mock_task_service):
+    mock_ecs_client = Mock()
+    mock_ecs_client.meta.region_name = "us-east-1"
+    mock_logs_client = Mock()
+    container_service = ContainerService(
+        mock_ecs_client,
+        mock_task_service,
+        sts_client=None,
+        logs_client=mock_logs_client,
+    )
+
+    with (
+        patch.dict("lazy_ecs.features.container.container.environ", {}, clear=True),
+        pytest.raises(LiveTailError, match="AWS account ID is required for live tail"),
+    ):
+        list(container_service.get_live_container_logs_tail("/ecs/app", "stream"))
+
+
+def test_get_live_container_logs_tail_raises_actionable_client_error(mock_task_service):
+    mock_ecs_client = Mock()
+    mock_ecs_client.meta.region_name = "us-east-1"
+    mock_logs_client = Mock()
+    mock_logs_client.start_live_tail.side_effect = ClientError(
+        {"Error": {"Code": "AccessDeniedException", "Message": "Not authorized"}},
+        "StartLiveTail",
+    )
+    mock_sts_client = Mock()
+    mock_sts_client.get_caller_identity.return_value = {"Account": "123456789012"}
+    container_service = ContainerService(
+        mock_ecs_client,
+        mock_task_service,
+        sts_client=mock_sts_client,
+        logs_client=mock_logs_client,
+    )
+
+    with pytest.raises(LiveTailError, match="AccessDeniedException: Not authorized"):
+        list(container_service.get_live_container_logs_tail("/ecs/app", "stream"))
 
 
 def test_list_log_groups_returns_empty_when_no_client(mock_task_service):

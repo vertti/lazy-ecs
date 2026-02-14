@@ -10,7 +10,7 @@ from rich.console import Console
 
 from ...core.context import ContainerContext
 from ...core.utils import print_error, show_spinner, wait_for_keypress
-from .container import ContainerService
+from .container import ContainerService, LiveTailError
 from .models import Action, LogEvent
 
 console = Console()
@@ -171,8 +171,10 @@ class ContainerUI:
                     if stop_event.is_set():
                         break
                     log_queue.put(cast("dict[str, Any]", event))
-            except Exception:
-                pass  # Iterator exhausted or error
+            except LiveTailError as e:
+                log_queue.put({"__error__": str(e)})
+            except Exception as e:
+                log_queue.put({"__error__": f"Unexpected live tail error: {e}"})
             finally:
                 if log_generator and hasattr(log_generator, "close"):
                     with suppress(Exception):
@@ -208,9 +210,16 @@ class ContainerUI:
                 try:
                     event = log_queue.get_nowait()
                     if event is None:
-                        # End of logs signal
-                        pass
+                        if not log_thread.is_alive():
+                            action = Action.STOP
+                            break
                     else:
+                        error_message = event.get("__error__")
+                        if error_message:
+                            print_error(error_message)
+                            action = Action.STOP
+                            break
+
                         event_id = event.get("eventId")
                         log_event = LogEvent(
                             timestamp=event.get("timestamp"),
