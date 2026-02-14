@@ -140,7 +140,7 @@ class ECSService:
     def get_service_events(self, cluster_name: str, service_name: str) -> list[ServiceEvent]:
         return self._service.get_service_events(cluster_name, service_name)
 
-    def force_new_deployment(self, cluster_name: str, service_name: str) -> bool:
+    def force_new_deployment(self, cluster_name: str, service_name: str) -> tuple[bool, str | None]:
         return self._service_actions.force_new_deployment(cluster_name, service_name)
 
     def get_service_metrics(self, cluster_name: str, service_name: str, hours: int = 1) -> ServiceMetrics | None:

@@ -150,7 +150,7 @@ def test_select_service_action_show_events(mock_select, service_ui):
 def test_handle_force_deployment_success(mock_confirm, service_ui):
     """Test successful force deployment."""
     mock_confirm.return_value.ask.return_value = True
-    service_ui.service_actions.force_new_deployment = Mock(return_value=True)
+    service_ui.service_actions.force_new_deployment = Mock(return_value=(True, None))
 
     service_ui.handle_force_deployment("test-cluster", "web-api")
 
@@ -162,12 +162,36 @@ def test_handle_force_deployment_success(mock_confirm, service_ui):
 def test_handle_force_deployment_failure(mock_confirm, service_ui):
     """Test failed force deployment."""
     mock_confirm.return_value.ask.return_value = True
-    service_ui.service_actions.force_new_deployment = Mock(return_value=False)
+    service_ui.service_actions.force_new_deployment = Mock(return_value=(False, "AccessDeniedException: denied"))
 
     service_ui.handle_force_deployment("test-cluster", "web-api")
 
     service_ui.service_actions.force_new_deployment.assert_called_once_with("test-cluster", "web-api")
     mock_confirm.assert_called_once()
+
+
+@patch("lazy_ecs.features.service.ui.console.print")
+@patch("lazy_ecs.features.service.ui.questionary.confirm")
+def test_handle_force_deployment_failure_shows_reason(mock_confirm, mock_print, service_ui):
+    mock_confirm.return_value.ask.return_value = True
+    service_ui.service_actions.force_new_deployment = Mock(return_value=(False, "AccessDeniedException: denied"))
+
+    service_ui.handle_force_deployment("test-cluster", "web-api")
+
+    mock_print.assert_any_call("Reason: AccessDeniedException: denied", style="yellow")
+
+
+@patch("lazy_ecs.features.service.ui.console.print")
+@patch("lazy_ecs.features.service.ui.questionary.confirm")
+def test_handle_force_deployment_failure_without_reason(mock_confirm, mock_print, service_ui):
+    mock_confirm.return_value.ask.return_value = True
+    service_ui.service_actions.force_new_deployment = Mock(return_value=(False, None))
+
+    service_ui.handle_force_deployment("test-cluster", "web-api")
+
+    mock_print.assert_any_call("❌ Failed to trigger deployment for 'web-api'", style="red")
+    reason_calls = [call for call in mock_print.call_args_list if call.args and str(call.args[0]).startswith("Reason:")]
+    assert reason_calls == []
 
 
 @patch("lazy_ecs.features.service.ui.console.print")

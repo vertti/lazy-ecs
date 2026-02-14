@@ -55,11 +55,13 @@ class ServiceUI:
 
         if confirm:
             with show_spinner():
-                success = self.service_actions.force_new_deployment(cluster_name, service_name)
+                success, error = self.service_actions.force_new_deployment(cluster_name, service_name)
             if success:
                 console.print(f"✅ Successfully triggered deployment for '{service_name}'", style="green")
             else:
                 console.print(f"❌ Failed to trigger deployment for '{service_name}'", style="red")
+                if error:
+                    console.print(f"Reason: {error}", style="yellow")
 
     def display_service_events(self, cluster_name: str, service_name: str) -> None:
         with show_spinner():
