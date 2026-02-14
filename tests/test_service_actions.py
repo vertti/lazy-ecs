@@ -46,7 +46,9 @@ def test_force_new_deployment_service_not_found_returns_actionable_error():
 
 def test_force_new_deployment_botocore_error_returns_message():
     mock_ecs_client = Mock()
-    mock_ecs_client.update_service.side_effect = EndpointConnectionError(endpoint_url="https://ecs.us-east-1.amazonaws.com")
+    mock_ecs_client.update_service.side_effect = EndpointConnectionError(
+        endpoint_url="https://ecs.us-east-1.amazonaws.com"
+    )
 
     actions = ServiceActions(mock_ecs_client)
     success, error = actions.force_new_deployment("cluster", "web-api")
