@@ -37,6 +37,13 @@ class LiveTailError(RuntimeError):
     pass
 
 
+def _format_client_error(error: ClientError) -> str:
+    error_details = error.response.get("Error", {})
+    code = error_details.get("Code")
+    message = error_details.get("Message", str(error))
+    return f"{code}: {message}" if code else message
+
+
 class ContainerService:
     def __init__(
         self,
@@ -142,6 +149,7 @@ class ContainerService:
         log_group: str,
         log_stream: str,
         event_filter_pattern: str = "",
+        aws_account_id: str | None = None,
     ) -> Generator[StartLiveTailResponseStreamTypeDef | LiveTailSessionLogEventTypeDef]:
         if not self.logs_client:
             message = "CloudWatch Logs client is not configured"
@@ -152,27 +160,26 @@ class ContainerService:
             message = "AWS region is not configured for ECS client"
             raise LiveTailError(message)
 
-        if self.sts_client:
-            try:
-                aws_account_id = self.sts_client.get_caller_identity().get("Account")
-            except ClientError as e:
-                error = e.response.get("Error", {})
-                code = error.get("Code")
-                message = error.get("Message", str(e))
-                details = f"{code}: {message}" if code else message
-                error_message = f"Failed to get AWS account ID from STS: {details}"
-                raise LiveTailError(error_message) from e
-            except BotoCoreError as e:
-                error_message = f"Failed to get AWS account ID from STS: {e}"
-                raise LiveTailError(error_message) from e
-        else:
-            aws_account_id = environ.get("AWS_ACCOUNT_ID")
+        resolved_account_id = aws_account_id
+        if resolved_account_id is None:
+            if self.sts_client:
+                try:
+                    resolved_account_id = self.sts_client.get_caller_identity().get("Account")
+                except ClientError as e:
+                    details = _format_client_error(e)
+                    error_message = f"Failed to get AWS account ID from STS: {details}"
+                    raise LiveTailError(error_message) from e
+                except BotoCoreError as e:
+                    error_message = f"Failed to get AWS account ID from STS: {e}"
+                    raise LiveTailError(error_message) from e
+            else:
+                resolved_account_id = environ.get("AWS_ACCOUNT_ID")
 
-        if not aws_account_id:
+        if not resolved_account_id:
             error_message = "AWS account ID is required for live tail. Configure STS access or set AWS_ACCOUNT_ID."
             raise LiveTailError(error_message)
 
-        log_group_arn = build_log_group_arn(region, aws_account_id, log_group)
+        log_group_arn = build_log_group_arn(region, resolved_account_id, log_group)
         try:
             response = self.logs_client.start_live_tail(
                 logGroupIdentifiers=[log_group_arn],
@@ -180,10 +187,7 @@ class ContainerService:
                 logEventFilterPattern=event_filter_pattern,
             )
         except ClientError as e:
-            error = e.response.get("Error", {})
-            code = error.get("Code")
-            message = error.get("Message", str(e))
-            details = f"{code}: {message}" if code else message
+            details = _format_client_error(e)
             error_message = f"Failed to start CloudWatch live tail: {details}"
             raise LiveTailError(error_message) from e
         except BotoCoreError as e:

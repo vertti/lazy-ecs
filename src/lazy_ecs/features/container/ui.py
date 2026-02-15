@@ -210,25 +210,24 @@ class ContainerUI:
                 try:
                     event = log_queue.get_nowait()
                     if event is None:
-                        if not log_thread.is_alive():
-                            action = Action.STOP
-                            break
-                    else:
-                        error_message = event.get("__error__")
-                        if error_message:
-                            print_error(error_message)
-                            action = Action.STOP
-                            break
+                        action = Action.STOP
+                        break
 
-                        event_id = event.get("eventId")
-                        log_event = LogEvent(
-                            timestamp=event.get("timestamp"),
-                            message=str(event.get("message", "")).rstrip(),
-                            event_id=event_id if isinstance(event_id, str) else None,
-                        )
-                        if log_event.key not in seen_logs:
-                            seen_logs.add(log_event.key)
-                            console.print(log_event.format())
+                    error_message = event.get("__error__")
+                    if error_message:
+                        print_error(error_message)
+                        action = Action.STOP
+                        break
+
+                    event_id = event.get("eventId")
+                    log_event = LogEvent(
+                        timestamp=event.get("timestamp"),
+                        message=str(event.get("message", "")).rstrip(),
+                        event_id=event_id if isinstance(event_id, str) else None,
+                    )
+                    if log_event.key not in seen_logs:
+                        seen_logs.add(log_event.key)
+                        console.print(log_event.format())
                 except queue.Empty:
                     time.sleep(LOG_POLL_INTERVAL)
         except KeyboardInterrupt:
