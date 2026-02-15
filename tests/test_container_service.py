@@ -3,7 +3,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, EndpointConnectionError
 
 from lazy_ecs.features.container.container import (
     ContainerService,
@@ -260,6 +260,55 @@ def test_get_live_container_logs_tail_raises_when_account_id_missing(mock_task_s
         list(container_service.get_live_container_logs_tail("/ecs/app", "stream"))
 
 
+def test_get_live_container_logs_tail_raises_when_region_missing(mock_task_service):
+    mock_ecs_client = Mock()
+    mock_ecs_client.meta.region_name = None
+    mock_logs_client = Mock()
+    container_service = ContainerService(mock_ecs_client, mock_task_service, logs_client=mock_logs_client)
+
+    with pytest.raises(LiveTailError, match="AWS region is not configured for ECS client"):
+        list(container_service.get_live_container_logs_tail("/ecs/app", "stream"))
+
+
+def test_get_live_container_logs_tail_raises_actionable_sts_client_error(mock_task_service):
+    mock_ecs_client = Mock()
+    mock_ecs_client.meta.region_name = "us-east-1"
+    mock_logs_client = Mock()
+    mock_sts_client = Mock()
+    mock_sts_client.get_caller_identity.side_effect = ClientError(
+        {"Error": {"Code": "AccessDeniedException", "Message": "Not allowed"}},
+        "GetCallerIdentity",
+    )
+    container_service = ContainerService(
+        mock_ecs_client,
+        mock_task_service,
+        sts_client=mock_sts_client,
+        logs_client=mock_logs_client,
+    )
+
+    with pytest.raises(
+        LiveTailError, match="Failed to get AWS account ID from STS: AccessDeniedException: Not allowed"
+    ):
+        list(container_service.get_live_container_logs_tail("/ecs/app", "stream"))
+
+
+def test_get_live_container_logs_tail_raises_actionable_sts_botocore_error(mock_task_service):
+    mock_ecs_client = Mock()
+    mock_ecs_client.meta.region_name = "us-east-1"
+    mock_logs_client = Mock()
+    mock_sts_client = Mock()
+    mock_sts_client.get_caller_identity.side_effect = EndpointConnectionError(endpoint_url="https://sts.amazonaws.com")
+    container_service = ContainerService(
+        mock_ecs_client,
+        mock_task_service,
+        sts_client=mock_sts_client,
+        logs_client=mock_logs_client,
+    )
+
+    with pytest.raises(LiveTailError, match="Failed to get AWS account ID from STS"):
+        list(container_service.get_live_container_logs_tail("/ecs/app", "stream"))
+
+
 def test_get_live_container_logs_tail_raises_actionable_client_error(mock_task_service):
     mock_ecs_client = Mock()
     mock_ecs_client.meta.region_name = "us-east-1"
@@ -279,6 +328,79 @@ def test_get_live_container_logs_tail_raises_actionable_client_error(mock_task_s
 
     with pytest.raises(LiveTailError, match="AccessDeniedException: Not authorized"):
         list(container_service.get_live_container_logs_tail("/ecs/app", "stream"))
+
+
+def test_get_live_container_logs_tail_raises_actionable_start_live_tail_botocore_error(mock_task_service):
+    mock_ecs_client = Mock()
+    mock_ecs_client.meta.region_name = "us-east-1"
+    mock_logs_client = Mock()
+    mock_logs_client.start_live_tail.side_effect = EndpointConnectionError(
+        endpoint_url="https://logs.us-east-1.amazonaws.com",
+    )
+    mock_sts_client = Mock()
+    mock_sts_client.get_caller_identity.return_value = {"Account": "123456789012"}
+    container_service = ContainerService(
+        mock_ecs_client,
+        mock_task_service,
+        sts_client=mock_sts_client,
+        logs_client=mock_logs_client,
+    )
+
+    with pytest.raises(LiveTailError, match="Failed to start CloudWatch live tail"):
+        list(container_service.get_live_container_logs_tail("/ecs/app", "stream"))
+
+
+def test_get_live_container_logs_tail_raises_when_response_stream_missing(mock_task_service):
+    mock_ecs_client = Mock()
+    mock_ecs_client.meta.region_name = "us-east-1"
+    mock_logs_client = Mock()
+    mock_logs_client.start_live_tail.return_value = {}
+    mock_sts_client = Mock()
+    mock_sts_client.get_caller_identity.return_value = {"Account": "123456789012"}
+    container_service = ContainerService(
+        mock_ecs_client,
+        mock_task_service,
+        sts_client=mock_sts_client,
+        logs_client=mock_logs_client,
+    )
+
+    with pytest.raises(LiveTailError, match="did not return a response stream"):
+        list(container_service.get_live_container_logs_tail("/ecs/app", "stream"))
+
+
+def test_get_live_container_logs_tail_yields_session_results_and_closes_stream(mock_task_service):
+    stream_event = {"eventId": "evt-1", "timestamp": 1234, "message": "from-stream"}
+    update_event = {"eventId": "evt-2", "timestamp": 1235, "message": "from-update"}
+
+    mock_response_stream = Mock()
+    mock_response_stream.__iter__ = Mock(
+        return_value=iter(
+            [
+                {"sessionStart": {"requestId": "abc"}},
+                {"sessionUpdate": {"sessionResults": [update_event]}},
+                stream_event,
+            ],
+        ),
+    )
+    mock_logs_client = Mock()
+    mock_logs_client.start_live_tail.return_value = {"responseStream": mock_response_stream}
+
+    mock_ecs_client = Mock()
+    mock_ecs_client.meta.region_name = "us-east-1"
+    mock_sts_client = Mock()
+    mock_sts_client.get_caller_identity.return_value = {"Account": "123456789012"}
+
+    container_service = ContainerService(
+        mock_ecs_client,
+        mock_task_service,
+        sts_client=mock_sts_client,
+        logs_client=mock_logs_client,
+    )
+
+    results = list(container_service.get_live_container_logs_tail("/ecs/app", "stream"))
+
+    assert results == [update_event, stream_event]
+    mock_response_stream.close.assert_called_once()
 
 
 def test_list_log_groups_returns_empty_when_no_client(mock_task_service):

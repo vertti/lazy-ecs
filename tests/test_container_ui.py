@@ -146,6 +146,21 @@ def test_display_logs_with_tail_surfaces_live_tail_error(
     mock_print_error.assert_called_once_with("AWS account ID is required for live tail.")
 
 
+@patch("lazy_ecs.features.container.ui.print_error")
+@patch("lazy_ecs.features.container.ui.wait_for_keypress", return_value=None)
+@patch("rich.console.Console.print")
+def test_display_logs_with_tail_surfaces_unexpected_live_tail_error(
+    _mock_console_print, _mock_wait_for_keypress, mock_print_error, container_ui
+):
+    container_ui.container_service.get_container_logs = Mock(return_value=[])
+    container_ui.container_service.get_live_container_logs_tail = Mock(side_effect=RuntimeError("boom"))
+
+    action = container_ui._display_logs_with_tail("web-container", "test-log-group", "test-stream", "", 50)
+
+    assert action == Action.STOP
+    mock_print_error.assert_called_once_with("Unexpected live tail error: boom")
+
+
 def test_get_container_logs_filtered(mock_ecs_client, mock_task_service):
     """Test filtering container logs with CloudWatch pattern."""
     mock_logs_client = Mock()
