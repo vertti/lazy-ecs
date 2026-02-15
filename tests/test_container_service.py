@@ -391,7 +391,9 @@ def test_get_live_container_logs_tail_uses_explicit_account_id_without_sts_looku
     )
 
 
-def test_get_live_container_logs_tail_uses_environment_account_id_when_not_provided(make_live_tail_service, monkeypatch):
+def test_get_live_container_logs_tail_uses_environment_account_id_when_not_provided(
+    make_live_tail_service, monkeypatch
+):
     mock_response_stream = Mock()
     mock_response_stream.__iter__ = Mock(return_value=iter([]))
 
