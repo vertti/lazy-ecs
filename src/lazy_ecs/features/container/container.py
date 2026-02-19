@@ -273,12 +273,20 @@ class ContainerService:
         if not self.logs_client:
             return []
 
+        # Guardrail to prevent unbounded pagination if tokens keep advancing.
+        max_pages = 20
+        page = 0
+
         discovered_groups: list[str] = []
         seen_group_names: set[str] = set()
         seen_tokens: set[str] = set()
         next_token: str | None = None
 
         while True:
+            if page >= max_pages:
+                break
+            page += 1
+
             request: dict[str, Any] = {"limit": 50, "logGroupNamePrefix": "/ecs"}
             if next_token:
                 request["nextToken"] = next_token

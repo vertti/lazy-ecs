@@ -488,6 +488,9 @@ def test_list_log_groups_uses_service_and_task_family_signals_for_ranking():
         task_family="payments",
     )
 
+    # Matching uses substring scoring, so both "production" and "api" match "/ecs/production-api";
+    # and because matching is not path-segment based, endswith("/worker") is not required for
+    # "/ecs/payments-worker", which is why it outranks "/ecs/production-web" here.
     assert result[0] == "/ecs/production-api"
     assert result.index("/ecs/payments-worker") < result.index("/ecs/production-web")
 
@@ -589,3 +592,20 @@ def test_list_log_groups_deduplicates_cross_page_results():
         call(limit=50, logGroupNamePrefix="/ecs"),
         call(limit=50, logGroupNamePrefix="/ecs", nextToken="page-2"),
     ]
+
+
+def test_list_log_groups_stops_after_max_pages():
+    mock_logs_client = Mock()
+    mock_logs_client.describe_log_groups.side_effect = [
+        {
+            "logGroups": [{"logGroupName": f"/ecs/production-web-{page}"}],
+            "nextToken": f"page-{page + 1}",
+        }
+        for page in range(30)
+    ]
+    container_service = ContainerService(Mock(), Mock(), logs_client=mock_logs_client)
+
+    result = container_service.list_log_groups("production", "web")
+
+    assert mock_logs_client.describe_log_groups.call_count == 20
+    assert len(result) == 10
