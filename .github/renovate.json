@@ -12,13 +12,8 @@
     },
     {
       "groupName": "uv",
-      "matchManagers": ["mise"],
-      "matchPackageNames": ["uv"]
-    },
-    {
-      "groupName": "uv",
-      "matchManagers": ["dockerfile"],
-      "matchPackageNames": ["ghcr.io/astral-sh/uv"]
+      "matchPackageNames": ["uv", "astral-sh/uv", "ghcr.io/astral-sh/uv"],
+      "separateMajorMinor": false
     }
   ]
 }
