@@ -279,7 +279,7 @@ class ContainerService:
         next_token: str | None = None
 
         while True:
-            request: dict[str, Any] = {"limit": 50}
+            request: dict[str, Any] = {"limit": 50, "logGroupNamePrefix": "/ecs"}
             if next_token:
                 request["nextToken"] = next_token
 

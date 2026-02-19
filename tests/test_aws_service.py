@@ -1,5 +1,7 @@
 """Tests for AWS service layer."""
 
+from unittest.mock import Mock
+
 import boto3
 import pytest
 from moto import mock_aws
@@ -841,3 +843,26 @@ def test_get_service_events_no_events(ecs_client_with_service_events):
 
     # Moto doesn't create events by default, so we expect an empty list
     assert isinstance(events, list)
+
+
+def test_list_log_groups_forwards_optional_ranking_signals():
+    mock_client = Mock()
+    service = ECSService(mock_client)
+
+    service._container = Mock()
+    service._container.list_log_groups.return_value = ["/ecs/production-api"]
+
+    result = service.list_log_groups(
+        "production",
+        "web",
+        service_name="api",
+        task_family="payments",
+    )
+
+    assert result == ["/ecs/production-api"]
+    service._container.list_log_groups.assert_called_once_with(
+        "production",
+        "web",
+        "api",
+        "payments",
+    )
