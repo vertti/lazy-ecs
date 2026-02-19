@@ -89,8 +89,14 @@ class ECSService:
     ) -> Generator[StartLiveTailResponseStreamTypeDef | LiveTailSessionLogEventTypeDef]:
         return self._container.get_live_container_logs_tail(log_group, log_stream, event_filter_pattern)
 
-    def list_log_groups(self, cluster_name: str, container_name: str) -> list[str]:
-        return self._container.list_log_groups(cluster_name, container_name)
+    def list_log_groups(
+        self,
+        cluster_name: str,
+        container_name: str,
+        service_name: str | None = None,
+        task_family: str | None = None,
+    ) -> list[str]:
+        return self._container.list_log_groups(cluster_name, container_name, service_name, task_family)
 
     def _with_container_context(
         self,

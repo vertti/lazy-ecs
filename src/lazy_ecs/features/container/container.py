@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Generator
 from contextlib import suppress
 from os import environ
@@ -42,6 +43,55 @@ def _format_client_error(error: ClientError) -> str:
     code = error_details.get("Code")
     message = error_details.get("Message", str(error))
     return f"{code}: {message}" if code else message
+
+
+def _tokenize_match_terms(value: str) -> set[str]:
+    return {term for term in re.split(r"[^a-z0-9]+", value.lower()) if term}
+
+
+def _score_log_group_name(
+    name: str,
+    cluster_name: str,
+    container_name: str,
+    service_name: str | None = None,
+    task_family: str | None = None,
+) -> int:
+    name_lower = name.lower()
+    name_terms = _tokenize_match_terms(name_lower)
+
+    def score_target(
+        target: str,
+        *,
+        exact_weight: int,
+        contains_weight: int,
+        term_weight: int,
+    ) -> int:
+        normalized = target.strip().lower()
+        if not normalized:
+            return 0
+
+        score = 0
+        if name_lower == normalized or name_lower.endswith(f"/{normalized}"):
+            score += exact_weight
+        if normalized in name_lower:
+            score += contains_weight
+
+        target_terms = _tokenize_match_terms(normalized)
+        score += term_weight * len(target_terms & name_terms)
+        return score
+
+    score = 0
+    score += score_target(cluster_name, exact_weight=120, contains_weight=80, term_weight=20)
+    score += score_target(container_name, exact_weight=120, contains_weight=80, term_weight=20)
+    if service_name:
+        score += score_target(service_name, exact_weight=90, contains_weight=60, term_weight=15)
+    if task_family:
+        score += score_target(task_family, exact_weight=70, contains_weight=50, term_weight=10)
+
+    if name_lower.startswith("/ecs") or "/ecs/" in name_lower:
+        score += 10
+
+    return score
 
 
 class ContainerService:
@@ -213,20 +263,56 @@ class ContainerService:
                 with suppress(Exception):
                     response_stream.close()
 
-    def list_log_groups(self, cluster_name: str, container_name: str) -> list[str]:
+    def list_log_groups(
+        self,
+        cluster_name: str,
+        container_name: str,
+        service_name: str | None = None,
+        task_family: str | None = None,
+    ) -> list[str]:
         if not self.logs_client:
             return []
 
-        response = self.logs_client.describe_log_groups(limit=50)
-        groups = response.get("logGroups", [])
+        # Guardrail to prevent unbounded pagination if tokens keep advancing.
+        max_pages = 20
+        page = 0
 
-        relevant_groups = []
-        for group in groups[:10]:
-            name = group["logGroupName"]
-            if cluster_name.lower() in name.lower() or container_name.lower() in name.lower() or "ecs" in name.lower():
-                relevant_groups.append(name)
+        discovered_groups: list[str] = []
+        seen_group_names: set[str] = set()
+        seen_tokens: set[str] = set()
+        next_token: str | None = None
 
-        return relevant_groups
+        while True:
+            if page >= max_pages:
+                break
+            page += 1
+
+            request: dict[str, Any] = {"limit": 50, "logGroupNamePrefix": "/ecs"}
+            if next_token:
+                request["nextToken"] = next_token
+
+            response = self.logs_client.describe_log_groups(**request)
+            groups = response.get("logGroups", [])
+
+            for group in groups:
+                name = group.get("logGroupName")
+                if isinstance(name, str) and name and name not in seen_group_names:
+                    seen_group_names.add(name)
+                    discovered_groups.append(name)
+
+            next_token = response.get("nextToken")
+            if not next_token or next_token in seen_tokens:
+                break
+            seen_tokens.add(next_token)
+
+        scored_groups = []
+        for name in discovered_groups:
+            score = _score_log_group_name(name, cluster_name, container_name, service_name, task_family)
+            if score > 0:
+                scored_groups.append((score, name))
+
+        scored_groups.sort(key=lambda item: (-item[0], item[1]))
+        return [name for _, name in scored_groups[:10]]
 
     def get_port_mappings(self, context: ContainerContext) -> list[dict[str, Any]]:
         port_mappings = context.container_definition.get("portMappings", [])

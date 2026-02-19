@@ -1,6 +1,6 @@
 """Tests for container service functions."""
 
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import pytest
 from botocore.exceptions import ClientError, EndpointConnectionError
@@ -435,4 +435,177 @@ def test_list_log_groups_filters_by_cluster_and_container():
     result = container_service.list_log_groups("production", "web")
 
     assert "/ecs/production-web" in result
-    assert "/ecs/staging-api" in result  # Contains "ecs" so it's included
+    assert "/ecs/staging-api" in result  # "/ecs" prefix adds +10 score, so it remains included
+
+
+def test_list_log_groups_paginates_and_ranks_relevant_matches_first():
+    mock_logs_client = Mock()
+    mock_logs_client.describe_log_groups.side_effect = [
+        {
+            "logGroups": [
+                {"logGroupName": "/ecs/staging-api"},
+                {"logGroupName": "/aws/lambda/function"},
+            ],
+            "nextToken": "page-2",
+        },
+        {
+            "logGroups": [
+                {"logGroupName": "/ecs/production-worker"},
+                {"logGroupName": "/ecs/production-web"},
+            ]
+        },
+    ]
+    container_service = ContainerService(Mock(), Mock(), logs_client=mock_logs_client)
+
+    result = container_service.list_log_groups("production", "web")
+
+    assert result[0] == "/ecs/production-web"
+    assert "/ecs/production-worker" in result
+    assert "/ecs/staging-api" in result
+    assert "/aws/lambda/function" not in result
+    assert mock_logs_client.describe_log_groups.call_args_list == [
+        call(limit=50, logGroupNamePrefix="/ecs"),
+        call(limit=50, logGroupNamePrefix="/ecs", nextToken="page-2"),
+    ]
+
+
+def test_list_log_groups_uses_service_and_task_family_signals_for_ranking():
+    mock_logs_client = Mock()
+    mock_logs_client.describe_log_groups.return_value = {
+        "logGroups": [
+            {"logGroupName": "/ecs/production-web"},
+            {"logGroupName": "/ecs/production-api"},
+            {"logGroupName": "/ecs/generic"},
+            {"logGroupName": "/ecs/payments-worker"},
+        ]
+    }
+    container_service = ContainerService(Mock(), Mock(), logs_client=mock_logs_client)
+
+    result = container_service.list_log_groups(
+        "production",
+        "worker",
+        service_name="api",
+        task_family="payments",
+    )
+
+    # Matching uses substring scoring, so both "production" and "api" match "/ecs/production-api";
+    # and because matching is not path-segment based, endswith("/worker") is not required for
+    # "/ecs/payments-worker", which is why it outranks "/ecs/production-web" here.
+    assert result[0] == "/ecs/production-api"
+    assert result.index("/ecs/payments-worker") < result.index("/ecs/production-web")
+
+
+def test_list_log_groups_handles_empty_lookup_values_without_crashing():
+    mock_logs_client = Mock()
+    mock_logs_client.describe_log_groups.return_value = {
+        "logGroups": [
+            {"logGroupName": "/ecs/default"},
+            {"logGroupName": "/aws/lambda/function"},
+        ]
+    }
+    container_service = ContainerService(Mock(), Mock(), logs_client=mock_logs_client)
+
+    result = container_service.list_log_groups("", "")
+
+    assert result == ["/ecs/default"]
+
+
+def test_list_log_groups_prioritizes_exact_suffix_match():
+    mock_logs_client = Mock()
+    mock_logs_client.describe_log_groups.return_value = {
+        "logGroups": [
+            {"logGroupName": "/ecs/production-web-backup"},
+            {"logGroupName": "/ecs/production-web"},
+        ]
+    }
+    container_service = ContainerService(Mock(), Mock(), logs_client=mock_logs_client)
+
+    result = container_service.list_log_groups("production-web", "container")
+
+    assert result[0] == "/ecs/production-web"
+
+
+def test_list_log_groups_limits_results_to_top_10_highest_scored():
+    mock_logs_client = Mock()
+    mock_logs_client.describe_log_groups.return_value = {
+        "logGroups": [
+            {"logGroupName": "/ecs/production-web-1"},
+            {"logGroupName": "/ecs/production-web-2"},
+            {"logGroupName": "/ecs/production-web-3"},
+            {"logGroupName": "/ecs/production-web-4"},
+            {"logGroupName": "/ecs/production-web-5"},
+            {"logGroupName": "/ecs/production-api-1"},
+            {"logGroupName": "/ecs/production-api-2"},
+            {"logGroupName": "/ecs/production-api-3"},
+            {"logGroupName": "/ecs/production-api-4"},
+            {"logGroupName": "/ecs/generic-1"},
+            {"logGroupName": "/ecs/generic-2"},
+            {"logGroupName": "/ecs/generic-3"},
+        ]
+    }
+    container_service = ContainerService(Mock(), Mock(), logs_client=mock_logs_client)
+
+    result = container_service.list_log_groups("production", "web")
+
+    assert len(result) == 10
+    assert result == [
+        "/ecs/production-web-1",
+        "/ecs/production-web-2",
+        "/ecs/production-web-3",
+        "/ecs/production-web-4",
+        "/ecs/production-web-5",
+        "/ecs/production-api-1",
+        "/ecs/production-api-2",
+        "/ecs/production-api-3",
+        "/ecs/production-api-4",
+        "/ecs/generic-1",
+    ]
+    assert "/ecs/generic-2" not in result
+    assert "/ecs/generic-3" not in result
+
+
+def test_list_log_groups_deduplicates_cross_page_results():
+    mock_logs_client = Mock()
+    mock_logs_client.describe_log_groups.side_effect = [
+        {
+            "logGroups": [
+                {"logGroupName": "/ecs/production-web"},
+                {"logGroupName": "/ecs/shared"},
+            ],
+            "nextToken": "page-2",
+        },
+        {
+            "logGroups": [
+                {"logGroupName": "/ecs/shared"},
+                {"logGroupName": "/ecs/production-worker"},
+            ]
+        },
+    ]
+    container_service = ContainerService(Mock(), Mock(), logs_client=mock_logs_client)
+
+    result = container_service.list_log_groups("production", "web")
+
+    assert result.count("/ecs/shared") == 1
+    assert "/ecs/production-web" in result
+    assert "/ecs/production-worker" in result
+    assert mock_logs_client.describe_log_groups.call_args_list == [
+        call(limit=50, logGroupNamePrefix="/ecs"),
+        call(limit=50, logGroupNamePrefix="/ecs", nextToken="page-2"),
+    ]
+
+
+def test_list_log_groups_stops_after_max_pages():
+    mock_logs_client = Mock()
+    mock_logs_client.describe_log_groups.side_effect = [
+        {
+            "logGroups": [{"logGroupName": f"/ecs/production-web-{page}"}],
+            "nextToken": f"page-{page + 1}",
+        }
+        for page in range(30)
+    ]
+    container_service = ContainerService(Mock(), Mock(), logs_client=mock_logs_client)
+
+    result = container_service.list_log_groups("production", "web")
+
+    assert mock_logs_client.describe_log_groups.call_count == 20
+    assert len(result) == 10
