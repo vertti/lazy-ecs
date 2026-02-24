@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from botocore.exceptions import BotoCoreError, ClientError
 
@@ -102,14 +102,21 @@ class TaskService:
         self,
         cluster_name: str,
         service_name: str | None,
-        desired_status: str,
+        desired_status: Literal["PENDING", "RUNNING", "STOPPED"],
         max_items: int | None = None,
     ) -> list[str]:
-        kwargs = {"cluster": cluster_name, "desiredStatus": desired_status}
-        if service_name:
-            kwargs["serviceName"] = service_name
         paginator = self.ecs_client.get_paginator("list_tasks")
-        page_iterator = paginator.paginate(**kwargs)
+        if service_name:
+            page_iterator = paginator.paginate(
+                cluster=cluster_name,
+                desiredStatus=desired_status,
+                serviceName=service_name,
+            )
+        else:
+            page_iterator = paginator.paginate(
+                cluster=cluster_name,
+                desiredStatus=desired_status,
+            )
 
         task_arns: list[str] = []
         for page in page_iterator:
