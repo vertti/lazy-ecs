@@ -1,8 +1,9 @@
 """Tests for task service."""
 
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 from lazy_ecs.features.task.task import (
+    DEFAULT_STOPPED_TASK_HISTORY_LIMIT,
     TaskService,
     _create_task_info,
     _get_brief_exit_reason,
@@ -191,3 +192,81 @@ def test_create_task_info_no_failure_for_running():
     info = _create_task_info(task, None)
     assert info["failure_reason"] is None
     assert "OOM" not in info["name"]
+
+
+def _build_task_history_task(task_arn: str, last_status: str) -> dict:
+    return {
+        "taskArn": task_arn,
+        "taskDefinitionArn": "arn:aws:ecs:us-east-1:123:task-definition/web:5",
+        "lastStatus": last_status,
+        "desiredStatus": last_status,
+        "containers": [{"name": "web", "lastStatus": last_status}],
+    }
+
+
+def test_get_task_history_caps_stopped_tasks_by_default_limit():
+    mock_ecs_client = Mock()
+    mock_paginator = Mock()
+    mock_ecs_client.get_paginator.return_value = mock_paginator
+    mock_paginator.paginate.side_effect = [
+        iter([{"taskArns": ["run-1", "run-2"]}]),
+        iter(
+            [
+                {"taskArns": [f"stop-{i}" for i in range(1, 26)]},
+                {"taskArns": [f"stop-{i}" for i in range(26, 60)]},
+            ],
+        ),
+    ]
+
+    def describe_tasks_side_effect(*, cluster: str, tasks: list[str]) -> dict:
+        assert cluster == "production"
+        return {
+            "tasks": [
+                _build_task_history_task(arn, "RUNNING" if arn.startswith("run-") else "STOPPED") for arn in tasks
+            ],
+        }
+
+    mock_ecs_client.describe_tasks.side_effect = describe_tasks_side_effect
+    task_service = TaskService(mock_ecs_client)
+
+    history = task_service.get_task_history("production", "web")
+
+    assert len(history) == 2 + DEFAULT_STOPPED_TASK_HISTORY_LIMIT
+    assert sum(1 for task in history if task["last_status"] == "STOPPED") == DEFAULT_STOPPED_TASK_HISTORY_LIMIT
+    mock_paginator.paginate.assert_has_calls(
+        [
+            call(cluster="production", desiredStatus="RUNNING", serviceName="web"),
+            call(cluster="production", desiredStatus="STOPPED", serviceName="web"),
+        ],
+    )
+
+
+def test_get_task_history_allows_uncapped_stopped_task_fetch():
+    mock_ecs_client = Mock()
+    mock_paginator = Mock()
+    mock_ecs_client.get_paginator.return_value = mock_paginator
+    mock_paginator.paginate.side_effect = [
+        iter([{"taskArns": ["run-1"]}]),
+        iter(
+            [
+                {"taskArns": ["stop-1", "stop-2"]},
+                {"taskArns": ["stop-3"]},
+            ],
+        ),
+    ]
+
+    def describe_tasks_side_effect(*, cluster: str, tasks: list[str]) -> dict:
+        assert cluster == "production"
+        return {
+            "tasks": [
+                _build_task_history_task(arn, "RUNNING" if arn.startswith("run-") else "STOPPED") for arn in tasks
+            ],
+        }
+
+    mock_ecs_client.describe_tasks.side_effect = describe_tasks_side_effect
+    task_service = TaskService(mock_ecs_client)
+
+    history = task_service.get_task_history("production", "web", stopped_limit=None)
+
+    assert len(history) == 4
+    assert sum(1 for task in history if task["last_status"] == "STOPPED") == 3

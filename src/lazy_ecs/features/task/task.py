@@ -25,6 +25,8 @@ EXIT_CODE_INFO: dict[int, tuple[str, str, str]] = {
     1: ("app error", "❌", "application error (exit code 1)"),
 }
 
+DEFAULT_STOPPED_TASK_HISTORY_LIMIT = 50
+
 
 class TaskService:
     def __init__(self, ecs_client: ECSClient) -> None:
@@ -96,19 +98,51 @@ class TaskService:
 
         return task, task_definition
 
-    def _list_tasks_by_status(self, cluster_name: str, service_name: str | None, desired_status: str) -> list[str]:
+    def _list_tasks_by_status(
+        self,
+        cluster_name: str,
+        service_name: str | None,
+        desired_status: str,
+        max_items: int | None = None,
+    ) -> list[str]:
         kwargs = {"cluster": cluster_name, "desiredStatus": desired_status}
         if service_name:
             kwargs["serviceName"] = service_name
-        return paginate_aws_list(self.ecs_client, "list_tasks", "taskArns", **kwargs)
+        paginator = self.ecs_client.get_paginator("list_tasks")
+        page_iterator = paginator.paginate(**kwargs)
 
-    def get_task_history(self, cluster_name: str, service_name: str | None = None) -> list[TaskHistoryDetails]:
+        task_arns: list[str] = []
+        for page in page_iterator:
+            items = page.get("taskArns", [])
+            if not isinstance(items, list):
+                continue
+
+            if max_items is None:
+                task_arns.extend(items)
+                continue
+
+            remaining = max_items - len(task_arns)
+            if remaining <= 0:
+                break
+
+            task_arns.extend(items[:remaining])
+            if len(task_arns) >= max_items:
+                break
+
+        return task_arns
+
+    def get_task_history(
+        self,
+        cluster_name: str,
+        service_name: str | None = None,
+        stopped_limit: int | None = DEFAULT_STOPPED_TASK_HISTORY_LIMIT,
+    ) -> list[TaskHistoryDetails]:
         task_arns = []
 
         running_arns = self._list_tasks_by_status(cluster_name, service_name, "RUNNING")
         task_arns.extend(running_arns)
 
-        stopped_arns = self._list_tasks_by_status(cluster_name, service_name, "STOPPED")
+        stopped_arns = self._list_tasks_by_status(cluster_name, service_name, "STOPPED", max_items=stopped_limit)
         task_arns.extend(stopped_arns)
 
         if not task_arns:
