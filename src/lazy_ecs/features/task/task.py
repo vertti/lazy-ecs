@@ -144,6 +144,10 @@ class TaskService:
         service_name: str | None = None,
         stopped_limit: int | None = DEFAULT_STOPPED_TASK_HISTORY_LIMIT,
     ) -> list[TaskHistoryDetails]:
+        if stopped_limit is not None and stopped_limit < 0:
+            error_message = "stopped_limit must be >= 0 or None"
+            raise ValueError(error_message)
+
         task_arns = []
 
         running_arns = self._list_tasks_by_status(cluster_name, service_name, "RUNNING")
