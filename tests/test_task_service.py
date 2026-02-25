@@ -204,16 +204,6 @@ def test_create_task_info_no_failure_for_running():
     assert "OOM" not in info["name"]
 
 
-def _build_task_history_task(task_arn: str, last_status: str) -> dict:
-    return {
-        "taskArn": task_arn,
-        "taskDefinitionArn": "arn:aws:ecs:us-east-1:123:task-definition/web:5",
-        "lastStatus": last_status,
-        "desiredStatus": last_status,
-        "containers": [{"name": "web", "lastStatus": last_status}],
-    }
-
-
 def _run_moto_fargate_task(ecs_client: ECSClient, cluster_name: str, task_definition: str) -> str:
     response = ecs_client.run_task(
         cluster=cluster_name,
@@ -281,11 +271,9 @@ def test_get_task_history_allows_uncapped_stopped_task_fetch():
 
 
 @mock_aws
-def test_get_task_history_handles_invalid_taskarn_pages_and_zero_stop_limit(mocker):
+def test_get_task_history_handles_invalid_taskarn_pages(mocker):
     ecs_client = _create_moto_task_history_client()
     _run_moto_fargate_task(ecs_client, "production", "web-task")
-    task_arn = _run_moto_fargate_task(ecs_client, "production", "web-task")
-    ecs_client.stop_task(cluster="production", task=task_arn, reason="history fixture")
 
     paginator = ecs_client.get_paginator("list_tasks")
     original_paginate = paginator.paginate
@@ -300,9 +288,23 @@ def test_get_task_history_handles_invalid_taskarn_pages_and_zero_stop_limit(mock
     mocker.patch.object(ecs_client, "get_paginator", return_value=paginator)
 
     task_service = TaskService(ecs_client)
-    history = task_service.get_task_history("production", stopped_limit=0)
+    history = task_service.get_task_history("production")
 
     assert len(history) >= 1
+    assert all(task.get("task_arn") for task in history)
+
+
+@mock_aws
+def test_get_task_history_with_zero_stopped_limit():
+    ecs_client = _create_moto_task_history_client()
+    _run_moto_fargate_task(ecs_client, "production", "web-task")
+    task_arn = _run_moto_fargate_task(ecs_client, "production", "web-task")
+    ecs_client.stop_task(cluster="production", task=task_arn, reason="history fixture")
+
+    task_service = TaskService(ecs_client)
+    history = task_service.get_task_history("production", stopped_limit=0)
+
+    assert len(history) == 1
     assert all(task["last_status"] != "STOPPED" for task in history)
 
 

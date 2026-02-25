@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 from botocore.exceptions import BotoCoreError, ClientError
 
@@ -106,35 +106,33 @@ class TaskService:
         max_items: int | None = None,
     ) -> list[str]:
         paginator = self.ecs_client.get_paginator("list_tasks")
+
+        class _PaginateKwargs(TypedDict, total=False):
+            cluster: str
+            desiredStatus: Literal["PENDING", "RUNNING", "STOPPED"]
+            serviceName: str
+
+        paginate_kwargs: _PaginateKwargs = {
+            "cluster": cluster_name,
+            "desiredStatus": desired_status,
+        }
         if service_name:
+            paginate_kwargs["serviceName"] = service_name
+
+        if max_items is not None:
             page_iterator = paginator.paginate(
-                cluster=cluster_name,
-                desiredStatus=desired_status,
-                serviceName=service_name,
+                **paginate_kwargs,
+                PaginationConfig={"MaxItems": max_items},
             )
         else:
-            page_iterator = paginator.paginate(
-                cluster=cluster_name,
-                desiredStatus=desired_status,
-            )
+            page_iterator = paginator.paginate(**paginate_kwargs)
 
         task_arns: list[str] = []
         for page in page_iterator:
             items = page.get("taskArns", [])
             if not isinstance(items, list):
                 continue
-
-            if max_items is None:
-                task_arns.extend(items)
-                continue
-
-            remaining = max_items - len(task_arns)
-            if remaining <= 0:
-                break
-
-            task_arns.extend(items[:remaining])
-            if len(task_arns) >= max_items:
-                break
+            task_arns.extend(items)
 
         return task_arns
 
