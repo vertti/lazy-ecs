@@ -1,14 +1,25 @@
 """Tests for task service."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 from unittest.mock import Mock
 
+import boto3
+import pytest
+from moto import mock_aws
+
 from lazy_ecs.features.task.task import (
+    DEFAULT_STOPPED_TASK_HISTORY_LIMIT,
     TaskService,
     _create_task_info,
     _get_brief_exit_reason,
     _get_brief_failure_reason,
     _get_brief_stop_reason,
 )
+
+if TYPE_CHECKING:
+    from mypy_boto3_ecs.client import ECSClient
 
 
 def test_get_task_details_returns_none_when_no_tasks():
@@ -191,3 +202,114 @@ def test_create_task_info_no_failure_for_running():
     info = _create_task_info(task, None)
     assert info["failure_reason"] is None
     assert "OOM" not in info["name"]
+
+
+def _run_moto_fargate_task(ecs_client: ECSClient, cluster_name: str, task_definition: str) -> str:
+    response = ecs_client.run_task(
+        cluster=cluster_name,
+        taskDefinition=task_definition,
+        count=1,
+        launchType="FARGATE",
+        networkConfiguration={
+            "awsvpcConfiguration": {
+                "subnets": ["subnet-12345"],
+                "assignPublicIp": "ENABLED",
+            },
+        },
+    )
+    return response["tasks"][0]["taskArn"]
+
+
+def _create_moto_task_history_client() -> ECSClient:
+    ecs_client = boto3.client("ecs", region_name="us-east-1")
+    ecs_client.create_cluster(clusterName="production")
+    ecs_client.register_task_definition(
+        family="web-task",
+        containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
+    )
+    ecs_client.create_service(
+        cluster="production",
+        serviceName="web",
+        taskDefinition="web-task",
+        desiredCount=0,
+    )
+    return ecs_client
+
+
+@mock_aws
+def test_get_task_history_caps_stopped_tasks_by_default_limit():
+    ecs_client = _create_moto_task_history_client()
+
+    for _ in range(2):
+        _run_moto_fargate_task(ecs_client, "production", "web-task")
+
+    for _ in range(DEFAULT_STOPPED_TASK_HISTORY_LIMIT + 15):
+        task_arn = _run_moto_fargate_task(ecs_client, "production", "web-task")
+        ecs_client.stop_task(cluster="production", task=task_arn, reason="history fixture")
+
+    task_service = TaskService(ecs_client)
+    history = task_service.get_task_history("production")
+
+    assert len(history) == 2 + DEFAULT_STOPPED_TASK_HISTORY_LIMIT
+    assert sum(1 for task in history if task["last_status"] == "STOPPED") == DEFAULT_STOPPED_TASK_HISTORY_LIMIT
+
+
+@mock_aws
+def test_get_task_history_allows_uncapped_stopped_task_fetch():
+    ecs_client = _create_moto_task_history_client()
+    _run_moto_fargate_task(ecs_client, "production", "web-task")
+    for _ in range(3):
+        task_arn = _run_moto_fargate_task(ecs_client, "production", "web-task")
+        ecs_client.stop_task(cluster="production", task=task_arn, reason="history fixture")
+
+    task_service = TaskService(ecs_client)
+
+    history = task_service.get_task_history("production", stopped_limit=None)
+
+    assert len(history) == 4
+    assert sum(1 for task in history if task["last_status"] == "STOPPED") == 3
+
+
+@mock_aws
+def test_get_task_history_handles_invalid_taskarn_pages(mocker):
+    ecs_client = _create_moto_task_history_client()
+    _run_moto_fargate_task(ecs_client, "production", "web-task")
+
+    paginator = ecs_client.get_paginator("list_tasks")
+    original_paginate = paginator.paginate
+
+    def paginate_side_effect(**kwargs: Any) -> Any:  # noqa: ANN401
+        page_iterator = original_paginate(**kwargs)
+        if kwargs.get("desiredStatus") == "RUNNING":
+            return iter([{"taskArns": "invalid"}, *list(page_iterator)])
+        return page_iterator
+
+    mocker.patch.object(paginator, "paginate", side_effect=paginate_side_effect)
+    mocker.patch.object(ecs_client, "get_paginator", return_value=paginator)
+
+    task_service = TaskService(ecs_client)
+    history = task_service.get_task_history("production")
+
+    assert len(history) >= 1
+    assert all(task.get("task_arn") for task in history)
+
+
+@mock_aws
+def test_get_task_history_with_zero_stopped_limit():
+    ecs_client = _create_moto_task_history_client()
+    _run_moto_fargate_task(ecs_client, "production", "web-task")
+    task_arn = _run_moto_fargate_task(ecs_client, "production", "web-task")
+    ecs_client.stop_task(cluster="production", task=task_arn, reason="history fixture")
+
+    task_service = TaskService(ecs_client)
+    history = task_service.get_task_history("production", stopped_limit=0)
+
+    assert len(history) == 1
+    assert all(task["last_status"] != "STOPPED" for task in history)
+
+
+def test_get_task_history_raises_for_negative_stopped_limit(mocker):
+    task_service = TaskService(mocker.Mock())
+
+    with pytest.raises(ValueError, match="stopped_limit must be >= 0 or None"):
+        task_service.get_task_history("production", stopped_limit=-1)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 from botocore.exceptions import BotoCoreError, ClientError
 
@@ -24,6 +24,14 @@ EXIT_CODE_INFO: dict[int, tuple[str, str, str]] = {
     143: ("SIGTERM", "🛑", "gracefully stopped (SIGTERM)"),
     1: ("app error", "❌", "application error (exit code 1)"),
 }
+
+DEFAULT_STOPPED_TASK_HISTORY_LIMIT = 50
+
+
+class _PaginateKwargs(TypedDict, total=False):
+    cluster: str
+    desiredStatus: Literal["PENDING", "RUNNING", "STOPPED"]
+    serviceName: str
 
 
 class TaskService:
@@ -96,19 +104,55 @@ class TaskService:
 
         return task, task_definition
 
-    def _list_tasks_by_status(self, cluster_name: str, service_name: str | None, desired_status: str) -> list[str]:
-        kwargs = {"cluster": cluster_name, "desiredStatus": desired_status}
-        if service_name:
-            kwargs["serviceName"] = service_name
-        return paginate_aws_list(self.ecs_client, "list_tasks", "taskArns", **kwargs)
+    def _list_tasks_by_status(
+        self,
+        cluster_name: str,
+        service_name: str | None,
+        desired_status: Literal["PENDING", "RUNNING", "STOPPED"],
+        max_items: int | None = None,
+    ) -> list[str]:
+        paginator = self.ecs_client.get_paginator("list_tasks")
 
-    def get_task_history(self, cluster_name: str, service_name: str | None = None) -> list[TaskHistoryDetails]:
+        paginate_kwargs: _PaginateKwargs = {
+            "cluster": cluster_name,
+            "desiredStatus": desired_status,
+        }
+        if service_name:
+            paginate_kwargs["serviceName"] = service_name
+
+        if max_items is not None:
+            page_iterator = paginator.paginate(
+                **paginate_kwargs,
+                PaginationConfig={"MaxItems": max_items},
+            )
+        else:
+            page_iterator = paginator.paginate(**paginate_kwargs)
+
+        task_arns: list[str] = []
+        for page in page_iterator:
+            items = page.get("taskArns", [])
+            if not isinstance(items, list):
+                continue
+            task_arns.extend(items)
+
+        return task_arns
+
+    def get_task_history(
+        self,
+        cluster_name: str,
+        service_name: str | None = None,
+        stopped_limit: int | None = DEFAULT_STOPPED_TASK_HISTORY_LIMIT,
+    ) -> list[TaskHistoryDetails]:
+        if stopped_limit is not None and stopped_limit < 0:
+            error_message = "stopped_limit must be >= 0 or None"
+            raise ValueError(error_message)
+
         task_arns = []
 
         running_arns = self._list_tasks_by_status(cluster_name, service_name, "RUNNING")
         task_arns.extend(running_arns)
 
-        stopped_arns = self._list_tasks_by_status(cluster_name, service_name, "STOPPED")
+        stopped_arns = self._list_tasks_by_status(cluster_name, service_name, "STOPPED", max_items=stopped_limit)
         task_arns.extend(stopped_arns)
 
         if not task_arns:

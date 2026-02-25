@@ -11,7 +11,7 @@ from ...core.navigation import select_with_auto_pagination
 from ...core.types import TaskDetails, TaskHistoryDetails
 from ...core.utils import extract_task_id, print_warning, show_spinner
 from .comparison import TaskComparisonService, compare_task_definitions
-from .task import TaskService
+from .task import DEFAULT_STOPPED_TASK_HISTORY_LIMIT, TaskService
 
 console = Console()
 
@@ -181,12 +181,17 @@ class TaskUI:
 
         return select_with_auto_pagination("Select a feature for this task:", choices, "Back to service selection")
 
-    def display_task_history(self, cluster_name: str, service_name: str) -> None:
+    def display_task_history(
+        self,
+        cluster_name: str,
+        service_name: str,
+        stopped_limit: int | None = DEFAULT_STOPPED_TASK_HISTORY_LIMIT,
+    ) -> None:
         console.print(f"\nTask History for service '{service_name}'", style="bold cyan")
         console.print("=" * SEPARATOR_WIDTH, style="dim")
 
         with show_spinner():
-            task_history = self.task_service.get_task_history(cluster_name, service_name)
+            task_history = self.task_service.get_task_history(cluster_name, service_name, stopped_limit=stopped_limit)
 
         if not task_history:
             print_warning("No task history found for this service")
@@ -204,6 +209,9 @@ class TaskUI:
             table.add_row(*self._format_task_row(task))
 
         console.print(table)
+        console.print(f"Showing {len(recent_tasks)} of {len(sorted_history)} fetched tasks.", style="dim")
+        if stopped_limit is not None:
+            console.print(f"⚠️ Stopped task history fetch is capped at {stopped_limit} tasks.", style="dim")
         self._display_history_summary(recent_tasks)
         console.print("=" * SEPARATOR_WIDTH, style="dim")
 

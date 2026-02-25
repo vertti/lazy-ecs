@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from lazy_ecs.core.types import TaskHistoryDetails
+from lazy_ecs.features.task.task import DEFAULT_STOPPED_TASK_HISTORY_LIMIT
 from lazy_ecs.features.task.ui import TaskUI
 
 
@@ -82,13 +83,21 @@ class TestTaskHistoryUI:
         task_ui.display_task_history("test-cluster", "web-service")
 
         # Verify service method was called
-        mock_task_service.get_task_history.assert_called_once_with("test-cluster", "web-service")
+        mock_task_service.get_task_history.assert_called_once_with(
+            "test-cluster",
+            "web-service",
+            stopped_limit=DEFAULT_STOPPED_TASK_HISTORY_LIMIT,
+        )
 
         # Verify service method was called correctly
         mock_task_service.get_task_failure_analysis.assert_called()
 
         # Verify title was printed
         assert any("Task History" in str(call) for call in mock_print.call_args_list)
+        assert any(
+            f"⚠️ Stopped task history fetch is capped at {DEFAULT_STOPPED_TASK_HISTORY_LIMIT} tasks." in str(call)
+            for call in mock_print.call_args_list
+        )
 
         # The status indicators are displayed in a table, so we check that the table was created
         # The exact string matching is tricky with Rich tables, so we check the method calls
@@ -101,7 +110,11 @@ class TestTaskHistoryUI:
 
         task_ui.display_task_history("test-cluster", "web-service")
 
-        mock_task_service.get_task_history.assert_called_once_with("test-cluster", "web-service")
+        mock_task_service.get_task_history.assert_called_once_with(
+            "test-cluster",
+            "web-service",
+            stopped_limit=DEFAULT_STOPPED_TASK_HISTORY_LIMIT,
+        )
         mock_print_warning.assert_called_once_with("No task history found for this service")
 
     @patch("lazy_ecs.features.task.ui.console.print")
