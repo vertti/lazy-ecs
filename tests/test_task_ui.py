@@ -231,18 +231,19 @@ def _build_task_history_entry(task_arn: str, last_status: str) -> dict:
     }
 
 
-@patch("lazy_ecs.features.task.ui.console.print")
-@patch("lazy_ecs.features.task.ui.show_spinner")
-def test_display_task_history_shows_count_and_default_cap_notice(mock_spinner, mock_print, task_ui):
-    mock_spinner.return_value.__enter__ = Mock()
-    mock_spinner.return_value.__exit__ = Mock()
-    task_ui.task_service.get_task_history = Mock(
+def test_display_task_history_shows_count_and_default_cap_notice(mocker, task_ui):
+    mock_print = mocker.patch("lazy_ecs.features.task.ui.console.print")
+    mock_spinner = mocker.patch("lazy_ecs.features.task.ui.show_spinner")
+    mock_spinner.return_value.__enter__.return_value = None
+    mock_spinner.return_value.__exit__.return_value = None
+
+    task_ui.task_service.get_task_history = mocker.MagicMock(
         return_value=[
             _build_task_history_entry("arn:task/run-1", "RUNNING"),
             _build_task_history_entry("arn:task/stop-1", "STOPPED"),
         ],
     )
-    task_ui.task_service.get_task_failure_analysis = Mock(return_value="ok")
+    task_ui.task_service.get_task_failure_analysis = mocker.MagicMock(return_value="ok")
 
     task_ui.display_task_history("production", "web")
 
@@ -254,24 +255,25 @@ def test_display_task_history_shows_count_and_default_cap_notice(mock_spinner, m
     printed = [str(call.args[0]) for call in mock_print.call_args_list if call.args]
     assert any("Showing 2 of 2 fetched tasks." in line for line in printed)
     assert any(
-        f"Stopped task history fetch is capped at {DEFAULT_STOPPED_TASK_HISTORY_LIMIT} tasks." in line
+        f"⚠️ Stopped task history fetch is capped at {DEFAULT_STOPPED_TASK_HISTORY_LIMIT} tasks." in line
         for line in printed
     )
 
 
-@patch("lazy_ecs.features.task.ui.console.print")
-@patch("lazy_ecs.features.task.ui.show_spinner")
-def test_display_task_history_hides_cap_notice_when_uncapped(mock_spinner, mock_print, task_ui):
-    mock_spinner.return_value.__enter__ = Mock()
-    mock_spinner.return_value.__exit__ = Mock()
-    task_ui.task_service.get_task_history = Mock(
+def test_display_task_history_hides_cap_notice_when_uncapped(mocker, task_ui):
+    mock_print = mocker.patch("lazy_ecs.features.task.ui.console.print")
+    mock_spinner = mocker.patch("lazy_ecs.features.task.ui.show_spinner")
+    mock_spinner.return_value.__enter__.return_value = None
+    mock_spinner.return_value.__exit__.return_value = None
+
+    task_ui.task_service.get_task_history = mocker.MagicMock(
         return_value=[_build_task_history_entry("arn:task/run-1", "RUNNING")],
     )
-    task_ui.task_service.get_task_failure_analysis = Mock(return_value="ok")
+    task_ui.task_service.get_task_failure_analysis = mocker.MagicMock(return_value="ok")
 
     task_ui.display_task_history("production", "web", stopped_limit=None)
 
     task_ui.task_service.get_task_history.assert_called_once_with("production", "web", stopped_limit=None)
     printed = [str(call.args[0]) for call in mock_print.call_args_list if call.args]
     assert any("Showing 1 of 1 fetched tasks." in line for line in printed)
-    assert not any("Stopped task history fetch is capped at" in line for line in printed)
+    assert not any("⚠️ Stopped task history fetch is capped at" in line for line in printed)

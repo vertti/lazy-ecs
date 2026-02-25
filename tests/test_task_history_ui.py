@@ -95,7 +95,7 @@ class TestTaskHistoryUI:
         # Verify title was printed
         assert any("Task History" in str(call) for call in mock_print.call_args_list)
         assert any(
-            f"Stopped task history fetch is capped at {DEFAULT_STOPPED_TASK_HISTORY_LIMIT} tasks." in str(call)
+            f"⚠️ Stopped task history fetch is capped at {DEFAULT_STOPPED_TASK_HISTORY_LIMIT} tasks." in str(call)
             for call in mock_print.call_args_list
         )
 

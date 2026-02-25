@@ -1,6 +1,9 @@
 """Tests for task service."""
 
-from unittest.mock import Mock, call
+from unittest.mock import Mock
+
+import boto3
+from moto import mock_aws
 
 from lazy_ecs.features.task.task import (
     DEFAULT_STOPPED_TASK_HISTORY_LIMIT,
@@ -204,46 +207,54 @@ def _build_task_history_task(task_arn: str, last_status: str) -> dict:
     }
 
 
+def _run_moto_fargate_task(ecs_client, cluster_name: str, task_definition: str) -> str:
+    response = ecs_client.run_task(
+        cluster=cluster_name,
+        taskDefinition=task_definition,
+        count=1,
+        launchType="FARGATE",
+        networkConfiguration={
+            "awsvpcConfiguration": {
+                "subnets": ["subnet-12345"],
+                "assignPublicIp": "ENABLED",
+            },
+        },
+    )
+    return response["tasks"][0]["taskArn"]
+
+
+@mock_aws
 def test_get_task_history_caps_stopped_tasks_by_default_limit():
-    mock_ecs_client = Mock()
-    mock_paginator = Mock()
-    mock_ecs_client.get_paginator.return_value = mock_paginator
-    mock_paginator.paginate.side_effect = [
-        iter([{"taskArns": ["run-1", "run-2"]}]),
-        iter(
-            [
-                {"taskArns": [f"stop-{i}" for i in range(1, 26)]},
-                {"taskArns": [f"stop-{i}" for i in range(26, 60)]},
-            ],
-        ),
-    ]
+    ecs_client = boto3.client("ecs", region_name="us-east-1")
+    ecs_client.create_cluster(clusterName="production")
+    ecs_client.register_task_definition(
+        family="web-task",
+        containerDefinitions=[{"name": "web", "image": "nginx", "memory": 256}],
+    )
+    ecs_client.create_service(
+        cluster="production",
+        serviceName="web",
+        taskDefinition="web-task",
+        desiredCount=0,
+    )
 
-    def describe_tasks_side_effect(*, cluster: str, tasks: list[str]) -> dict:
-        assert cluster == "production"
-        return {
-            "tasks": [
-                _build_task_history_task(arn, "RUNNING" if arn.startswith("run-") else "STOPPED") for arn in tasks
-            ],
-        }
+    for _ in range(2):
+        _run_moto_fargate_task(ecs_client, "production", "web-task")
 
-    mock_ecs_client.describe_tasks.side_effect = describe_tasks_side_effect
-    task_service = TaskService(mock_ecs_client)
+    for _ in range(DEFAULT_STOPPED_TASK_HISTORY_LIMIT + 15):
+        task_arn = _run_moto_fargate_task(ecs_client, "production", "web-task")
+        ecs_client.stop_task(cluster="production", task=task_arn, reason="history fixture")
 
-    history = task_service.get_task_history("production", "web")
+    task_service = TaskService(ecs_client)
+    history = task_service.get_task_history("production")
 
     assert len(history) == 2 + DEFAULT_STOPPED_TASK_HISTORY_LIMIT
     assert sum(1 for task in history if task["last_status"] == "STOPPED") == DEFAULT_STOPPED_TASK_HISTORY_LIMIT
-    mock_paginator.paginate.assert_has_calls(
-        [
-            call(cluster="production", desiredStatus="RUNNING", serviceName="web"),
-            call(cluster="production", desiredStatus="STOPPED", serviceName="web"),
-        ],
-    )
 
 
-def test_get_task_history_allows_uncapped_stopped_task_fetch():
-    mock_ecs_client = Mock()
-    mock_paginator = Mock()
+def test_get_task_history_allows_uncapped_stopped_task_fetch(mocker):
+    mock_ecs_client = mocker.Mock()
+    mock_paginator = mocker.Mock()
     mock_ecs_client.get_paginator.return_value = mock_paginator
     mock_paginator.paginate.side_effect = [
         iter([{"taskArns": ["run-1"]}]),
@@ -270,3 +281,23 @@ def test_get_task_history_allows_uncapped_stopped_task_fetch():
 
     assert len(history) == 4
     assert sum(1 for task in history if task["last_status"] == "STOPPED") == 3
+
+
+def test_get_task_history_handles_invalid_taskarn_pages_and_zero_stop_limit(mocker):
+    mock_ecs_client = mocker.Mock()
+    mock_paginator = mocker.Mock()
+    mock_ecs_client.get_paginator.return_value = mock_paginator
+    mock_paginator.paginate.side_effect = [
+        iter([{"taskArns": "invalid"}, {"taskArns": ["run-1"]}]),
+        iter([{"taskArns": ["stop-1", "stop-2"]}]),
+    ]
+
+    mock_ecs_client.describe_tasks.return_value = {
+        "tasks": [_build_task_history_task("run-1", "RUNNING")],
+    }
+
+    task_service = TaskService(mock_ecs_client)
+    history = task_service.get_task_history("production", stopped_limit=0)
+
+    assert len(history) == 1
+    assert all(task["last_status"] == "RUNNING" for task in history)

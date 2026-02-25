@@ -211,7 +211,7 @@ class TaskUI:
         console.print(table)
         console.print(f"Showing {len(recent_tasks)} of {len(sorted_history)} fetched tasks.", style="dim")
         if stopped_limit is not None:
-            console.print(f"Stopped task history fetch is capped at {stopped_limit} tasks.", style="dim")
+            console.print(f"⚠️ Stopped task history fetch is capped at {stopped_limit} tasks.", style="dim")
         self._display_history_summary(recent_tasks)
         console.print("=" * SEPARATOR_WIDTH, style="dim")
 
