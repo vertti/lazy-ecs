@@ -264,7 +264,7 @@ def test_get_task_history_allows_uncapped_stopped_task_fetch():
 
     task_service = TaskService(ecs_client)
 
-    history = task_service.get_task_history("production", "web", stopped_limit=None)
+    history = task_service.get_task_history("production", stopped_limit=None)
 
     assert len(history) == 4
     assert sum(1 for task in history if task["last_status"] == "STOPPED") == 3

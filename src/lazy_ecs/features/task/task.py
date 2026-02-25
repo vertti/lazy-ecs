@@ -28,6 +28,12 @@ EXIT_CODE_INFO: dict[int, tuple[str, str, str]] = {
 DEFAULT_STOPPED_TASK_HISTORY_LIMIT = 50
 
 
+class _PaginateKwargs(TypedDict, total=False):
+    cluster: str
+    desiredStatus: Literal["PENDING", "RUNNING", "STOPPED"]
+    serviceName: str
+
+
 class TaskService:
     def __init__(self, ecs_client: ECSClient) -> None:
         self.ecs_client = ecs_client
@@ -106,11 +112,6 @@ class TaskService:
         max_items: int | None = None,
     ) -> list[str]:
         paginator = self.ecs_client.get_paginator("list_tasks")
-
-        class _PaginateKwargs(TypedDict, total=False):
-            cluster: str
-            desiredStatus: Literal["PENDING", "RUNNING", "STOPPED"]
-            serviceName: str
 
         paginate_kwargs: _PaginateKwargs = {
             "cluster": cluster_name,
