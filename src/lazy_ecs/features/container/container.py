@@ -42,9 +42,6 @@ class LiveTailError(RuntimeError):
     pass
 
 
-_CACHE_MISS = object()
-
-
 def _format_client_error(error: ClientError) -> str:
     error_details = error.response.get("Error", {})
     code = error_details.get("Code")
@@ -120,9 +117,8 @@ class ContainerService:
 
     def _get_task_and_definition_cached(self, cluster_name: str, task_arn: str) -> TaskLookupResult:
         cache_key = (cluster_name, task_arn)
-        cached_result = self._task_context_cache.get(cache_key, _CACHE_MISS)
-        if cached_result is not _CACHE_MISS:
-            return cached_result
+        if cache_key in self._task_context_cache:
+            return self._task_context_cache[cache_key]
 
         result = self.task_service.get_task_and_definition(cluster_name, task_arn)
         self._task_context_cache[cache_key] = result
