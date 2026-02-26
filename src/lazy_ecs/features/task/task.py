@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 from botocore.exceptions import BotoCoreError, ClientError
 
-from ...core.types import TaskDetails, TaskHistoryDetails, TaskInfo
+from ...core.types import ContainerHistoryInfo, TaskDetails, TaskHistoryDetails, TaskInfo
 from ...core.utils import (
     batch_items,
     extract_task_def_family,
@@ -196,16 +196,16 @@ class TaskService:
         task_def_family = extract_task_def_family(task_def_arn)
         task_def_revision = extract_task_def_revision(task_def_arn)
 
-        containers = []
+        containers: list[ContainerHistoryInfo] = []
         for container in task.get("containers", []):
             containers.append(
-                {
-                    "name": container["name"],
-                    "exit_code": container.get("exitCode"),
-                    "reason": container.get("reason"),
-                    "health_status": container.get("healthStatus"),
-                    "last_status": container.get("lastStatus", "UNKNOWN"),
-                },
+                ContainerHistoryInfo(
+                    name=container["name"],
+                    exit_code=container.get("exitCode"),
+                    reason=container.get("reason"),
+                    health_status=container.get("healthStatus"),
+                    last_status=container.get("lastStatus", "UNKNOWN"),
+                ),
             )
 
         return {
