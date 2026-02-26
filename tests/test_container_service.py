@@ -118,6 +118,77 @@ def test_get_container_context_success(container_service, mock_task_service):
     assert result.task_arn == "task-arn"
 
 
+def test_get_container_context_uses_cached_task_lookup(container_service, mock_task_service):
+    mock_task = {"taskArn": "task-arn"}
+    mock_task_definition = {
+        "containerDefinitions": [
+            {"name": "web", "image": "nginx:latest"},
+            {"name": "worker", "image": "python:3.11"},
+        ]
+    }
+    mock_task_service.get_task_and_definition.return_value = (mock_task, mock_task_definition)
+
+    web_context = container_service.get_container_context("cluster", "task-arn", "web")
+    worker_context = container_service.get_container_context("cluster", "task-arn", "worker")
+
+    assert web_context is not None
+    assert worker_context is not None
+    mock_task_service.get_task_and_definition.assert_called_once_with("cluster", "task-arn")
+
+
+def test_get_container_context_caches_missing_task_lookup(container_service, mock_task_service):
+    mock_task_service.get_task_and_definition.return_value = None
+
+    first_result = container_service.get_container_context("cluster", "missing-task", "web")
+    second_result = container_service.get_container_context("cluster", "missing-task", "web")
+
+    assert first_result is None
+    assert second_result is None
+    mock_task_service.get_task_and_definition.assert_called_once_with("cluster", "missing-task")
+
+
+def test_get_container_context_cache_miss_for_different_task(container_service, mock_task_service):
+    mock_task_service.get_task_and_definition.side_effect = [
+        (
+            {"taskArn": "task-arn-1"},
+            {"containerDefinitions": [{"name": "web", "image": "nginx:latest"}]},
+        ),
+        (
+            {"taskArn": "task-arn-2"},
+            {"containerDefinitions": [{"name": "web", "image": "nginx:latest"}]},
+        ),
+    ]
+
+    first = container_service.get_container_context("cluster", "task-arn-1", "web")
+    second = container_service.get_container_context("cluster", "task-arn-2", "web")
+
+    assert first is not None
+    assert second is not None
+    assert mock_task_service.get_task_and_definition.call_count == 2
+    mock_task_service.get_task_and_definition.assert_has_calls(
+        [
+            call("cluster", "task-arn-1"),
+            call("cluster", "task-arn-2"),
+        ]
+    )
+
+
+def test_clear_context_cache_forces_task_lookup_refresh(container_service, mock_task_service):
+    mock_task = {"taskArn": "task-arn"}
+    mock_task_definition = {"containerDefinitions": [{"name": "web", "image": "nginx:latest"}]}
+    mock_task_service.get_task_and_definition.return_value = (mock_task, mock_task_definition)
+
+    first_result = container_service.get_container_context("cluster", "task-arn", "web")
+    second_result = container_service.get_container_context("cluster", "task-arn", "web")
+    container_service.clear_context_cache()
+    third_result = container_service.get_container_context("cluster", "task-arn", "web")
+
+    assert first_result is not None
+    assert second_result is not None
+    assert third_result is not None
+    assert mock_task_service.get_task_and_definition.call_count == 2
+
+
 def test_get_container_definition_not_found(container_service):
     task_definition = {
         "containerDefinitions": [
