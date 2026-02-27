@@ -13,7 +13,7 @@ from ...core.types import LogConfig
 
 if TYPE_CHECKING:
     from mypy_boto3_ecs.client import ECSClient
-    from mypy_boto3_ecs.type_defs import ContainerDefinitionOutputTypeDef, TaskDefinitionTypeDef
+    from mypy_boto3_ecs.type_defs import ContainerDefinitionOutputTypeDef, TaskDefinitionTypeDef, TaskTypeDef
     from mypy_boto3_logs.client import CloudWatchLogsClient
     from mypy_boto3_logs.type_defs import (
         FilteredLogEventTypeDef,
@@ -24,6 +24,10 @@ if TYPE_CHECKING:
     from mypy_boto3_sts.client import STSClient
 
     from ..task.task import TaskService
+
+    TaskLookupResult = tuple[TaskTypeDef, TaskDefinitionTypeDef] | None
+else:
+    TaskLookupResult = tuple[dict[str, Any], dict[str, Any]] | None
 
 
 def build_log_group_arn(region: str, account_id: str, log_group: str) -> str:
@@ -106,9 +110,22 @@ class ContainerService:
         self.task_service = task_service
         self.sts_client = sts_client
         self.logs_client = logs_client
+        self._task_context_cache: dict[tuple[str, str], TaskLookupResult] = {}
+
+    def clear_context_cache(self) -> None:
+        self._task_context_cache.clear()
+
+    def _get_task_and_definition_cached(self, cluster_name: str, task_arn: str) -> TaskLookupResult:
+        cache_key = (cluster_name, task_arn)
+        if cache_key in self._task_context_cache:
+            return self._task_context_cache[cache_key]
+
+        result = self.task_service.get_task_and_definition(cluster_name, task_arn)
+        self._task_context_cache[cache_key] = result
+        return result
 
     def get_container_context(self, cluster_name: str, task_arn: str, container_name: str) -> ContainerContext | None:
-        result = self.task_service.get_task_and_definition(cluster_name, task_arn)
+        result = self._get_task_and_definition_cached(cluster_name, task_arn)
         if not result:
             return None
 
