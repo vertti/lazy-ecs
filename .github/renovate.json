@@ -14,6 +14,25 @@
       "groupName": "uv",
       "matchPackageNames": ["uv", "astral-sh/uv", "ghcr.io/astral-sh/uv"],
       "separateMajorMinor": false
+    },
+    {
+      "description": "Automerge dev tooling (non-major)",
+      "matchPackageNames": [
+        "ruff",
+        "pytest",
+        "pytest-cov",
+        "pytest-mock",
+        "moto",
+        "pre-commit",
+        "pyrefly"
+      ],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "description": "Automerge lock file maintenance",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "automerge": true
     }
   ]
 }
