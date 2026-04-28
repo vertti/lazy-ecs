@@ -26,7 +26,7 @@ classifiers = [
 ]
 dependencies = [
   "questionary==2.1.1",
-  "boto3==1.42.93",
+  "boto3==1.42.97",
   "rich==15.0.0",
 ]
 
@@ -48,7 +48,7 @@ dev = [
   "ruff==0.15.12",
   "pre-commit==4.6.0",
   "pyrefly==0.58.0",
-  "boto3-stubs[ecs,logs,sts,cloudwatch]==1.42.93",
+  "boto3-stubs[ecs,logs,sts,cloudwatch]==1.42.97",
 ]
 
 [tool.ruff]
