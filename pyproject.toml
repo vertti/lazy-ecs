@@ -47,7 +47,7 @@ dev = [
   "moto[ecs]==5.2.1",
   "ruff==0.15.13",
   "pre-commit==4.6.0",
-  "pyrefly==0.64.1",
+  "pyrefly==1.0.0",
   "boto3-stubs[ecs,logs,sts,cloudwatch]==1.43.6",
 ]
 
