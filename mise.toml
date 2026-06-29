@@ -1,4 +1,4 @@
 [tools]
-dprint = "0.54.0"
+dprint = "0.55.1"
 python = "3.14.5"
 uv = "0.11.19"
