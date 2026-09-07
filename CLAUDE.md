@@ -31,7 +31,6 @@ The project uses:
 6. **Format code**: `uv run ruff format` (fixes many linting issues automatically)
 7. **Check and fix linting**: `uv run ruff check --fix` (fixes issues AND does the check)
 8. **Type check**: `uv run pyrefly check` (fast type checking)
-9. **Pause** - suggest commit message, never commit automatically
 
 ## Setup
 
@@ -174,6 +173,7 @@ def ecs_client_with_clusters():
         client.create_cluster(clusterName="production")
         yield client
 
+
 def test_get_cluster_names(ecs_client_with_clusters):
     navigator = ECSNavigator(ecs_client_with_clusters)
     clusters = navigator.get_cluster_names()
@@ -200,7 +200,8 @@ def test_get_cluster_names(ecs_client_with_clusters):
 def get_task_details(self, cluster_name: str, service_name: str, task_arn: str) -> dict[str, Any]:
     # Use specific AWS types from boto3-stubs
     task_response: DescribeTasksResponseTypeDef = self.ecs_client.describe_tasks(...)
-    
+
+
 # Use TypedDict for structured return data
 class TaskChoice(TypedDict):
     name: str
@@ -243,7 +244,7 @@ def _determine_service_status(running_count: int, desired_count: int, pending_co
 def update_service_status(self):
     """Requires mocking self.client, self.cache, etc."""
     response = self.client.describe_services()  # Hidden dependency
-    data = self.cache.get_cached_data()         # Hidden dependency
+    data = self.cache.get_cached_data()  # Hidden dependency
     # ... 50 lines of mixed logic
 ```
 
@@ -302,6 +303,7 @@ def mock_task_service():
     """Mock task service for testing."""
     return Mock()
 
+
 # Sort by creation time
 tasks.sort(key=lambda t: t["created_at"])
 
@@ -314,6 +316,7 @@ choices.append({"name": "🚀 Force new deployment", "value": "action:force_depl
 ```python
 def mock_task_service():
     return Mock()
+
 
 # Sort newest first to show recent failures prominently
 tasks.sort(key=lambda t: t["created_at"], reverse=True)
