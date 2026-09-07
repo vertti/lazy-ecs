@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -44,12 +45,12 @@ def normalize_task_definition(raw_task_def: dict[str, Any] | TaskDefinitionTypeD
     return normalized
 
 
-def _extract_environment(container_def: dict[str, Any]) -> dict[str, str]:
+def _extract_environment(container_def: Mapping[str, Any]) -> dict[str, str]:
     env_list = container_def.get("environment", [])
     return {item["name"]: item["value"] for item in env_list}
 
 
-def _extract_secrets(container_def: dict[str, Any]) -> dict[str, str]:
+def _extract_secrets(container_def: Mapping[str, Any]) -> dict[str, str]:
     secrets_list = container_def.get("secrets", [])
     return {item["name"]: item["valueFrom"] for item in secrets_list}
 
