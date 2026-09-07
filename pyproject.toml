@@ -45,7 +45,7 @@ dev = [
   "pytest-cov==7.1.0",
   "pytest-mock==3.15.1",
   "moto[ecs]==5.2.3",
-  "ruff==0.15.22",
+  "ruff==0.16.6",
   "pre-commit==4.6.2",
   "pyrefly==1.2.0",
   "boto3-stubs[ecs,logs,sts,cloudwatch]==1.43.89",
@@ -78,6 +78,7 @@ ignore = [
   "E501", # Handle with line-length = 120 instead
 
   # Not applicable for CLI tool
+  "CPY001", # Copyright is maintained in LICENSE, not per-file headers
   "TID252", # Relative imports are fine in our structure
   "TC001",
   "TC002",
@@ -101,6 +102,7 @@ ignore = [
   "PLR0911", # Too many return statements
   "PLR0912", # Too many branches
   "PLR0913", # Too many arguments
+  "PLR0917", # Too many positional arguments - same policy as PLR0913
   "PLR0915", # Too many statements
 ]
 
