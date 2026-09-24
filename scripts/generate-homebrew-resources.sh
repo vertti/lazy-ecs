@@ -16,7 +16,7 @@ source venv/bin/activate
 
 # Install the package and poet (suppress output)
 echo "Installing lazy-ecs and homebrew-pypi-poet..." >&2
-pip install lazy-ecs homebrew-pypi-poet > /dev/null 2>&1
+pip install lazy-ecs homebrew-pypi-poet "setuptools<81" > /dev/null 2>&1
 
 # Generate resource stanzas (only output the resources, not installation messages)
 echo "Generating resource blocks..." >&2
