@@ -10,7 +10,7 @@ export PACKAGE_SHA256="test-sha256"
 
 # Generate real resources
 echo "Generating resources..." >&2
-export HOMEBREW_RESOURCES=$(./scripts/generate-homebrew-resources.sh)
+export HOMEBREW_RESOURCES=$(python3 scripts/generate_homebrew_resources.py)
 
 # Generate formula
 mkdir -p test-output
