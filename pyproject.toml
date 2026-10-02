@@ -127,6 +127,7 @@ ignore = [
 
 [tool.pyrefly]
 project-includes = ["**/*"]
+search-path = ["src", "scripts"]
 project-excludes = [
   "**/node_modules",
   "**/__pycache__",
@@ -139,6 +140,7 @@ indent-style = "space"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["scripts"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
