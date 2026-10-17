@@ -43,7 +43,7 @@ lazy-ecs = "lazy_ecs:main"
 dev = [
   "pytest==9.1.1",
   "pytest-cov==7.1.0",
-  "pytest-mock==3.16.0",
+  "pytest-mock==3.17.0",
   "moto[ecs]==5.2.4",
   "ruff==0.17.1",
   "pre-commit==4.7.0",
