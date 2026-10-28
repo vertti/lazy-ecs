@@ -44,7 +44,7 @@ dev = [
   "pytest==9.1.1",
   "pytest-cov==7.1.0",
   "pytest-mock==3.17.0",
-  "moto[ecs]==5.2.4",
+  "moto[ecs]==5.2.5",
   "ruff==0.17.3",
   "pre-commit==4.7.0",
   "pyrefly==1.4.0",
