@@ -34,7 +34,7 @@ jobs:
 
       - name: Generate dependency resources
         run: |
-          RESOURCES=$(./scripts/generate-homebrew-resources.sh)
+          RESOURCES=$(python3 scripts/generate_homebrew_resources.py)
           echo "HOMEBREW_RESOURCES<<EOF" >> $GITHUB_ENV
           echo "$RESOURCES" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
